@@ -32,5 +32,5 @@ clean:
 	rm $(TARGET)
 
 d: $(TARGET)
-	gdb tests
+	gdb $(TARGET)
 
