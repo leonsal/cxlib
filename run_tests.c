@@ -37,6 +37,7 @@ int main() {
     str16_set(&s5, "012345");
     str16_ins(&s5, "abc", 2);
     str16_ins(&s5, "6789", 9);
+    //str16_inss(&s5, &s5, 0);
 
 
     str16_free(&s1);

@@ -73,6 +73,7 @@
     #define name_cats           Cats
     #define name_insn           Insn
     #define name_ins            Ins
+    #define name_inss           Inss
 #else
     #define name_init           _init
     #define name_init2          _init2
@@ -92,6 +93,7 @@
     #define name_cats           _cats
     #define name_insn           _insn
     #define name_ins            _ins
+    #define name_inss           _inss
 #endif
 
 //
@@ -253,16 +255,6 @@ linkage void type_name(name_sets)(cx_str_name* s, const cx_str_name* src) {
     s->data[s->len] = 0;
 }
 
-linkage void type_name(name_cat)(cx_str_name* s, const char* src) {
-
-    size_t srcLen = strlen(src);
-    if (s->len + srcLen > s->cap) {
-        type_name(_grow_)(s, s->len + srcLen, 0);
-    }
-    memcpy(s->data + s->len, src, srcLen + 1);
-    s->len += srcLen;
-}
-
 linkage void type_name(name_catn)(cx_str_name* s, const char* src, size_t n) {
 
     if (s->len + n > s->cap) {
@@ -273,14 +265,14 @@ linkage void type_name(name_catn)(cx_str_name* s, const char* src, size_t n) {
     s->data[s->len] = 0;
 }
 
+linkage void type_name(name_cat)(cx_str_name* s, const char* src) {
+
+    type_name(name_catn)(s, src, strlen(src));
+}
+
 linkage void type_name(name_cats)(cx_str_name* s, const cx_str_name* src) {
 
-    if (s->len + src->len > s->cap) {
-        type_name(_grow_)(s, s->len + src->len, 0);
-    }
-    memcpy(s->data + s->len, src->data, src->len);
-    s->len += src->len;
-    s->data[s->len] = 0;
+    type_name(name_catn)(s, src->data, src->len);
 }
 
 linkage void type_name(name_insn)(cx_str_name* s, const char* src, size_t n, size_t idx) {
@@ -300,19 +292,12 @@ linkage void type_name(name_insn)(cx_str_name* s, const char* src, size_t n, siz
 linkage void type_name(name_ins)(cx_str_name* s, const char* src, size_t idx) {
 
     type_name(name_insn)(s, src, strlen(src), idx);
-    // if (idx > s->len) {
-    //     abort();
-    // }
-    // size_t srcLen = strlen(src);
-    // if (s->len + srcLen > s->cap) {
-    //     type_name(_grow_)(s, s->len + srcLen, 0);
-    // }
-    // memmove(s->data + idx + srcLen, s->data + idx, s->len - idx);
-    // memcpy(s->data + idx, src, srcLen);
-    // s->len += srcLen;
-    // s->data[s->len] = 0;
 }
 
+linkage void type_name(name_inss)(cx_str_name* s, const cx_str_name* src, size_t idx) {
+
+    type_name(name_insn)(s, src->data, src->len, idx);
+}
 
 #endif // cx_str_implement
 
