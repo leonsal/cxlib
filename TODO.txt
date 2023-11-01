@@ -1,0 +1,25 @@
+
+cx_str findn(s, char*, n);
+cx_str findc(s, char*);
+cx_str finds(s, s2);
+
+cx_str has_prefixn
+cx_str has_prefixc
+cx_str has_prefixs
+
+cx_str has_suffixn
+cx_str has_suffixc
+cx_str has_suffixs
+
+cx_str trim_prefixn
+cx_str trim_prefixc
+cx_str trim_prefixs
+
+cx_str trim_suffixn
+cx_str trim_suffixc
+cx_str trim_suffixs
+
+cx_str range(s, start, end)
+
+UTF8
+

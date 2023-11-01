@@ -15,6 +15,8 @@
 #define cx_str_cap8     8
 #define cx_str_cap16    16
 #define cx_str_cap32    32
+
+// Default capacity
 #ifndef cx_str_cap
     #define cx_str_cap cx_str_cap8
 #endif
@@ -32,8 +34,8 @@
 #endif
 
 // Error handler
-#ifndef cx_str_error
-    #define cx_str_error_fn(m)  printf("ERROR:%s\n", m);abort()
+#ifndef cx_str_error_handler
+    #define cx_str_error_handler(m) printf("CXLIB STR ERROR:%s\n", m);abort()
 #endif
 
 // Default global allocator
@@ -44,7 +46,7 @@
     #define cx_str_free(p, n)   free(p)
 #endif
 
-// Custom allocator
+// Custom individual allocator
 #ifndef cx_str_allocator
     #define cx_str_alloc_field
     #define str_alloc(s,n)      cx_str_malloc(n)
@@ -80,6 +82,7 @@
     #define name_reserve        Reserve
     #define name_cap            Cap
     #define name_len            Len
+    #define name_data           Data
     #define name_empty          Empty
     #define name_setcap         SetCap
     #define name_setlen         SetLen
@@ -110,6 +113,7 @@
     #define name_reserve        _reserve
     #define name_cap            _cap
     #define name_len            _len
+    #define name_data           _data
     #define name_empty          _empty
     #define name_setcap         _setcap
     #define name_setlen         _setlen
@@ -159,6 +163,7 @@ linkage cx_str_name type_name(name_clone)(const cx_str_name* s);
 linkage cx_str_name type_name(name_reserve)(cx_str_name* s, size_t n);
 linkage size_t type_name(name_cap)(const cx_str_name* s);
 linkage size_t type_name(name_len)(const cx_str_name* s);
+linkage const char* type_name(name_data)(const cx_str_name* s);
 linkage bool type_name(name_empty)(const cx_str_name* s);
 linkage void type_name(name_setcap)(cx_str_name* s, size_t cap);
 linkage void type_name(name_setlen)(cx_str_name* s, size_t len);
@@ -203,7 +208,8 @@ static void type_name(_grow_)(cx_str_name* s, size_t addLen, size_t minCap) {
         minCap = 4;
     }
     if (minCap + 1 > cx_str_max_cap) {
-        return; // TODO abort ?
+        cx_str_error_handler("capacity exceeded");
+        return;
     }
 
     // Allocates new capacity
@@ -316,6 +322,11 @@ linkage size_t type_name(name_cap)(const cx_str_name* s) {
 linkage size_t type_name(name_len)(const cx_str_name* s) {
 
     return s->len;
+}
+
+linkage const char* type_name(name_data)(const cx_str_name* s) {
+
+    return s->data;
 }
 
 linkage bool type_name(name_empty)(const cx_str_name* s) {
@@ -508,10 +519,11 @@ linkage void type_name(name_printf)(cx_str_name* s, const char *fmt, ...) {
     va_end(ap);
 }
 
-
 #endif // cx_str_implement
 
-
+//
+// Undefine all defined macros
+//
 #undef cx_str_name
 #undef cx_str_cap8
 #undef cx_str_cap16
