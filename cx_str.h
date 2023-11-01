@@ -485,6 +485,7 @@ linkage void type_name(name_vprintf)(cx_str_name* s, const char *fmt, va_list ap
     }
 }
 
+// Based on https://github.com/antirez/sds/blob/master/sds.c
 linkage void type_name(name_printf)(cx_str_name* s, const char *fmt, ...) {
 
     va_list ap;
