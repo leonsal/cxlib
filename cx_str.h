@@ -74,8 +74,13 @@
     #define name_catc           Catc
     #define name_cats           Cats
     #define name_insn           Insn
-    #define name_ins            Ins
+    #define name_insc           Insc
     #define name_inss           Inss
+    #define name_deln           Deln
+    #define name_del            Del
+    #define name_cmpn           Cmpn
+    #define name_cmpc           Cmpc
+    #define name_cmps           Cmpc
 #else
     #define name_init           _init
     #define name_initn          _initn
@@ -96,8 +101,13 @@
     #define name_catc           _catc
     #define name_cats           _cats
     #define name_insn           _insn
-    #define name_ins            _ins
+    #define name_insc           _insc
     #define name_inss           _inss
+    #define name_deln           _deln
+    #define name_del            _del
+    #define name_cmpn           _cmpn
+    #define name_cmpc           _cmpc
+    #define name_cmps           _cmps
 #endif
 
 //
@@ -129,8 +139,17 @@ linkage void type_name(name_setlen)(cx_str_name* s, size_t len);
 linkage void type_name(name_setn)(cx_str_name* s, const char* src, size_t n);
 linkage void type_name(name_setc)(cx_str_name* s, const char* src);
 linkage void type_name(name_sets)(cx_str_name* s, const cx_str_name* src);
-
-
+linkage void type_name(name_catn)(cx_str_name* s, const char* src, size_t n);
+linkage void type_name(name_catc)(cx_str_name* s, const char* src);
+linkage void type_name(name_cats)(cx_str_name* s, const cx_str_name* src);
+linkage void type_name(name_insn)(cx_str_name* s, const char* src, size_t n, size_t idx);
+linkage void type_name(name_insc)(cx_str_name* s, const char* src, size_t idx);
+linkage void type_name(name_inss)(cx_str_name* s, const cx_str_name* src, size_t idx);
+linkage void type_name(name_deln)(cx_str_name* s, size_t idx, size_t deln);
+linkage void type_name(name_del)(cx_str_name* s, size_t idx);
+linkage int  type_name(name_cmpn)(cx_str_name* s, const char* src, size_t n);
+linkage int  type_name(name_cmpc)(cx_str_name* s, const char* src);
+linkage int  type_name(name_cmps)(cx_str_name* s, const cx_str_name* src);
 
 //
 // Implementations
@@ -155,7 +174,7 @@ static void type_name(_grow_)(cx_str_name* s, size_t addLen, size_t minCap) {
         minCap = 4;
     }
     if (minCap + 1 > cx_str_max_cap) {
-        abort();
+        return; // TODO abort ?
     }
 
     // Allocates new capacity
@@ -308,7 +327,7 @@ linkage void type_name(name_cats)(cx_str_name* s, const cx_str_name* src) {
 linkage void type_name(name_insn)(cx_str_name* s, const char* src, size_t n, size_t idx) {
 
     if (idx > s->len) {
-        abort();
+        return;
     }
     if (s->len + n > s->cap) {
         type_name(_grow_)(s, s->len + n, 0);
@@ -319,7 +338,7 @@ linkage void type_name(name_insn)(cx_str_name* s, const char* src, size_t n, siz
     s->data[s->len] = 0;
 }
 
-linkage void type_name(name_ins)(cx_str_name* s, const char* src, size_t idx) {
+linkage void type_name(name_insc)(cx_str_name* s, const char* src, size_t idx) {
 
     type_name(name_insn)(s, src, strlen(src), idx);
 }
@@ -328,6 +347,47 @@ linkage void type_name(name_inss)(cx_str_name* s, const cx_str_name* src, size_t
 
     type_name(name_insn)(s, src->data, src->len, idx);
 }
+
+linkage void type_name(name_deln)(cx_str_name* s, size_t idx, size_t deln) {
+
+    if (idx >= s->len) {
+        return;
+    }
+    const size_t maxDel = s->len - idx;
+    deln = deln > maxDel ? maxDel : deln;
+    memmove(s->data + idx, s->data + idx + deln, s->len - idx - deln);
+    s->len -= deln;
+    if (s->len) {
+        s->data[s->len] = 0;
+    }
+}
+
+linkage void type_name(name_del)(cx_str_name* s, size_t idx) {
+
+    type_name(name_deln)(s, idx, 1);
+}
+
+linkage int  type_name(name_cmpn)(cx_str_name* s, const char* src, size_t n) {
+
+    if (s->len > n) {
+        return 1;
+    }
+    if (s->len < n) {
+        return -1;
+    }
+    return memcmp(s->data, src, n);
+}
+
+linkage int type_name(name_cmpc)(cx_str_name* s, const char* src) {
+
+    return type_name(name_cmpn)(s, src, strlen(src));
+}
+
+linkage int type_name(name_cmps)(cx_str_name* s, const cx_str_name* src) {
+
+    return type_name(name_cmpn)(s, src->data, src->len);
+}
+
 
 #endif // cx_str_implement
 

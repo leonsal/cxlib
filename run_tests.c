@@ -30,12 +30,13 @@ int main() {
 
     str16_sets(&s2, &s1);
 
-    // str16 s4 = str16_init();
-    // str16_cat(&s4, "1234");
-    // str16_cat(&s4, "5678");
-    // str16_catn(&s4, "901", 3);
-    // str16_cats(&s4, &s4);
-    //
+    str16_catc(&s4, "1234");
+    str16_catc(&s4, "5678");
+    str16_catn(&s4, "901", 3);
+    str16_cats(&s4, &s1);
+
+    str16_deln(&s4, 3, 2);
+    
     // str16 s5 = str16_init();
     // str16_set(&s5, "012345");
     // str16_ins(&s5, "abc", 2);
