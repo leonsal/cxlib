@@ -32,6 +32,7 @@ int main() {
     str16_setc(&s1, "1234");
     str16_setc(&s1, "123456");
     str16_setn(&s1, "hello world", 4);
+    str16_reserve(&s1, 2);
 
     str16_sets(&s2, &s1);
 

@@ -62,6 +62,7 @@
     #define name_free           Free
     #define name_clear          Clear
     #define name_clone          Clone
+    #define name_reserve        Reserve
     #define name_cap            Cap
     #define name_len            Len
     #define name_empty          Empty
@@ -89,6 +90,7 @@
     #define name_free           _free
     #define name_clear          _clear
     #define name_clone          _clone
+    #define name_reserve        _reserve
     #define name_cap            _cap
     #define name_len            _len
     #define name_empty          _empty
@@ -131,6 +133,7 @@ linkage void type_name(name_set)(cx_str_name* s, const char* src);
 linkage void type_name(name_free)(cx_str_name* s);
 linkage void type_name(name_clear)(cx_str_name* s);
 linkage cx_str_name type_name(name_clone)(const cx_str_name* s);
+linkage cx_str_name type_name(name_reserve)(cx_str_name* s, size_t n);
 linkage size_t type_name(name_cap)(const cx_str_name* s);
 linkage size_t type_name(name_len)(const cx_str_name* s);
 linkage bool type_name(name_empty)(const cx_str_name* s);
@@ -249,6 +252,13 @@ linkage cx_str_name type_name(name_clone)(const cx_str_name* s) {
     cloned.data = str_alloc(s, s->cap + 1);
     memcpy(cloned.data, s->data, s->len + 1);
     return cloned;
+}
+
+linkage cx_str_name type_name(name_reserve)(cx_str_name* s, size_t n) {
+
+    if (s->len + n < s->cap) {
+        type_name(_grow_)(s, 0, s->len + n);
+    }
 }
 
 linkage size_t type_name(name_cap)(const cx_str_name* s) {
