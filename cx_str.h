@@ -57,13 +57,21 @@
 #ifdef cx_str_camel_case
     #define name_init           Init
     #define name_init2          Init2
+    #define name_free           Free
+    #define name_clear          Clear
+    #define name_clone          Clone
     #define name_set            Set
     #define name_setn           Setn
+    #define name_set_str        SetStr
 #else
     #define name_init           _init
     #define name_init2          _init2
+    #define name_free           _free
+    #define name_clear          _clear
+    #define name_clone          _clone
     #define name_set            _set
     #define name_setn           _setn
+    #define name_set_str        _set_str
 #endif
 
 //
@@ -88,7 +96,7 @@ linkage void type_name(name_set)(cx_str_name* s, const char* src);
 //
 #ifdef cx_str_implement
 
-void type_name(_grow_)(cx_str_name* s, size_t addLen, size_t minCap) {
+static void type_name(_grow_)(cx_str_name* s, size_t addLen, size_t minCap) {
 
     size_t minLen = s->len + addLen;
     if (minLen > minCap) {
@@ -110,8 +118,8 @@ void type_name(_grow_)(cx_str_name* s, size_t addLen, size_t minCap) {
     }
 
     // Allocates new capacity
-    const size_t elemSize = sizeof(char);
-    size_t allocSize = elemSize * (minCap + 1);
+    const size_t elemSize = sizeof(*(s->data));
+    const size_t allocSize = elemSize * (minCap + 1);
     void* new = str_alloc(s, allocSize);
     if (new == NULL) {
         return;
@@ -146,6 +154,26 @@ linkage cx_str_name type_name(name_init2)(const CxAllocator* alloc) {
 }
 #endif
 
+linkage void type_name(name_free)(cx_str_name* s) {
+
+    str_free(s, s->data, s->cap);
+    s->cap = 0;
+    s->len = 0;
+}
+
+linkage void type_name(name_clear)(cx_str_name* s) {
+
+    s->len = 0;
+}
+
+linkage cx_str_name type_name(name_clone)(const cx_str_name* s) {
+
+    cx_str_name cloned = *s;
+    cloned.data = str_alloc(s, s->cap + 1);
+    memcpy(cloned.data, s->data, s->len + 1);
+    return cloned;
+}
+
 linkage void type_name(name_set)(cx_str_name* s, const char* src) {
 
     size_t srcLen = strlen(src);
@@ -164,6 +192,16 @@ linkage void type_name(name_setn)(cx_str_name* s, const char* src, size_t n) {
     memcpy(s->data, src, n);
     s->data[n] = 0;
     s->len = n;
+}
+
+linkage void type_name(name_set_str)(cx_str_name* s, const cx_str_name* src) {
+
+    if (src->cap > s->cap) {
+        type_name(_grow_)(s, 0, src->cap);
+    }
+    memcpy(s->data, src->data, src->len);
+    s->len = src->len;
+    s->data[s->len] = 0;
 }
 
 #endif // cx_str_implement

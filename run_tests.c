@@ -23,6 +23,10 @@ int main() {
     str16_set(&s1, "1234");
     str16_set(&s1, "123456");
     str16_setn(&s1, "hello world", 4);
+    str16 s2 = str16_init();
+    str16_set_str(&s2, &s1);
+    str16 cloned = str16_clone(&s1);
+
 
     //CxStr s1 = CxStr_init2(cxDefaultAllocator());
     // cxAllocBlockTests();
