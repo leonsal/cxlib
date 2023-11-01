@@ -18,10 +18,13 @@
 #endif
 #if cx_str_cap == cx_str_cap8
     #define cx_str_cap_type uint8_t
+    #define cx_str_max_cap  (255)
 #elif cx_str_cap == cx_str_cap16
     #define cx_str_cap_type uint16_t
+    #define cx_str_max_cap  (255)
 #elif cx_str_cap == cx_str_cap32
     #define cx_str_cap_type uint32_t
+    #define cx_str_max_cap  (255)
 #else
     #error "invalid cx string capacity bits"
 #endif
@@ -29,8 +32,8 @@
 // Custom allocator
 #ifndef cx_str_allocator
     #define cx_str_alloc
-    #define str_alloc(s,n)  malloc(n)
-    #define str_free(s,p,n) free(p)
+    #define str_alloc(s,n)      malloc(n)
+    #define str_free(s,p,n)     free(p)
 #else
     #define cx_str_alloc        const CxAllocator* alloc;
     #define str_alloc(s,n)      s->alloc->alloc(s->alloc->ctx, n)
@@ -76,7 +79,7 @@ linkage cx_str_name type_name(name_init2)(const CxAllocator*);
 //
 #ifdef cx_str_implement
 
-void cxStrGrowFn(cx_str_name* s, size_t addLen, size_t minCap) {
+void type_name(_growFn)(cx_str_name* s, size_t addLen, size_t minCap) {
 
     size_t minLen = s->len + addLen;
     if (minLen > minCap) {
@@ -92,6 +95,9 @@ void cxStrGrowFn(cx_str_name* s, size_t addLen, size_t minCap) {
     }
     else if (minCap < 4) {
         minCap = 4;
+    }
+    if (minCap > cx_str_max_cap) {
+        abort();
     }
 
     // Allocates new capacity
@@ -129,4 +135,17 @@ linkage cx_str_name type_name(name_init2)(const CxAllocator* alloc) {
 #endif
 
 #endif // cx_str_implement
+
+
+#undef cx_str_name
+#undef cx_str_cap8
+#undef cx_str_cap16
+#undef cx_str_cap32
+#undef cx_str_cap
+#undef cx_str_cap_type
+#undef cx_str_max_cap
+#undef cx_str_allocator
+#undef cx_str_alloc
+#undef str_alloc
+#undef str_free
 
