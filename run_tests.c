@@ -51,12 +51,16 @@ int main() {
 
 
     str16_printf(&s1, "%d %f TEXT\n", 12, 34.34);
+
+    str32 s10 = str32_initc(cxDefaultAllocator(), "XYZ");
+
     str16_free(&s1);
     str16_free(&s2);
     str16_free(&s3);
     str16_free(&s4);
+    str16_free(&s5);
+    str32_free(&s10);
 
-    str32 s10 = str32_initc(cxDefaultAllocator(), "XYZ");
     //CxStr s1 = CxStr_init2(cxDefaultAllocator());
     // cxAllocBlockTests();
     // cxArrayTests();
