@@ -18,13 +18,13 @@
 #endif
 #if cx_str_cap == cx_str_cap8
     #define cx_str_cap_type uint8_t
-    #define cx_str_max_cap  (255)
+    #define cx_str_max_cap  (UINT8_MAX)
 #elif cx_str_cap == cx_str_cap16
     #define cx_str_cap_type uint16_t
-    #define cx_str_max_cap  (255)
+    #define cx_str_max_cap  (UINT16_MAX)
 #elif cx_str_cap == cx_str_cap32
     #define cx_str_cap_type uint32_t
-    #define cx_str_max_cap  (255)
+    #define cx_str_max_cap  (UINT32_MAX)
 #else
     #error "invalid cx string capacity bits"
 #endif
@@ -60,18 +60,34 @@
     #define name_free           Free
     #define name_clear          Clear
     #define name_clone          Clone
+    #define name_cap            Cap
+    #define name_len            Len
+    #define name_empty          Empty
+    #define name_setcap         SetCap
+    #define name_setlen         SetLen
     #define name_set            Set
     #define name_setn           Setn
     #define name_set_str        SetStr
+    #define name_cat            Cat
+    #define name_catn           Catn
+    #define name_cats           Cats
 #else
     #define name_init           _init
     #define name_init2          _init2
     #define name_free           _free
     #define name_clear          _clear
     #define name_clone          _clone
+    #define name_cap            _cap
+    #define name_len            _len
+    #define name_empty          _empty
+    #define name_setcap         _setcap
+    #define name_setlen         _setlen
     #define name_set            _set
     #define name_setn           _setn
     #define name_set_str        _set_str
+    #define name_cat            _cat
+    #define name_catn           _catn
+    #define name_cats           _cats
 #endif
 
 //
@@ -174,6 +190,35 @@ linkage cx_str_name type_name(name_clone)(const cx_str_name* s) {
     return cloned;
 }
 
+linkage size_t type_name(name_cap)(const cx_str_name* s) {
+
+    return s->cap;
+}
+
+linkage size_t type_name(name_len)(const cx_str_name* s) {
+
+    return s->len;
+}
+
+linkage bool type_name(name_empty)(const cx_str_name* s) {
+
+    return s->len == 0;
+}
+
+linkage void type_name(name_setcap)(cx_str_name* s, size_t cap) {
+
+    type_name(_grow_)(s, 0, cap);
+}
+
+linkage void type_name(name_setlen)(cx_str_name* s, size_t len) {
+
+    if (len > s->cap) {
+        type_name(_grow_)(s, len, 0);
+    }
+    s->len = len;
+    s->data[s->len] = 0;
+}
+
 linkage void type_name(name_set)(cx_str_name* s, const char* src) {
 
     size_t srcLen = strlen(src);
@@ -201,6 +246,36 @@ linkage void type_name(name_set_str)(cx_str_name* s, const cx_str_name* src) {
     }
     memcpy(s->data, src->data, src->len);
     s->len = src->len;
+    s->data[s->len] = 0;
+}
+
+linkage void type_name(name_cat)(cx_str_name* s, const char* src) {
+
+    size_t srcLen = strlen(src);
+    if (s->len + srcLen > s->cap) {
+        type_name(_grow_)(s, s->len + srcLen, 0);
+    }
+    memcpy(s->data + s->len, src, srcLen + 1);
+    s->len += srcLen;
+}
+
+linkage void type_name(name_catn)(cx_str_name* s, const char* src, size_t n) {
+
+    if (s->len + n > s->cap) {
+        type_name(_grow_)(s, s->len + n, 0);
+    }
+    memcpy(s->data + s->len, src, n);
+    s->len += n;
+    s->data[s->len] = 0;
+}
+
+linkage void type_name(name_cats)(cx_str_name* s, const cx_str_name* src) {
+
+    if (s->len + src->len > s->cap) {
+        type_name(_grow_)(s, s->len + src->len, 0);
+    }
+    memcpy(s->data + s->len, src->data, src->len);
+    s->len += src->len;
     s->data[s->len] = 0;
 }
 
