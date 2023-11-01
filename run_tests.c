@@ -24,7 +24,7 @@ int main() {
     str16_set(&s1, "123456");
     str16_setn(&s1, "hello world", 4);
     str16 s2 = str16_init();
-    str16_set_str(&s2, &s1);
+    str16_sets(&s2, &s1);
     str16 s3 = str16_clone(&s1);
 
     str16 s4 = str16_init();
@@ -32,6 +32,12 @@ int main() {
     str16_cat(&s4, "5678");
     str16_catn(&s4, "901", 3);
     str16_cats(&s4, &s4);
+
+    str16 s5 = str16_init();
+    str16_set(&s5, "012345");
+    str16_ins(&s5, "abc", 2);
+    str16_ins(&s5, "6789", 9);
+
 
     str16_free(&s1);
     str16_free(&s2);

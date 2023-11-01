@@ -67,10 +67,12 @@
     #define name_setlen         SetLen
     #define name_set            Set
     #define name_setn           Setn
-    #define name_set_str        SetStr
+    #define name_sets           Sets
     #define name_cat            Cat
     #define name_catn           Catn
     #define name_cats           Cats
+    #define name_insn           Insn
+    #define name_ins            Ins
 #else
     #define name_init           _init
     #define name_init2          _init2
@@ -84,10 +86,12 @@
     #define name_setlen         _setlen
     #define name_set            _set
     #define name_setn           _setn
-    #define name_set_str        _set_str
+    #define name_sets           _sets
     #define name_cat            _cat
     #define name_catn           _catn
     #define name_cats           _cats
+    #define name_insn           _insn
+    #define name_ins            _ins
 #endif
 
 //
@@ -239,7 +243,7 @@ linkage void type_name(name_setn)(cx_str_name* s, const char* src, size_t n) {
     s->len = n;
 }
 
-linkage void type_name(name_set_str)(cx_str_name* s, const cx_str_name* src) {
+linkage void type_name(name_sets)(cx_str_name* s, const cx_str_name* src) {
 
     if (src->cap > s->cap) {
         type_name(_grow_)(s, 0, src->cap);
@@ -278,6 +282,37 @@ linkage void type_name(name_cats)(cx_str_name* s, const cx_str_name* src) {
     s->len += src->len;
     s->data[s->len] = 0;
 }
+
+linkage void type_name(name_insn)(cx_str_name* s, const char* src, size_t n, size_t idx) {
+
+    if (idx > s->len) {
+        abort();
+    }
+    if (s->len + n > s->cap) {
+        type_name(_grow_)(s, s->len + n, 0);
+    }
+    memmove(s->data + idx + n, s->data + idx, s->len - idx);
+    memcpy(s->data + idx, src, n);
+    s->len += n;
+    s->data[s->len] = 0;
+}
+
+linkage void type_name(name_ins)(cx_str_name* s, const char* src, size_t idx) {
+
+    type_name(name_insn)(s, src, strlen(src), idx);
+    // if (idx > s->len) {
+    //     abort();
+    // }
+    // size_t srcLen = strlen(src);
+    // if (s->len + srcLen > s->cap) {
+    //     type_name(_grow_)(s, s->len + srcLen, 0);
+    // }
+    // memmove(s->data + idx + srcLen, s->data + idx, s->len - idx);
+    // memcpy(s->data + idx, src, srcLen);
+    // s->len += srcLen;
+    // s->data[s->len] = 0;
+}
+
 
 #endif // cx_str_implement
 
