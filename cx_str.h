@@ -31,18 +31,31 @@
     #error "invalid cx string capacity bits"
 #endif
 
+// Error handler
+#ifndef cx_str_error
+    #define cx_str_error_fn(m)  printf("ERROR:%s\n", m);abort()
+#endif
+
+// Default global allocator
+#ifndef cx_str_malloc
+    #define cx_str_malloc(n)    malloc(n)
+#endif
+#ifndef cx_str_free
+    #define cx_str_free(p, n)   free(p)
+#endif
+
 // Custom allocator
 #ifndef cx_str_allocator
     #define cx_str_alloc_field
-    #define str_alloc(s,n)      malloc(n)
-    #define str_free(s,p,n)     free(p)
+    #define str_alloc(s,n)      cx_str_malloc(n)
+    #define str_free(s,p,n)     cx_str_free(p, n)
 #else
     #define cx_str_alloc_field  const CxAllocator* alloc;
     #define str_alloc(s,n)      s->alloc->alloc(s->alloc->ctx, n)
     #define str_free(s,p,n)     s->alloc->free(s->alloc->ctx, p, n)
 #endif
 
-// Auxiliary macros
+// Auxiliary internal macros
 #define concat2_(a, b) a ## b
 #define concat1_(a, b) concat2_(a, b)
 #define type_name(name) concat1_(cx_str_name, name)
@@ -506,6 +519,7 @@ linkage void type_name(name_printf)(cx_str_name* s, const char *fmt, ...) {
 #undef cx_str_cap
 #undef cx_str_cap_type
 #undef cx_str_max_cap
+#undef cx_str_error
 #undef cx_str_allocator
 #undef cx_str_alloc_field
 #undef cx_str_camel_case
