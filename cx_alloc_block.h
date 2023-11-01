@@ -49,11 +49,6 @@ const CxAllocator* cxAllocBlockGetAllocator(CxAllocBlock* a);
 //
 CxAllocBlockInfo cxAllocBlockGetInfo(const CxAllocBlock* a);
 
-//
-// Run tests
-//
-void cxAllocBlockTests(size_t allocs, size_t blockSize);
-
 #endif
 
 

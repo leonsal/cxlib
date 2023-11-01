@@ -2,6 +2,8 @@
 #define CX_TESTS_H
 #include "cx_alloc.h"
 
+void cxAllocBlockTests(void);
+void cxAllocBlockTest(size_t allocs, size_t blockSize);
 void cxArrayTests(void);
 void cxArrayTest(size_t size, const CxAllocator* alloc);
 void cxHmapTests(void);

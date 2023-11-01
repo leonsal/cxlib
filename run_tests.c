@@ -5,6 +5,7 @@
 
 int main() {
 
+    cxAllocBlockTests();
     cxArrayTests();
     cxHmapTests();
     return 0;
