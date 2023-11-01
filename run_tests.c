@@ -19,8 +19,13 @@ int main() {
 
     str16 s1 = str16_init();
     str16 s2 = str16_initc("1234");
-    str16 s3 = str16_initn("1234",2);
+    assert(str16_cmpc(&s2, "1234") == 0);
+
+    str16 s3 = str16_initn("1234", 2);
+    assert(str16_cmpn(&s3, "1234", 2) == 0);
+
     str16 s4 = str16_inits(&s1);
+    assert(str16_cmps(&s4, &s1) == 0);
 
     str16_setc(&s1, "hello");
     str16_setc(&s1, "12345");
