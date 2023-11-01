@@ -9,11 +9,11 @@
 #define cx_str_implement
 #include "cx_str.h"
 
-// #define cx_str_cap 32
-// #define cx_str_name str32
-// #define cx_str_allocator
-// #define cx_str_implement
-// #include "cx_str.h"
+#define cx_str_cap 32
+#define cx_str_name str32
+#define cx_str_allocator
+#define cx_str_implement
+#include "cx_str.h"
 
 int main() {
 
@@ -43,17 +43,19 @@ int main() {
 
     str16_deln(&s4, 3, 2);
     
-    // str16 s5 = str16_init();
-    // str16_set(&s5, "012345");
-    // str16_ins(&s5, "abc", 2);
-    // str16_ins(&s5, "6789", 9);
-    // //str16_inss(&s5, &s5, 0);
-    //
-    //
-    // str16_free(&s1);
-    // str16_free(&s2);
-    // str16_free(&s3);
-    // str16_free(&s4);
+    str16 s5 = str16_init();
+    str16_setc(&s5, "012345");
+    str16_insc(&s5, "abc", 3);
+    str16_insc(&s5, "6789", 9);
+    //str16_inss(&s5, &s5, 0);
+
+
+    str16_free(&s1);
+    str16_free(&s2);
+    str16_free(&s3);
+    str16_free(&s4);
+
+    str32 s10 = str32_initc(cxDefaultAllocator(), "XYZ");
     //CxStr s1 = CxStr_init2(cxDefaultAllocator());
     // cxAllocBlockTests();
     // cxArrayTests();

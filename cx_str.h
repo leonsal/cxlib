@@ -122,12 +122,16 @@ typedef struct cx_str_name {
     char* data;
 } cx_str_name;
 
-linkage cx_str_name type_name(name_init)(void);
-linkage cx_str_name type_name(name_initn)(const char* src, size_t n);
-linkage cx_str_name type_name(name_initc)(const char* src);
-linkage cx_str_name type_name(name_inits)(const cx_str_name* src);
 #ifdef cx_str_allocator
-    linkage cx_str_name type_name(name_init2)(const CxAllocator*);
+    linkage cx_str_name type_name(name_init)(const CxAllocator* a);
+    linkage cx_str_name type_name(name_initn)(const CxAllocator* a, const char* src, size_t n);
+    linkage cx_str_name type_name(name_initc)(const CxAllocator* a, const char* src);
+    linkage cx_str_name type_name(name_inits)(const CxAllocator* a, cx_str_name* src);
+#else
+    linkage cx_str_name type_name(name_init)(void);
+    linkage cx_str_name type_name(name_initn)(const char* src, size_t n);
+    linkage cx_str_name type_name(name_initc)(const char* src);
+    linkage cx_str_name type_name(name_inits)(const cx_str_name* src);
 #endif
 linkage void type_name(name_set)(cx_str_name* s, const char* src);
 linkage void type_name(name_free)(cx_str_name* s);
@@ -197,42 +201,63 @@ static void type_name(_grow_)(cx_str_name* s, size_t addLen, size_t minCap) {
     s->cap = minCap;
 }
 
-linkage cx_str_name type_name(name_init)(void) {
-
-    return (cx_str_name) {0};
-}
-
-linkage cx_str_name type_name(name_initn)(const char* src, size_t n) {
-
-    cx_str_name s = {0};
-    type_name(_setn)(&s, src, n);
-    return s;
-}
-
-linkage cx_str_name type_name(name_initc)(const char* src) {
-
-    cx_str_name s = {0};
-    type_name(_setc)(&s, src);
-    return s;
-}
-
-linkage cx_str_name type_name(name_inits)(const cx_str_name* src) {
-
-    cx_str_name s = {0};
-    type_name(_sets)(&s, src);
-    return s;
-}
-
 #ifdef cx_str_allocator
-linkage cx_str_name type_name(name_init2)(const CxAllocator* alloc) {
-    return (cx_str_name) {
-        .alloc = alloc,
-        .len = 0,
-        .cap = 0,
-        .data = NULL,
-    };
-}
+
+    linkage cx_str_name type_name(name_init)(const CxAllocator* a) {
+
+        return (cx_str_name) {.alloc = a};
+    }
+
+    linkage cx_str_name type_name(name_initn)(const CxAllocator* a, const char* src, size_t n) {
+
+        cx_str_name s = {.alloc = a};
+        type_name(_setn)(&s, src, n);
+        return s;
+    }
+
+    linkage cx_str_name type_name(name_initc)(const CxAllocator* a, const char* src) {
+
+        cx_str_name s = {.alloc = a};
+        type_name(_setc)(&s, src);
+        return s;
+    }
+
+    linkage cx_str_name type_name(name_inits)(const CxAllocator* a, cx_str_name* src) {
+
+        cx_str_name s = {.alloc = a};
+        type_name(_sets)(&s, src);
+        return s;
+    }
+
+#else
+
+    linkage cx_str_name type_name(name_init)(void) {
+
+        return (cx_str_name) {0};
+    }
+
+    linkage cx_str_name type_name(name_initn)(const char* src, size_t n) {
+
+        cx_str_name s = {0};
+        type_name(_setn)(&s, src, n);
+        return s;
+    }
+
+    linkage cx_str_name type_name(name_initc)(const char* src) {
+
+        cx_str_name s = {0};
+        type_name(_setc)(&s, src);
+        return s;
+    }
+
+    linkage cx_str_name type_name(name_inits)(const cx_str_name* src) {
+
+        cx_str_name s = {0};
+        type_name(_sets)(&s, src);
+        return s;
+    }
 #endif
+
 
 linkage void type_name(name_free)(cx_str_name* s) {
 
