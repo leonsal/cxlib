@@ -2,6 +2,8 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
+#include <stdarg.h>
 #include "cx_alloc.h"
 
 // Default string type name
@@ -82,6 +84,8 @@
     #define name_cmpn           Cmpn
     #define name_cmpc           Cmpc
     #define name_cmps           Cmpc
+    #define name_vprintf        Vprintf
+    #define name_printf         Printf
 #else
     #define name_init           _init
     #define name_initn          _initn
@@ -110,6 +114,8 @@
     #define name_cmpn           _cmpn
     #define name_cmpc           _cmpc
     #define name_cmps           _cmps
+    #define name_vprintf        _vprintf
+    #define name_printf         _printf
 #endif
 
 //
@@ -157,12 +163,15 @@ linkage void type_name(name_del)(cx_str_name* s, size_t idx);
 linkage int  type_name(name_cmpn)(cx_str_name* s, const char* src, size_t n);
 linkage int  type_name(name_cmpc)(cx_str_name* s, const char* src);
 linkage int  type_name(name_cmps)(cx_str_name* s, const cx_str_name* src);
+linkage void type_name(name_vprintf)(cx_str_name* s, const char *fmt, va_list ap);
+linkage void type_name(name_printf)(cx_str_name* s, const char *fmt, ...);
 
 //
 // Implementations
 //
 #ifdef cx_str_implement
 
+// Internal string reallocation function
 static void type_name(_grow_)(cx_str_name* s, size_t addLen, size_t minCap) {
 
     size_t minLen = s->len + addLen;
@@ -421,6 +430,68 @@ linkage int type_name(name_cmpc)(cx_str_name* s, const char* src) {
 linkage int type_name(name_cmps)(cx_str_name* s, const cx_str_name* src) {
 
     return type_name(name_cmpn)(s, src->data, src->len);
+}
+
+// Based on https://github.com/antirez/sds/blob/master/sds.c
+linkage void type_name(name_vprintf)(cx_str_name* s, const char *fmt, va_list ap) {
+    va_list cpy;
+    char  staticbuf[1024];
+    char* buf = staticbuf;
+    char* *t;
+    size_t buflen = strlen(fmt)*2;
+    int bufstrlen;
+
+    // We try to start using a static buffer for speed.
+    // If not possible we revert to heap allocation.
+    if (buflen > sizeof(staticbuf)) {
+        buf = str_alloc(s, buflen);
+        if (buf == NULL) {
+            return;
+        }
+    } else {
+        buflen = sizeof(staticbuf);
+    }
+
+    // Alloc enough space for buffer and \0 after failing to
+    // fit the string in the current buffer size.
+    while(1) {
+        va_copy(cpy,ap);
+        bufstrlen = vsnprintf(buf, buflen, fmt, cpy);
+        va_end(cpy);
+        if (bufstrlen < 0) {
+            if (buf != staticbuf) {
+                str_free(s, buf, buflen);
+            }
+            return;
+        }
+        if (((size_t)bufstrlen) >= buflen) {
+            if (buf != staticbuf) {
+                str_free(s, buf, buflen);
+            }
+            buflen = ((size_t)bufstrlen) + 1;
+            buf = str_alloc(s, buflen);
+            if (buf == NULL) {
+                return;
+            }
+            continue;
+        }
+        break;
+    }
+
+    // Finally concat the obtained string to the SDS string and return it.
+    type_name(name_catn)(s, buf, bufstrlen);
+    if (buf != staticbuf) {
+        str_free(s, buf, buflen);
+    }
+}
+
+linkage void type_name(name_printf)(cx_str_name* s, const char *fmt, ...) {
+
+    va_list ap;
+    char *t;
+    va_start(ap, fmt);
+    type_name(_vprintf)(s, fmt, ap);
+    va_end(ap);
 }
 
 

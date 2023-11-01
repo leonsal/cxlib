@@ -50,6 +50,7 @@ int main() {
     //str16_inss(&s5, &s5, 0);
 
 
+    str16_printf(&s1, "%d %f TEXT\n", 12, 34.34);
     str16_free(&s1);
     str16_free(&s2);
     str16_free(&s3);
