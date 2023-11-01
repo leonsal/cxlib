@@ -31,15 +31,16 @@
 
 // Custom allocator
 #ifndef cx_str_allocator
-    #define cx_str_alloc
+    #define cx_str_alloc_field
     #define str_alloc(s,n)      malloc(n)
     #define str_free(s,p,n)     free(p)
 #else
-    #define cx_str_alloc        const CxAllocator* alloc;
+    #define cx_str_alloc_field  const CxAllocator* alloc;
     #define str_alloc(s,n)      s->alloc->alloc(s->alloc->ctx, n)
     #define str_free(s,p,n)     s->alloc->free(s->alloc->ctx, p, n)
 #endif
 
+// Auxiliary macros
 #define concat2_(a, b) a ## b
 #define concat1_(a, b) concat2_(a, b)
 #define type_name(name) concat1_(cx_str_name, name)
@@ -53,33 +54,41 @@
 //
 // Function names
 //
-#ifdef cx_array_camel_case
+#ifdef cx_str_camel_case
     #define name_init           Init
     #define name_init2          Init2
+    #define name_set            Set
+    #define name_setn           Setn
 #else
     #define name_init           _init
     #define name_init2          _init2
+    #define name_set            _set
+    #define name_setn           _setn
 #endif
 
 //
 // Declarations
 //
 typedef struct cx_str_name {
-    cx_str_alloc
+    cx_str_alloc_field;
     cx_str_cap_type len;
     cx_str_cap_type cap;
     char* data;
 } cx_str_name;
 
 linkage cx_str_name type_name(name_init)(void);
-linkage cx_str_name type_name(name_init2)(const CxAllocator*);
+#ifdef cx_str_allocator
+    linkage cx_str_name type_name(name_init2)(const CxAllocator*);
+#endif
+linkage void type_name(name_set)(cx_str_name* s, const char* src);
+
 
 //
 // Implementations
 //
 #ifdef cx_str_implement
 
-void type_name(_growFn)(cx_str_name* s, size_t addLen, size_t minCap) {
+void type_name(_grow_)(cx_str_name* s, size_t addLen, size_t minCap) {
 
     size_t minLen = s->len + addLen;
     if (minLen > minCap) {
@@ -96,20 +105,23 @@ void type_name(_growFn)(cx_str_name* s, size_t addLen, size_t minCap) {
     else if (minCap < 4) {
         minCap = 4;
     }
-    if (minCap > cx_str_max_cap) {
+    if (minCap + 1 > cx_str_max_cap) {
         abort();
     }
 
     // Allocates new capacity
-    size_t allocSize = sizeof(char) * minCap;
+    const size_t elemSize = sizeof(char);
+    size_t allocSize = elemSize * (minCap + 1);
     void* new = str_alloc(s, allocSize);
     if (new == NULL) {
         return;
     }
 
     // Copy current data to new area and free previous
-    memcpy(new, s->data, s->len * sizeof(char));
-    str_free(s, s->data, s->len * sizeof(char));
+    if (s->data) {
+        memcpy(new, s->data, (s->len + 1) * elemSize);
+        str_free(s, s->data, (s->len + 1) * elemSize);
+    }
     s->data = new;
     s->cap = minCap;
 }
@@ -134,6 +146,26 @@ linkage cx_str_name type_name(name_init2)(const CxAllocator* alloc) {
 }
 #endif
 
+linkage void type_name(name_set)(cx_str_name* s, const char* src) {
+
+    size_t srcLen = strlen(src);
+    if (srcLen > s->cap) {
+        type_name(_grow_)(s, 0, srcLen);
+    }
+    strcpy(s->data, src);
+    s->len = srcLen;
+}
+
+linkage void type_name(name_setn)(cx_str_name* s, const char* src, size_t n) {
+
+    if (n > s->cap) {
+        type_name(_grow_)(s, 0, n);
+    }
+    memcpy(s->data, src, n);
+    s->data[n] = 0;
+    s->len = n;
+}
+
 #endif // cx_str_implement
 
 
@@ -145,7 +177,8 @@ linkage cx_str_name type_name(name_init2)(const CxAllocator* alloc) {
 #undef cx_str_cap_type
 #undef cx_str_max_cap
 #undef cx_str_allocator
-#undef cx_str_alloc
+#undef cx_str_alloc_field
+#undef cx_str_camel_case
 #undef str_alloc
 #undef str_free
 

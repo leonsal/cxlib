@@ -13,6 +13,7 @@ HEADERS=cx_alloc.h\
 		cx_alloc_block.h\
 		cx_array.h\
 		cx_hmap.h\
+		cx_str.h\
 		cx_tests.h
 
 TARGET=run_tests
