@@ -349,7 +349,13 @@ void cxHmapTest(size_t size, size_t nbuckets, const CxAllocator* alloc) {
 
 void cxStrTests(void) {
 
+    // Use default allocator
     cxStrTest(cxDefaultAllocator()); 
+
+    // Use block allocator
+    CxAllocBlock* ba = cxAllocBlockCreate(4*1024, NULL);
+    cxStrTest(cxAllocBlockGetAllocator(ba));
+    cxAllocBlockDestroy(ba);
 }
 
 void cxStrTest(const CxAllocator* alloc) {
