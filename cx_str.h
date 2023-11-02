@@ -176,6 +176,7 @@ Configuration defines:
     #define name_endsn          Endsn
     #define name_endsc          Endsc
     #define name_endss          Endss
+    #define name_substr         Substr
 #else
     #define name_init           _init
     #define name_initn          _initn
@@ -216,6 +217,7 @@ Configuration defines:
     #define name_endsn          _endsn
     #define name_endsc          _endsc
     #define name_endss          _endss
+    #define name_substr         _substr
 #endif
 
 //
@@ -242,8 +244,8 @@ typedef struct cx_str_name {
 linkage void type_name(name_set)(cx_str_name* s, const char* src);
 linkage void type_name(name_free)(cx_str_name* s);
 linkage void type_name(name_clear)(cx_str_name* s);
-linkage cx_str_name type_name(name_clone)(const cx_str_name* s);
-linkage cx_str_name type_name(name_reserve)(cx_str_name* s, size_t n);
+linkage void type_name(name_clone)(const cx_str_name* s, cx_str_name* dst);
+linkage void type_name(name_reserve)(cx_str_name* s, size_t n);
 linkage size_t type_name(name_cap)(const cx_str_name* s);
 linkage size_t type_name(name_len)(const cx_str_name* s);
 linkage const char* type_name(name_data)(const cx_str_name* s);
@@ -275,6 +277,7 @@ linkage bool type_name(name_startss)(cx_str_name* s, const cx_str_name* src);
 linkage bool type_name(name_endsn)(cx_str_name* s, const char* src, size_t n);
 linkage bool type_name(name_endsc)(cx_str_name* s, const char* src);
 linkage bool type_name(name_endss)(cx_str_name* s, const cx_str_name* src);
+linkage void type_name(name_substr)(const cx_str_name* s, size_t start, size_t len, cx_str_name* dst);
 
 
 //
@@ -397,15 +400,12 @@ linkage void type_name(name_clear)(cx_str_name* s) {
     s->len = 0;
 }
 
-linkage cx_str_name type_name(name_clone)(const cx_str_name* s) {
+linkage void type_name(name_clone)(const cx_str_name* s, cx_str_name* dst) {
 
-    cx_str_name cloned = *s;
-    cloned.data = cx_str_alloc_(s, s->cap + 1);
-    memcpy(cloned.data, s->data, s->len + 1);
-    return cloned;
+    type_name(name_setn)(dst, s->data, s->len);
 }
 
-linkage cx_str_name type_name(name_reserve)(cx_str_name* s, size_t n) {
+linkage void type_name(name_reserve)(cx_str_name* s, size_t n) {
 
     if (s->len + n < s->cap) {
         type_name(_grow_)(s, 0, s->len + n);
@@ -678,6 +678,17 @@ linkage bool type_name(name_endsc)(cx_str_name* s, const char* src) {
 linkage bool type_name(name_endss)(cx_str_name* s, const cx_str_name* src) {
 
     return type_name(name_endsn)(s, src->data, src->len);
+}
+
+linkage void type_name(name_substr)(const cx_str_name* s, size_t start, size_t len, cx_str_name* dst) {
+
+     if (start >= s->len) {
+         dst->len = 0;
+         return ;
+     }
+    const size_t maxSize = s->len - start;
+    len = len > maxSize ? maxSize : len;
+    type_name(name_setn)(dst, s->data + start, len);
 }
 
 

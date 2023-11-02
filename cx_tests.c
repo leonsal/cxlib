@@ -9,7 +9,7 @@
 #define cx_array_static
 #include "cx_array.h"
 
-#define cx_array_name af64
+#define cx_array_name arrf64
 #define cx_array_type double
 #define cx_array_implement
 #define cx_array_static
@@ -394,7 +394,8 @@ void cxStrTest(const CxAllocator* alloc) {
         assert(str8_cmpc(&s1, "hello world") == 0);
 
         // clone
-        str8 s2 = str8_clone(&s1);
+        str8 s2 = str8_init();
+        str8_clone(&s1, &s2);
         assert(str8_cmps(&s1, &s2) == 0);
         str8_free(&s1);
         str8_free(&s2);
@@ -432,11 +433,18 @@ void cxStrTest(const CxAllocator* alloc) {
         str8_setc(&s2, "01234");
         assert(str8_startss(&s1, &s2));
 
-        // starts
+        // ends
         assert(str8_endsc(&s1, "90"));
         assert(!str8_endsc(&s1, "91"));
         str8_setc(&s2, "4567890");
         assert(str8_endss(&s1, &s2));
+
+        // substr
+        str8_setc(&s1, "abcdefghijklm");
+        str8_substr(&s1, 3, 4, &s2);
+        str8_cmpc(&s2, "defg");
+        str8_substr(&s1, 10, 100, &s2);
+        str8_cmpc(&s2, "klm");
 
         str8_free(&s1);
         str8_free(&s2);
@@ -463,7 +471,8 @@ void cxStrTest(const CxAllocator* alloc) {
         assert(str32_cmpc(&s1, "hello world") == 0);
 
         // clone
-        str32 s2 = str32_clone(&s1);
+        str32 s2 = str32_init(alloc);
+        str32_clone(&s1, &s2);
         assert(str32_cmps(&s1, &s2) == 0);
         str32_free(&s1);
         str32_free(&s2);
