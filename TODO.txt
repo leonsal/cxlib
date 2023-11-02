@@ -1,7 +1,7 @@
 
-cx_str findn(s, char*, n);
-cx_str findc(s, char*);
-cx_str finds(s, s2);
+cx_str startsn
+cx_str startsc
+cx_str startss
 
 cx_str has_prefixn
 cx_str has_prefixc

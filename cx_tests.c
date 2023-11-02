@@ -381,6 +381,9 @@ void cxStrTest(const CxAllocator* alloc) {
         assert(str8_cmpc(&s1, "") == 0);
 
         // set
+        str8_setn(&s1, "123\0x00456", 7);
+        assert(strlen(s1.data) == 3);
+        assert(str8_len(&s1) == 7);
         str8_setc(&s1, "hello");
         assert(str8_len(&s1) == strlen("hello"));
         assert(!str8_empty(&s1));

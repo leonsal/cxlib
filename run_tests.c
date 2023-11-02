@@ -2,7 +2,7 @@
 
 int main() {
 
-    cxHmapTests();
+    cxStrTests();
     return 0;
 }
 
