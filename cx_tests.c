@@ -354,71 +354,119 @@ void cxStrTests(void) {
 
 void cxStrTest(const CxAllocator* alloc) {
 
-    // init
-    str8_allocator = alloc;
-    str8 s1 = str8_init();
-    assert(str8_len(&s1) == 0);
-    assert(str8_cap(&s1) == 0);
-    assert(str8_empty(&s1));
-    assert(str8_cmpc(&s1, "") == 0);
+    //
+    // String with type allocator
+    //
+    {
+        // init
+        str8_allocator = alloc;
+        str8 s1 = str8_init();
+        assert(str8_len(&s1) == 0);
+        assert(str8_cap(&s1) == 0);
+        assert(str8_empty(&s1));
+        assert(str8_cmpc(&s1, "") == 0);
 
-    // set
-    str8_setc(&s1, "hello");
-    assert(str8_len(&s1) == strlen("hello"));
-    assert(!str8_empty(&s1));
+        // set
+        str8_setc(&s1, "hello");
+        assert(str8_len(&s1) == strlen("hello"));
+        assert(!str8_empty(&s1));
 
-    // cat
-    str8_catc(&s1, " world");
-    assert(str8_len(&s1) == strlen("hello world"));
-    assert(str8_cmpc(&s1, "hello world") == 0);
+        // cat
+        str8_catc(&s1, " world");
+        assert(str8_len(&s1) == strlen("hello world"));
+        assert(str8_cmpc(&s1, "hello world") == 0);
 
-    // clone
-    str8 s2 = str8_clone(&s1);
-    assert(str8_cmps(&s1, &s2) == 0);
-    str8_free(&s1);
-    str8_free(&s2);
+        // clone
+        str8 s2 = str8_clone(&s1);
+        assert(str8_cmps(&s1, &s2) == 0);
+        str8_free(&s1);
+        str8_free(&s2);
 
-    // ins
-    str8_setc(&s1, "world");
-    str8_insc(&s1, "hello ", 0);
-    assert(str8_cmpc(&s1, "hello world") == 0);
-    str8_setc(&s2, " mad");
-    str8_inss(&s1, &s2, 5);
-    assert(str8_cmpc(&s1, "hello mad world") == 0);
+        // ins
+        str8_setc(&s1, "world");
+        str8_insc(&s1, "hello ", 0);
+        assert(str8_cmpc(&s1, "hello world") == 0);
+        str8_setc(&s2, " mad");
+        str8_inss(&s1, &s2, 5);
+        assert(str8_cmpc(&s1, "hello mad world") == 0);
 
-    // del
-    str8_deln(&s1, 5, 4);
-    assert(str8_cmpc(&s1, "hello world") == 0);
+        // del
+        str8_deln(&s1, 5, 4);
+        assert(str8_cmpc(&s1, "hello world") == 0);
 
-    // printf
-    str8_clear(&s1);
-    str8_printf(&s1, "x=%d y=%d", 1, 2);
-    str8_printf(&s1, " z=%d", 3);
-    assert(str8_cmpc(&s1, "x=1 y=2 z=3") == 0);
+        // printf
+        str8_clear(&s1);
+        str8_printf(&s1, "x=%d y=%d", 1, 2);
+        str8_printf(&s1, " z=%d", 3);
+        assert(str8_cmpc(&s1, "x=1 y=2 z=3") == 0);
 
-    // find
-    str8_clear(&s1);
-    str8_setc(&s1, "012345678");
-    assert(str8_findc(&s1, "23") == 2);
-    assert(str8_findc(&s1, "23X") < 0);
-    str8_setc(&s2, "678");
-    assert(str8_finds(&s1, &s2) == 6);
+        // find
+        str8_clear(&s1);
+        str8_setc(&s1, "012345678");
+        assert(str8_findc(&s1, "23") == 2);
+        assert(str8_findc(&s1, "23X") < 0);
+        str8_setc(&s2, "678");
+        assert(str8_finds(&s1, &s2) == 6);
 
-    str8_free(&s1);
-    str8_free(&s2);
-
+        str8_free(&s1);
+        str8_free(&s2);
+    }
 
     //
     // String with individual custom allocator
     //
+    {
+        // init
+        str32 s1 = str32_initc(alloc, "init");
+        assert(str32_len(&s1) == strlen("init"));
+        assert(!str32_empty(&s1));
+        assert(str32_cmpc(&s1, "init") == 0);
 
-    // init
-    str32 sa1 = str32_initc(alloc, "hello");
-    assert(str32_len(&sa1) == strlen("hello"));
-    assert(!str32_empty(&sa1));
-    assert(str32_cmpc(&sa1, "hello") == 0);
+        // set
+        str32_setc(&s1, "hello");
+        assert(str32_len(&s1) == strlen("hello"));
+        assert(!str32_empty(&s1));
 
-    str32_free(&sa1);
+        // cat
+        str32_catc(&s1, " world");
+        assert(str32_len(&s1) == strlen("hello world"));
+        assert(str32_cmpc(&s1, "hello world") == 0);
+
+        // clone
+        str32 s2 = str32_clone(&s1);
+        assert(str32_cmps(&s1, &s2) == 0);
+        str32_free(&s1);
+        str32_free(&s2);
+
+        // ins
+        str32_setc(&s1, "world");
+        str32_insc(&s1, "hello ", 0);
+        assert(str32_cmpc(&s1, "hello world") == 0);
+        str32_setc(&s2, " mad");
+        str32_inss(&s1, &s2, 5);
+        assert(str32_cmpc(&s1, "hello mad world") == 0);
+
+        // del
+        str32_deln(&s1, 5, 4);
+        assert(str32_cmpc(&s1, "hello world") == 0);
+
+        // printf
+        str32_clear(&s1);
+        str32_printf(&s1, "x=%d y=%d", 1, 2);
+        str32_printf(&s1, " z=%d", 3);
+        assert(str32_cmpc(&s1, "x=1 y=2 z=3") == 0);
+
+        // find
+        str32_clear(&s1);
+        str32_setc(&s1, "012345678");
+        assert(str32_findc(&s1, "23") == 2);
+        assert(str32_findc(&s1, "23X") < 0);
+        str32_setc(&s2, "678");
+        assert(str32_finds(&s1, &s2) == 6);
+
+        str32_free(&s1);
+        str32_free(&s2);
+    }
 }
 
 
