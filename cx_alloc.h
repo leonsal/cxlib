@@ -18,8 +18,8 @@ typedef struct CxAllocator {
 //
 const CxAllocator* cxDefaultAllocator();
 
-#define cx_alloc_alloc(a,n) a->alloc(a->ctx,n)
-#define cx_alloc_free(a,p) a->free(a->ctx,p)
+#define cx_alloc_alloc(a,n)     a->alloc(a->ctx,n)
+#define cx_alloc_free(a,p,n)    a->free(a->ctx,p,n)
 
 #endif
 

@@ -6,11 +6,6 @@
 #include <stdarg.h>
 #include "cx_alloc.h"
 
-// Default string type name
-#ifndef cx_str_name
-    #define cx_str_name CxStr
-#endif
-
 // String capacity in number of bits
 #define cx_str_cap8     8
 #define cx_str_cap16    16
@@ -18,7 +13,7 @@
 
 // Default capacity
 #ifndef cx_str_cap
-    #define cx_str_cap cx_str_cap8
+    #define cx_str_cap  cx_str_cap8
 #endif
 #if cx_str_cap == cx_str_cap8
     #define cx_str_cap_type uint8_t
@@ -35,26 +30,28 @@
 
 // Error handler
 #ifndef cx_str_error_handler
-    #define cx_str_error_handler(m) printf("CXLIB STR ERROR:%s\n", m);abort()
+    #define cx_str_error_handler(msg)\
+        printf("CXLIB STR ERROR:%s\n",msg);abort()
 #endif
 
-// Default global allocator
-#ifndef cx_str_malloc
-    #define cx_str_malloc(n)    malloc(n)
-#endif
-#ifndef cx_str_free
-    #define cx_str_free(p, n)   free(p)
-#endif
-
-// Custom individual allocator
-#ifndef cx_str_allocator
-    #define cx_str_alloc_field
-    #define str_alloc(s,n)      cx_str_malloc(n)
-    #define str_free(s,p,n)     cx_str_free(p, n)
+// Use custom instance allocator
+#ifdef cx_str_allocator
+    #define cx_str_alloc_field_\
+        const CxAllocator* alloc;
+    #define cx_str_alloc_global_
+    #define str_alloc(s,n)\
+        cx_alloc_alloc(s->alloc, n)
+    #define str_free(s,p,n)\
+        cx_alloc_free(s->alloc, p, n)
+// Use global type allocator
 #else
-    #define cx_str_alloc_field  const CxAllocator* alloc;
-    #define str_alloc(s,n)      s->alloc->alloc(s->alloc->ctx, n)
-    #define str_free(s,p,n)     s->alloc->free(s->alloc->ctx, p, n)
+    #define cx_str_alloc_field_
+    #define cx_str_alloc_global_\
+        static const CxAllocator* type_name(_allocator) = NULL;
+    #define str_alloc(s,n)\
+        cx_alloc_alloc(type_name(_allocator),n)
+    #define str_free(s,p,n)\
+        cx_alloc_free(type_name(_allocator),p,n)
 #endif
 
 // Auxiliary internal macros
@@ -139,7 +136,7 @@
 // Declarations
 //
 typedef struct cx_str_name {
-    cx_str_alloc_field;
+    cx_str_alloc_field_;
     cx_str_cap_type len;
     cx_str_cap_type cap;
     char* data;
@@ -184,10 +181,13 @@ linkage int  type_name(name_cmps)(cx_str_name* s, const cx_str_name* src);
 linkage void type_name(name_vprintf)(cx_str_name* s, const char *fmt, va_list ap);
 linkage void type_name(name_printf)(cx_str_name* s, const char *fmt, ...);
 
+
 //
 // Implementations
 //
 #ifdef cx_str_implement
+
+    cx_str_alloc_global_;
 
 // Internal string reallocation function
 static void type_name(_grow_)(cx_str_name* s, size_t addLen, size_t minCap) {
@@ -260,27 +260,29 @@ static void type_name(_grow_)(cx_str_name* s, size_t addLen, size_t minCap) {
 #else
 
     linkage cx_str_name type_name(name_init)(void) {
-
+        if (type_name(_allocator) == NULL) {
+            type_name(_allocator) = cxDefaultAllocator();
+        }
         return (cx_str_name) {0};
     }
 
     linkage cx_str_name type_name(name_initn)(const char* src, size_t n) {
 
-        cx_str_name s = {0};
+        cx_str_name s = type_name(name_init)();
         type_name(_setn)(&s, src, n);
         return s;
     }
 
     linkage cx_str_name type_name(name_initc)(const char* src) {
 
-        cx_str_name s = {0};
+        cx_str_name s = type_name(name_init)();
         type_name(_setc)(&s, src);
         return s;
     }
 
     linkage cx_str_name type_name(name_inits)(const cx_str_name* src) {
 
-        cx_str_name s = {0};
+        cx_str_name s = type_name(name_init)();
         type_name(_sets)(&s, src);
         return s;
     }
@@ -528,13 +530,14 @@ linkage void type_name(name_printf)(cx_str_name* s, const char *fmt, ...) {
 #undef cx_str_cap8
 #undef cx_str_cap16
 #undef cx_str_cap32
+#undef cx_str_camel_case
 #undef cx_str_cap
 #undef cx_str_cap_type
 #undef cx_str_max_cap
 #undef cx_str_error
 #undef cx_str_allocator
-#undef cx_str_alloc_field
-#undef cx_str_camel_case
+#undef cx_str_alloc_field_
+#undef cx_str_alloc_global_
 #undef str_alloc
 #undef str_free
 

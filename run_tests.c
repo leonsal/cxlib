@@ -15,8 +15,10 @@
 #define cx_str_implement
 #include "cx_str.h"
 
+
 int main() {
 
+    str16_allocator = NULL;
     str16 s1 = str16_init();
     str16 s2 = str16_initc("1234");
     assert(str16_cmpc(&s2, "1234") == 0);
