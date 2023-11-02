@@ -34,6 +34,7 @@
 #include "cx_str.h"
 
 #define cx_str_name str32
+#define cx_str_allocator
 #define cx_str_static
 #define cx_str_implement
 #include "cx_str.h"
@@ -403,7 +404,21 @@ void cxStrTest(const CxAllocator* alloc) {
     str8_setc(&s2, "678");
     assert(str8_finds(&s1, &s2) == 6);
 
+    str8_free(&s1);
+    str8_free(&s2);
 
+
+    //
+    // String with individual custom allocator
+    //
+
+    // init
+    str32 sa1 = str32_initc(alloc, "hello");
+    assert(str32_len(&sa1) == strlen("hello"));
+    assert(!str32_empty(&sa1));
+    assert(str32_cmpc(&sa1, "hello") == 0);
+
+    str32_free(&sa1);
 }
 
 

@@ -419,7 +419,9 @@ linkage void type_name(name_setlen)(cx_str_name* s, size_t len) {
         type_name(_grow_)(s, len, 0);
     }
     s->len = len;
-    s->data[s->len] = 0;
+    if (s->len) {
+        s->data[s->len] = 0;
+    }
 }
 
 linkage void type_name(name_setn)(cx_str_name* s, const char* src, size_t n) {
