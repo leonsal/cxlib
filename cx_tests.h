@@ -4,10 +4,15 @@
 
 void cxAllocBlockTests(void);
 void cxAllocBlockTest(size_t allocs, size_t blockSize);
+
 void cxArrayTests(void);
 void cxArrayTest(size_t size, const CxAllocator* alloc);
+
 void cxHmapTests(void);
 void cxHmapTest(size_t size, size_t nbuckets, const CxAllocator* alloc);
+
+void cxStrTests(void);
+void cxStrTest(const CxAllocator* alloc);
 
 #endif
 

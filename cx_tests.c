@@ -346,20 +346,60 @@ void cxHmapTest(size_t size, size_t nbuckets, const CxAllocator* alloc) {
     }
 }
 
+void cxStrTests(void) {
+
+    cxStrTest(cxDefaultAllocator()); 
+}
+
 void cxStrTest(const CxAllocator* alloc) {
 
-    
+    // init
+    str8_allocator = alloc;
+    str8 s1 = str8_init();
+    assert(str8_len(&s1) == 0);
+    assert(str8_cap(&s1) == 0);
+    assert(str8_empty(&s1));
+    assert(str8_cmpc(&s1, "") == 0);
 
+    // set
+    str8_setc(&s1, "hello");
+    assert(str8_len(&s1) == strlen("hello"));
+    assert(!str8_empty(&s1));
 
+    // cat
+    str8_catc(&s1, " world");
+    assert(str8_len(&s1) == strlen("hello world"));
+    assert(str8_cmpc(&s1, "hello world") == 0);
 
+    // clone
+    str8 s2 = str8_clone(&s1);
+    assert(str8_cmps(&s1, &s2) == 0);
+    str8_free(&s1);
+    str8_free(&s2);
 
+    // ins
+    str8_setc(&s1, "world");
+    str8_insc(&s1, "hello ", 0);
+    assert(str8_cmpc(&s1, "hello world") == 0);
+    str8_setc(&s2, " mad");
+    str8_inss(&s1, &s2, 5);
+    assert(str8_cmpc(&s1, "hello mad world") == 0);
 
+    // del
+    str8_deln(&s1, 5, 4);
+    assert(str8_cmpc(&s1, "hello world") == 0);
 
+    // printf
+    str8_clear(&s1);
+    str8_printf(&s1, "x=%d y=%d", 1, 2);
+    str8_printf(&s1, " z=%d", 3);
+    assert(str8_cmpc(&s1, "x=1 y=2 z=3") == 0);
 
-
-
-
-
+    // find
+    str8_clear(&s1);
+    str8_setc(&s1, "012345678");
+    assert(str8_findc(&s1, "23") == 2);
+    assert(str8_findc(&s1, "23X") < 0);
 
 }
 

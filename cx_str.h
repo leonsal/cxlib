@@ -365,6 +365,7 @@ linkage void type_name(name_free)(cx_str_name* s) {
     str_free(s, s->data, s->cap);
     s->cap = 0;
     s->len = 0;
+    s->data = NULL;
 }
 
 linkage void type_name(name_clear)(cx_str_name* s) {
@@ -468,6 +469,7 @@ linkage void type_name(name_cats)(cx_str_name* s, const cx_str_name* src) {
 linkage void type_name(name_insn)(cx_str_name* s, const char* src, size_t n, size_t idx) {
 
     if (idx > s->len) {
+        cx_str_error_handler("invalid index");
         return;
     }
     if (s->len + n > s->cap) {

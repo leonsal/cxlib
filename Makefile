@@ -38,3 +38,7 @@ clean:
 d: $(TARGET)
 	gdb $(TARGET)
 
+r: $(TARGET)
+	./$(TARGET)
+
+
