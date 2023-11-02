@@ -189,6 +189,7 @@ void* cxHmapNext(const CxHmapState* ms, CxHmapIter* iter) {
         }
         EntryHeader* e = (EntryHeader*)(m->buckets + i * m->s.entrySize);
         if (e->next == NULL) {
+            iter->bucket++;
             continue;
         }
         if (e->next == e) {
