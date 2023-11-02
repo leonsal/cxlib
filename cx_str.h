@@ -38,7 +38,7 @@ Configuration defines:
 -   cx_str_name <name>
     Sets the name of the string type
 
--   cx_str_cap <8|16|32>
+-   cx_str_cap <8|16|32> (optional, default=32)
     Sets the string maximum capacity
 
 -   cx_str_error_handler <func>
@@ -56,6 +56,7 @@ Configuration defines:
 -   cx_str_implement
     Implements functions
 
+-   cx_str_thread (TODO thread safe)
 
 
 ********************************************/
@@ -67,22 +68,27 @@ Configuration defines:
 #include <stdarg.h>
 #include "cx_alloc.h"
 
+#ifndef cx_str_name
+    #error "cx_str_name not defined" 
+#endif
+
+
 // String capacity in number of bits
-#define cx_str_cap8     8
-#define cx_str_cap16    16
-#define cx_str_cap32    32
+#define cx_str_cap8_     8
+#define cx_str_cap16_    16
+#define cx_str_cap32_    32
 
 // Default capacity
 #ifndef cx_str_cap
-    #define cx_str_cap  cx_str_cap32
+    #define cx_str_cap  cx_str_cap32_
 #endif
-#if cx_str_cap == cx_str_cap8
+#if cx_str_cap == cx_str_cap8_
     #define cx_str_cap_type_ uint8_t
     #define cx_str_max_cap_  (UINT8_MAX)
-#elif cx_str_cap == cx_str_cap16
+#elif cx_str_cap == cx_str_cap16_
     #define cx_str_cap_type_ uint16_t
     #define cx_str_max_cap_  (UINT16_MAX)
-#elif cx_str_cap == cx_str_cap32
+#elif cx_str_cap == cx_str_cap32_
     #define cx_str_cap_type_ uint32_t
     #define cx_str_max_cap_  (UINT32_MAX)
 #else
@@ -106,18 +112,18 @@ Configuration defines:
     #define cx_str_alloc_field_\
         const CxAllocator* alloc;
     #define cx_str_alloc_global_
-    #define str_alloc(s,n)\
+    #define cx_str_alloc_(s,n)\
         cx_alloc_alloc(s->alloc, n)
-    #define str_free(s,p,n)\
+    #define cx_str_free_(s,p,n)\
         cx_alloc_free(s->alloc, p, n)
 // Use global type allocator
 #else
     #define cx_str_alloc_field_
     #define cx_str_alloc_global_\
         linkage const CxAllocator* type_name(_allocator) = NULL;
-    #define str_alloc(s,n)\
+    #define cx_str_alloc_(s,n)\
         cx_alloc_alloc(type_name(_allocator),n)
-    #define str_free(s,p,n)\
+    #define cx_str_free_(s,p,n)\
         cx_alloc_free(type_name(_allocator),p,n)
 #endif
 
@@ -164,6 +170,12 @@ Configuration defines:
     #define name_findn          Findn
     #define name_findc          Findc
     #define name_finds          Finds
+    #define name_startsn        Startsn
+    #define name_startsc        Startsc
+    #define name_startss        Startss
+    #define name_endsn          Endsn
+    #define name_endsc          Endsc
+    #define name_endss          Endss
 #else
     #define name_init           _init
     #define name_initn          _initn
@@ -198,6 +210,12 @@ Configuration defines:
     #define name_findn          _findn
     #define name_findc          _findc
     #define name_finds          _finds
+    #define name_startsn        _startsn
+    #define name_startsc        _startsc
+    #define name_startss        _startss
+    #define name_endsn          _endsn
+    #define name_endsc          _endsc
+    #define name_endss          _endss
 #endif
 
 //
@@ -251,6 +269,12 @@ linkage void type_name(name_printf)(cx_str_name* s, const char *fmt, ...);
 linkage ptrdiff_t type_name(name_findn)(cx_str_name* s, const char *src, size_t n);
 linkage ptrdiff_t type_name(name_findc)(cx_str_name* s, const char *src);
 linkage ptrdiff_t type_name(name_finds)(cx_str_name* s, const cx_str_name* src);
+linkage bool type_name(name_startsn)(cx_str_name* s, const char* src, size_t n);
+linkage bool type_name(name_startsc)(cx_str_name* s, const char* src);
+linkage bool type_name(name_startss)(cx_str_name* s, const cx_str_name* src);
+linkage bool type_name(name_endsn)(cx_str_name* s, const char* src, size_t n);
+linkage bool type_name(name_endsc)(cx_str_name* s, const char* src);
+linkage bool type_name(name_endss)(cx_str_name* s, const cx_str_name* src);
 
 
 //
@@ -286,7 +310,7 @@ static void type_name(_grow_)(cx_str_name* s, size_t addLen, size_t minCap) {
     // Allocates new capacity
     const size_t elemSize = sizeof(*(s->data));
     const size_t allocSize = elemSize * (minCap + 1);
-    void* new = str_alloc(s, allocSize);
+    void* new = cx_str_alloc_(s, allocSize);
     if (new == NULL) {
         return;
     }
@@ -294,7 +318,7 @@ static void type_name(_grow_)(cx_str_name* s, size_t addLen, size_t minCap) {
     // Copy current data to new area and free previous
     if (s->data) {
         memcpy(new, s->data, (s->len + 1) * elemSize);
-        str_free(s, s->data, (s->len + 1) * elemSize);
+        cx_str_free_(s, s->data, (s->len + 1) * elemSize);
     }
     s->data = new;
     s->cap = minCap;
@@ -362,7 +386,7 @@ static void type_name(_grow_)(cx_str_name* s, size_t addLen, size_t minCap) {
 
 linkage void type_name(name_free)(cx_str_name* s) {
 
-    str_free(s, s->data, s->cap);
+    cx_str_free_(s, s->data, s->cap);
     s->cap = 0;
     s->len = 0;
     s->data = NULL;
@@ -376,7 +400,7 @@ linkage void type_name(name_clear)(cx_str_name* s) {
 linkage cx_str_name type_name(name_clone)(const cx_str_name* s) {
 
     cx_str_name cloned = *s;
-    cloned.data = str_alloc(s, s->cap + 1);
+    cloned.data = cx_str_alloc_(s, s->cap + 1);
     memcpy(cloned.data, s->data, s->len + 1);
     return cloned;
 }
@@ -545,7 +569,7 @@ linkage void type_name(name_vprintf)(cx_str_name* s, const char *fmt, va_list ap
     // We try to start using a static buffer for speed.
     // If not possible we revert to heap allocation.
     if (buflen > sizeof(staticbuf)) {
-        buf = str_alloc(s, buflen);
+        buf = cx_str_alloc_(s, buflen);
         if (buf == NULL) {
             return;
         }
@@ -561,16 +585,16 @@ linkage void type_name(name_vprintf)(cx_str_name* s, const char *fmt, va_list ap
         va_end(cpy);
         if (bufstrlen < 0) {
             if (buf != staticbuf) {
-                str_free(s, buf, buflen);
+                cx_str_free_(s, buf, buflen);
             }
             return;
         }
         if (((size_t)bufstrlen) >= buflen) {
             if (buf != staticbuf) {
-                str_free(s, buf, buflen);
+                cx_str_free_(s, buf, buflen);
             }
             buflen = ((size_t)bufstrlen) + 1;
-            buf = str_alloc(s, buflen);
+            buf = cx_str_alloc_(s, buflen);
             if (buf == NULL) {
                 return;
             }
@@ -582,7 +606,7 @@ linkage void type_name(name_vprintf)(cx_str_name* s, const char *fmt, va_list ap
     // Finally concat the obtained string to the SDS string and return it.
     type_name(name_catn)(s, buf, bufstrlen);
     if (buf != staticbuf) {
-        str_free(s, buf, buflen);
+        cx_str_free_(s, buf, buflen);
     }
 }
 
@@ -620,24 +644,65 @@ linkage ptrdiff_t type_name(name_finds)(cx_str_name* s, const cx_str_name* src) 
     return type_name(name_findn)(s, src->data, src->len);
 }
 
+linkage bool type_name(name_startsn)(cx_str_name* s, const char* src, size_t n) {
+
+    if (s->len < n) {
+        return false;
+    }
+    return memcmp(s->data, src, n) == 0;
+}
+
+linkage bool type_name(name_startsc)(cx_str_name* s, const char* src) {
+
+    return type_name(name_startsn)(s, src, strlen(src));
+}
+
+linkage bool type_name(name_startss)(cx_str_name* s, const cx_str_name* src) {
+
+    return type_name(name_startsn)(s, src->data, src->len);
+}
+
+linkage bool type_name(name_endsn)(cx_str_name* s, const char* src, size_t n) {
+
+    if (s->len < n) {
+        return false;
+    }
+    return memcmp(s->data + s->len - n, src, n) == 0;
+}
+
+linkage bool type_name(name_endsc)(cx_str_name* s, const char* src) {
+
+    return type_name(name_endsn)(s, src, strlen(src));
+}
+
+linkage bool type_name(name_endss)(cx_str_name* s, const cx_str_name* src) {
+
+    return type_name(name_endsn)(s, src->data, src->len);
+}
+
+
 
 #endif // cx_str_implement
 
 //
-// Undefine all defined macros
+// Undefine config  macros
 //
 #undef cx_str_name
-#undef cx_str_cap8
-#undef cx_str_cap16
-#undef cx_str_cap32
 #undef cx_str_camel_case
 #undef cx_str_cap
 #undef cx_str_allocator
 #undef cx_str_error_handler
+
+//
+// Undefine internal macros
+//
 #undef cx_str_cap_type_
+#undef cx_str_cap8_
+#undef cx_str_cap16_
+#undef cx_str_cap32_
 #undef cx_str_max_cap_
 #undef cx_str_alloc_field_
 #undef cx_str_alloc_global_
-#undef str_alloc
-#undef str_free
+#undef cx_str_alloc_
+#undef cx_str_free_
 

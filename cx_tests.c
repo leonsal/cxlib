@@ -425,6 +425,19 @@ void cxStrTest(const CxAllocator* alloc) {
         str8_setc(&s2, "678");
         assert(str8_finds(&s1, &s2) == 6);
 
+        // starts
+        str8_setc(&s1, "01234567890");
+        assert(str8_startsc(&s1, "012"));
+        assert(!str8_startsc(&s1, "123"));
+        str8_setc(&s2, "01234");
+        assert(str8_startss(&s1, &s2));
+
+        // starts
+        assert(str8_endsc(&s1, "90"));
+        assert(!str8_endsc(&s1, "91"));
+        str8_setc(&s2, "4567890");
+        assert(str8_endss(&s1, &s2));
+
         str8_free(&s1);
         str8_free(&s2);
     }

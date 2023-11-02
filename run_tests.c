@@ -1,5 +1,12 @@
 #include "cx_tests.h"
 
+#define cx_str_name str
+#include "cx_str.h"
+
+#define cx_str_name str8
+#define cx_str_cap 8
+#include "cx_str.h"
+
 int main() {
 
     cxStrTests();
