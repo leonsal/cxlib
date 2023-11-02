@@ -1,4 +1,12 @@
 
+UTF8: ?
+    find,
+    starts,
+    ends
+    substr
+
+
+
 cx_str trim_leftn
 cx_str trim_leftc
 cx_str trim_lefts
@@ -10,5 +18,4 @@ cx_str trim_suffixs
 
 cx_str repl(s, start, end)
 
-UTF8
 

@@ -21,7 +21,7 @@
 #define cx_hmap_implement
 #include "cx_hmap.h"
 
-#define CX_STR_ALLOCATOR
+//#define CX_STR_ALLOCATOR
 #define cx_str_name cxstr
 #define cx_str_cap 8
 #define cx_str_static
@@ -39,6 +39,7 @@ static int sort_int_desc(const int* v1, const int* v2) {
 
 void cxTests(void) {
 
+    cxAllocBlockTests();
     cxArrayTests();
     cxHmapTests();
     cxStrTests();
@@ -366,8 +367,8 @@ void cxStrTest(const CxAllocator* alloc) {
     cxstr s2 = cxstr_init(alloc);
 #else
     cxstr_allocator = alloc;
-    cxstr s1 = cxstr_init();
-    cxstr s2 = cxstr_init();
+    cxstr s1 = cxstr_initc(NULL);
+    cxstr s2 = cxstr_initc(NULL);
 #endif
     assert(cxstr_len(&s1) == 0);
     assert(cxstr_cap(&s1) == 0);

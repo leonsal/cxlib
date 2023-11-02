@@ -6,27 +6,22 @@ Dynamic String Implementation
 Example
 -------
 
-#define cx_str_name str
-#define cx_str_implement
-#include "cx_str.h"
-
-#define cx_str_name str8
-#define cx_str_cap 8
+#define cx_str_name cxstr
 #define cx_str_implement
 #include "cx_str.h"
 
 
 int main() {
 
-    str s1 = cxstr_initc("hello");
-    str_catc(&s1, " world");
+    cxstr s1 = cxstr_initc("hello");
+    cxstr_cat(&s1, " world");
     printf("%s\n", str.data); 
-    str_free(&s1);
+    cxstr_free(&s1);
 
-    str8 s2 = str8_init();
-    str8_printf("counter:%d\n", 42);
-    printf("%s\n", str.data); 
-    str8_free(&s2);
+    cxstr s2 = cxstr_inits(&s1);
+    cxstr_printf("counter:%d\n", 42);
+    printf("%s\n", s2.data); 
+    cxstr_free(&s2);
 
     return 0;
 }
@@ -398,6 +393,9 @@ linkage void type_name(name_setcap)(cx_str_name* s, size_t cap) {
 
 linkage void type_name(name_ncpy)(cx_str_name* s, const char* src, size_t n) {
 
+    if (src == NULL) {
+        return;
+    }
     if (n > s->cap) {
         type_name(_grow_)(s, 0, n);
     }
@@ -410,6 +408,9 @@ linkage void type_name(name_ncpy)(cx_str_name* s, const char* src, size_t n) {
 
 linkage void type_name(name_cpy)(cx_str_name* s, const char* src) {
 
+    if (src == NULL) {
+        return;
+    }
     type_name(name_ncpy)(s, src, strlen(src));
 }
 
