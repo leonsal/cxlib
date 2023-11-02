@@ -151,7 +151,7 @@ Configuration defines:
     #define name_data           Data
     #define name_empty          Empty
     #define name_setcap         SetCap
-    #define name_setn           Setn
+    #define name_cpyn           Setn
     #define name_setc           Setc
     #define name_sets           Sets
     #define name_catn           Catn
