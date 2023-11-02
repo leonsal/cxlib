@@ -7,6 +7,7 @@ SOURCES=run_tests.c\
 		cx_alloc_block.c\
 		cx_array.c\
 		cx_hmap.c\
+		cx_str.c\
 		cx_tests.c
 
 HEADERS=cx_alloc.h\

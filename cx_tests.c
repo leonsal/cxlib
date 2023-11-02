@@ -9,12 +9,6 @@
 #define cx_array_static
 #include "cx_array.h"
 
-#define cx_array_name arrf64
-#define cx_array_type double
-#define cx_array_implement
-#define cx_array_static
-#include "cx_array.h"
-
 #define cx_hmap_name mapt1
 #define cx_hmap_key int
 #define cx_hmap_val double
@@ -387,8 +381,13 @@ void cxStrTest(const CxAllocator* alloc) {
         str8_setc(&s1, "hello");
         assert(str8_len(&s1) == strlen("hello"));
         assert(!str8_empty(&s1));
+        
+        // len utf8
+        str8_setc(&s1, "áéíóú");
+        assert(str8_len8(&s1) == 5);
 
         // cat
+        str8_setc(&s1, "hello");
         str8_catc(&s1, " world");
         assert(str8_len(&s1) == strlen("hello world"));
         assert(str8_cmpc(&s1, "hello world") == 0);

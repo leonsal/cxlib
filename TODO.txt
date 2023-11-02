@@ -7,12 +7,8 @@ cx_str trim_suffixn
 cx_str trim_suffixc
 cx_str trim_suffixs
 
-cx_str substr(s, start, end)
 
 cx_str repl(s, start, end)
-
-
-cx_str range(s, start, end)
 
 UTF8
 

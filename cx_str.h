@@ -147,10 +147,10 @@ Configuration defines:
     #define name_reserve        Reserve
     #define name_cap            Cap
     #define name_len            Len
+    #define name_len8           Len8
     #define name_data           Data
     #define name_empty          Empty
     #define name_setcap         SetCap
-    #define name_setlen         SetLen
     #define name_setn           Setn
     #define name_setc           Setc
     #define name_sets           Sets
@@ -188,10 +188,10 @@ Configuration defines:
     #define name_reserve        _reserve
     #define name_cap            _cap
     #define name_len            _len
+    #define name_len8           _len8
     #define name_data           _data
     #define name_empty          _empty
     #define name_setcap         _setcap
-    #define name_setlen         _setlen
     #define name_setn           _setn
     #define name_setc           _setc
     #define name_sets           _sets
@@ -248,10 +248,10 @@ linkage void type_name(name_clone)(const cx_str_name* s, cx_str_name* dst);
 linkage void type_name(name_reserve)(cx_str_name* s, size_t n);
 linkage size_t type_name(name_cap)(const cx_str_name* s);
 linkage size_t type_name(name_len)(const cx_str_name* s);
+linkage size_t type_name(name_len8)(const cx_str_name* s);
 linkage const char* type_name(name_data)(const cx_str_name* s);
 linkage bool type_name(name_empty)(const cx_str_name* s);
 linkage void type_name(name_setcap)(cx_str_name* s, size_t cap);
-linkage void type_name(name_setlen)(cx_str_name* s, size_t len);
 linkage void type_name(name_setn)(cx_str_name* s, const char* src, size_t n);
 linkage void type_name(name_setc)(cx_str_name* s, const char* src);
 linkage void type_name(name_sets)(cx_str_name* s, const cx_str_name* src);
@@ -286,6 +286,7 @@ linkage void type_name(name_substr)(const cx_str_name* s, size_t start, size_t l
 #ifdef cx_str_implement
 
     cx_str_alloc_global_;
+    extern size_t utf8len(const char* str);
 
 // Internal string reallocation function
 static void type_name(_grow_)(cx_str_name* s, size_t addLen, size_t minCap) {
@@ -422,6 +423,11 @@ linkage size_t type_name(name_len)(const cx_str_name* s) {
     return s->len;
 }
 
+linkage size_t type_name(name_len8)(const cx_str_name* s) {
+
+    return utf8len(s->data);
+}
+
 linkage const char* type_name(name_data)(const cx_str_name* s) {
 
     return s->data;
@@ -435,17 +441,6 @@ linkage bool type_name(name_empty)(const cx_str_name* s) {
 linkage void type_name(name_setcap)(cx_str_name* s, size_t cap) {
 
     type_name(_grow_)(s, 0, cap);
-}
-
-linkage void type_name(name_setlen)(cx_str_name* s, size_t len) {
-
-    if (len > s->cap) {
-        type_name(_grow_)(s, len, 0);
-    }
-    s->len = len;
-    if (s->len) {
-        s->data[s->len] = 0;
-    }
 }
 
 linkage void type_name(name_setn)(cx_str_name* s, const char* src, size_t n) {
