@@ -21,15 +21,13 @@
 #define cx_hmap_implement
 #include "cx_hmap.h"
 
-#define cx_str_name str8
+#define CX_STR_ALLOCATOR
+#define cx_str_name cxstr
 #define cx_str_cap 8
 #define cx_str_static
-#define cx_str_implement
-#include "cx_str.h"
-
-#define cx_str_name str32
-#define cx_str_allocator
-#define cx_str_static
+#ifdef CX_STR_ALLOCATOR
+    #define cx_str_allocator
+#endif
 #define cx_str_implement
 #include "cx_str.h"
 
@@ -362,149 +360,95 @@ void cxStrTests(void) {
 
 void cxStrTest(const CxAllocator* alloc) {
 
-    //
-    // String with type allocator
-    //
-    {
-        // init
-        str8_allocator = alloc;
-        str8 s1 = str8_init();
-        assert(str8_len(&s1) == 0);
-        assert(str8_cap(&s1) == 0);
-        assert(str8_empty(&s1));
-        assert(str8_cmpc(&s1, "") == 0);
+    // init
+#ifdef CX_STR_ALLOCATOR
+    cxstr s1 = cxstr_init(alloc);
+    cxstr s2 = cxstr_init(alloc);
+#else
+    cxstr_allocator = alloc;
+    cxstr s1 = cxstr_init();
+    cxstr s2 = cxstr_init();
+#endif
+    assert(cxstr_len(&s1) == 0);
+    assert(cxstr_cap(&s1) == 0);
+    assert(cxstr_empty(&s1));
+    assert(cxstr_cmp(&s1, "") == 0);
 
-        // set
-        str8_setn(&s1, "123\0x00456", 7);
-        assert(strlen(s1.data) == 3);
-        assert(str8_len(&s1) == 7);
-        str8_setc(&s1, "hello");
-        assert(str8_len(&s1) == strlen("hello"));
-        assert(!str8_empty(&s1));
-        
-        // len utf8
-        str8_setc(&s1, "áéíóú");
-        assert(str8_len8(&s1) == 5);
+    // cpy
+    cxstr_ncpy(&s1, "123\0x00456", 7);
+    assert(strlen(s1.data) == 3);
+    assert(cxstr_len(&s1) == 7);
+    cxstr_cpy(&s1, "hello áéíóú");
+    assert(cxstr_len(&s1) == strlen("hello áéíóú"));
+    assert(!cxstr_empty(&s1));
+    assert(cxstr_len8(&s1) == 11);
+    assert(cxstr_len8(&s1) != cxstr_len(&s1));
+    assert(cxstr_valid8(&s1));
+    cxstr_cpys(&s2, &s1);
+    assert(cxstr_cmps(&s1, &s2) == 0);
+    cxstr_free(&s1);
+    cxstr_free(&s2);
 
-        // cat
-        str8_setc(&s1, "hello");
-        str8_catc(&s1, " world");
-        assert(str8_len(&s1) == strlen("hello world"));
-        assert(str8_cmpc(&s1, "hello world") == 0);
+    // cat
+    cxstr_cpy(&s1, "hello");
+    cxstr_cat(&s1, " áéíóú");
+    assert(cxstr_len(&s1) == strlen("hello áéíóú"));
+    assert(cxstr_cmp(&s1, "hello áéíóú") == 0);
+    assert(cxstr_valid8(&s1));
 
-        // clone
-        str8 s2 = str8_init();
-        str8_clone(&s1, &s2);
-        assert(str8_cmps(&s1, &s2) == 0);
-        str8_free(&s1);
-        str8_free(&s2);
+    // ins
+    cxstr_cpy(&s1, "áéíóú");
+    cxstr_ins(&s1, "hello ", 0);
+    assert(cxstr_cmp(&s1, "hello áéíóú") == 0);
+    assert(cxstr_valid8(&s1));
+    cxstr_cpy(&s2, " 123");
+    cxstr_inss(&s1, &s2, 5);
+    assert(cxstr_cmp(&s1, "hello 123 áéíóú") == 0);
+    assert(cxstr_valid8(&s1));
 
-        // ins
-        str8_setc(&s1, "world");
-        str8_insc(&s1, "hello ", 0);
-        assert(str8_cmpc(&s1, "hello world") == 0);
-        str8_setc(&s2, " mad");
-        str8_inss(&s1, &s2, 5);
-        assert(str8_cmpc(&s1, "hello mad world") == 0);
+    // del
+    cxstr_ndel(&s1, 5, 4);
+    assert(cxstr_cmp(&s1, "hello áéíóú") == 0);
+    assert(cxstr_valid8(&s1));
 
-        // del
-        str8_deln(&s1, 5, 4);
-        assert(str8_cmpc(&s1, "hello world") == 0);
+    // printf
+    cxstr_clear(&s1);
+    cxstr_printf(&s1, "x=%d y=%d", 1, 2);
+    cxstr_printf(&s1, " z=%d", 3);
+    cxstr_printf(&s1, " %s", "áéíóú");
+    assert(cxstr_cmp(&s1, "x=1 y=2 z=3 áéíóú") == 0);
+    assert(cxstr_valid8(&s1));
 
-        // printf
-        str8_clear(&s1);
-        str8_printf(&s1, "x=%d y=%d", 1, 2);
-        str8_printf(&s1, " z=%d", 3);
-        assert(str8_cmpc(&s1, "x=1 y=2 z=3") == 0);
+    // find
+    cxstr_clear(&s1);
+    cxstr_cpy(&s1, "012345678");
+    assert(cxstr_findc(&s1, "23") == 2);
+    assert(cxstr_findc(&s1, "23X") < 0);
+    cxstr_cpy(&s2, "678");
+    assert(cxstr_finds(&s1, &s2) == 6);
 
-        // find
-        str8_clear(&s1);
-        str8_setc(&s1, "012345678");
-        assert(str8_findc(&s1, "23") == 2);
-        assert(str8_findc(&s1, "23X") < 0);
-        str8_setc(&s2, "678");
-        assert(str8_finds(&s1, &s2) == 6);
+    // starts
+    cxstr_cpy(&s1, "01234567890");
+    assert(cxstr_startsc(&s1, "012"));
+    assert(!cxstr_startsc(&s1, "123"));
+    cxstr_cpy(&s2, "01234");
+    assert(cxstr_startss(&s1, &s2));
 
-        // starts
-        str8_setc(&s1, "01234567890");
-        assert(str8_startsc(&s1, "012"));
-        assert(!str8_startsc(&s1, "123"));
-        str8_setc(&s2, "01234");
-        assert(str8_startss(&s1, &s2));
+    // ends
+    assert(cxstr_endsc(&s1, "90"));
+    assert(!cxstr_endsc(&s1, "91"));
+    cxstr_cpy(&s2, "4567890");
+    assert(cxstr_endss(&s1, &s2));
 
-        // ends
-        assert(str8_endsc(&s1, "90"));
-        assert(!str8_endsc(&s1, "91"));
-        str8_setc(&s2, "4567890");
-        assert(str8_endss(&s1, &s2));
+    // substr
+    cxstr_cpy(&s1, "abcdefghijklm");
+    cxstr_substr(&s1, 3, 4, &s2);
+    cxstr_cmp(&s2, "defg");
+    cxstr_substr(&s1, 10, 100, &s2);
+    cxstr_cmp(&s2, "klm");
 
-        // substr
-        str8_setc(&s1, "abcdefghijklm");
-        str8_substr(&s1, 3, 4, &s2);
-        str8_cmpc(&s2, "defg");
-        str8_substr(&s1, 10, 100, &s2);
-        str8_cmpc(&s2, "klm");
-
-        str8_free(&s1);
-        str8_free(&s2);
-    }
-
-    //
-    // String with individual custom allocator
-    //
-    {
-        // init
-        str32 s1 = str32_initc(alloc, "init");
-        assert(str32_len(&s1) == strlen("init"));
-        assert(!str32_empty(&s1));
-        assert(str32_cmpc(&s1, "init") == 0);
-
-        // set
-        str32_setc(&s1, "hello");
-        assert(str32_len(&s1) == strlen("hello"));
-        assert(!str32_empty(&s1));
-
-        // cat
-        str32_catc(&s1, " world");
-        assert(str32_len(&s1) == strlen("hello world"));
-        assert(str32_cmpc(&s1, "hello world") == 0);
-
-        // clone
-        str32 s2 = str32_init(alloc);
-        str32_clone(&s1, &s2);
-        assert(str32_cmps(&s1, &s2) == 0);
-        str32_free(&s1);
-        str32_free(&s2);
-
-        // ins
-        str32_setc(&s1, "world");
-        str32_insc(&s1, "hello ", 0);
-        assert(str32_cmpc(&s1, "hello world") == 0);
-        str32_setc(&s2, " mad");
-        str32_inss(&s1, &s2, 5);
-        assert(str32_cmpc(&s1, "hello mad world") == 0);
-
-        // del
-        str32_deln(&s1, 5, 4);
-        assert(str32_cmpc(&s1, "hello world") == 0);
-
-        // printf
-        str32_clear(&s1);
-        str32_printf(&s1, "x=%d y=%d", 1, 2);
-        str32_printf(&s1, " z=%d", 3);
-        assert(str32_cmpc(&s1, "x=1 y=2 z=3") == 0);
-
-        // find
-        str32_clear(&s1);
-        str32_setc(&s1, "012345678");
-        assert(str32_findc(&s1, "23") == 2);
-        assert(str32_findc(&s1, "23X") < 0);
-        str32_setc(&s2, "678");
-        assert(str32_finds(&s1, &s2) == 6);
-
-        str32_free(&s1);
-        str32_free(&s2);
-    }
+    cxstr_free(&s1);
+    cxstr_free(&s2);
 }
 
 
