@@ -29,6 +29,9 @@ asan: $(SOURCES) $(HEADERS)
 pp:
 	gcc -P -E run_tests.c | clang-format --style=LLVM
 
+pptests:
+	gcc -P -E cx_tests.c | clang-format --style=LLVM
+
 clean:
 	rm $(TARGET)
 

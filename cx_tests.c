@@ -3,7 +3,7 @@
 #include <time.h>
 #include "cx_tests.h"
 
-#define cx_array_name ai32
+#define cx_array_name arri32
 #define cx_array_type int
 #define cx_array_implement
 #define cx_array_static
@@ -26,6 +26,17 @@
 #define cx_hmap_val double
 #define cx_hmap_implement
 #include "cx_hmap.h"
+
+#define cx_str_name str8
+#define cx_str_cap 8
+#define cx_str_static
+#define cx_str_implement
+#include "cx_str.h"
+
+#define cx_str_name str32
+#define cx_str_static
+#define cx_str_implement
+#include "cx_str.h"
 
 #include "cx_alloc_block.h"
 
@@ -110,109 +121,109 @@ void cxArrayTests(void) {
 void cxArrayTest(size_t size, const CxAllocator* alloc) {
 
     // Fill array with push
-    ai32 a1 = ai32_init2(alloc);
-    assert(ai32_len(&a1) == 0);
-    assert(ai32_cap(&a1) == 0);
-    assert(ai32_empty(&a1));
+    arri32 a1 = arri32_init2(alloc);
+    assert(arri32_len(&a1) == 0);
+    assert(arri32_cap(&a1) == 0);
+    assert(arri32_empty(&a1));
     for (size_t i = 0; i < size; i++) {
-        ai32_push(&a1, i);
+        arri32_push(&a1, i);
     }
-    assert(ai32_len(&a1) == size);
-    assert(!ai32_empty(&a1));
-    assert(ai32_last(&a1) == size-1);
+    assert(arri32_len(&a1) == size);
+    assert(!arri32_empty(&a1));
+    assert(arri32_last(&a1) == size-1);
     // Check
     for (size_t i = 0; i < size; i++) {
-        assert(*ai32_at(&a1, i) == i);
+        assert(*arri32_at(&a1, i) == i);
         assert(a1.data[i] == i);
     }
     // Pop
     for (size_t i = 0; i < size; i++) {
-        assert(ai32_pop(&a1) == size-i-1);
+        assert(arri32_pop(&a1) == size-i-1);
     }
-    ai32_free(&a1);
-    assert(ai32_len(&a1) == 0);
-    assert(ai32_cap(&a1) == 0);
+    arri32_free(&a1);
+    assert(arri32_len(&a1) == 0);
+    assert(arri32_cap(&a1) == 0);
 
     // Set length and fill array
-    ai32_setlen(&a1, size);
-    assert(ai32_len(&a1) == size);
-    assert(!ai32_empty(&a1));
+    arri32_setlen(&a1, size);
+    assert(arri32_len(&a1) == size);
+    assert(!arri32_empty(&a1));
     for (size_t i = 0; i < size; i++) {
         a1.data[i] = i * 2;
     }
     // Check
     for (size_t i = 0; i < size; i++) {
-        assert(*ai32_at(&a1, i) == i*2);
+        assert(*arri32_at(&a1, i) == i*2);
         assert(a1.data[i] == i*2);
     }
     // Clone and check
-    ai32 a2 = ai32_clone(&a1);
-    assert(ai32_len(&a2) == ai32_len(&a1));
+    arri32 a2 = arri32_clone(&a1);
+    assert(arri32_len(&a2) == arri32_len(&a1));
     for (size_t i = 0; i < size; i++) {
-        assert(*ai32_at(&a2, i) == *ai32_at(&a1, i));
+        assert(*arri32_at(&a2, i) == *arri32_at(&a1, i));
         assert(a2.data[i] == a1.data[i]);
     }
-    ai32_free(&a1);
-    assert(ai32_len(&a1) == 0);
-    assert(ai32_cap(&a1) == 0);
-    ai32_free(&a2);
-    assert(ai32_len(&a2) == 0);
-    assert(ai32_cap(&a2) == 0);
+    arri32_free(&a1);
+    assert(arri32_len(&a1) == 0);
+    assert(arri32_cap(&a1) == 0);
+    arri32_free(&a2);
+    assert(arri32_len(&a2) == 0);
+    assert(arri32_cap(&a2) == 0);
     
     // Set capacity and fill array
-    ai32_setcap(&a1, size);
-    assert(ai32_len(&a1) == 0);
-    assert(ai32_cap(&a1) == size);
-    assert(ai32_empty(&a1));
+    arri32_setcap(&a1, size);
+    assert(arri32_len(&a1) == 0);
+    assert(arri32_cap(&a1) == size);
+    assert(arri32_empty(&a1));
     for (size_t i = 0; i < size; i++) {
-        ai32_push(&a1, i*3);
+        arri32_push(&a1, i*3);
     }
-    assert(ai32_len(&a1) == size);
-    assert(ai32_cap(&a1) == size);
+    assert(arri32_len(&a1) == size);
+    assert(arri32_cap(&a1) == size);
     for (size_t i = 0; i < size; i++) {
-        assert(*ai32_at(&a1, i) == i*3);
+        assert(*arri32_at(&a1, i) == i*3);
         assert(a1.data[i] == i*3);
     }
-    ai32_clear(&a1);
-    assert(ai32_len(&a1) == 0);
-    assert(ai32_cap(&a1) == size);
-    ai32_free(&a1);
-    assert(ai32_cap(&a1) == 0);
+    arri32_clear(&a1);
+    assert(arri32_len(&a1) == 0);
+    assert(arri32_cap(&a1) == size);
+    arri32_free(&a1);
+    assert(arri32_cap(&a1) == 0);
 
     // Inserts space for data
-    ai32_push(&a1, 100);
-    ai32_insn(&a1, 0, 5);
-    assert(ai32_len(&a1) == 1+5);
+    arri32_push(&a1, 100);
+    arri32_insn(&a1, 0, 5);
+    assert(arri32_len(&a1) == 1+5);
     assert(a1.data[5] == 100);
-    ai32_free(&a1);
+    arri32_free(&a1);
 
     // Appends data
     int buf[] = {1,2,3,4,5,6,7,8,9};
     size_t buf_size = sizeof(buf)/sizeof(int);
-    ai32_push(&a1, 0);
-    ai32_append(&a1, buf, buf_size);
-    assert(ai32_len(&a1) == buf_size+1);
+    arri32_push(&a1, 0);
+    arri32_append(&a1, buf, buf_size);
+    assert(arri32_len(&a1) == buf_size+1);
     for (size_t i = 0; i < buf_size+1; i++) {
-        assert(*ai32_at(&a1, i) == i);
+        assert(*arri32_at(&a1, i) == i);
         assert(a1.data[i] == i);
     }
     // Sorts data in descending order
-    ai32_sort(&a1, sort_int_desc);
+    arri32_sort(&a1, sort_int_desc);
     for (size_t i = 0; i < buf_size+1; i++) {
-        assert(*ai32_at(&a1, i) == buf_size-i);
+        assert(*arri32_at(&a1, i) == buf_size-i);
         assert(a1.data[i] == buf_size-i);
     }
-    ai32_free(&a1);
+    arri32_free(&a1);
 
     // Appends from another array
-    ai32_push(&a1, 100);
-    ai32_push(&a2, 0);
-    ai32_push(&a2, 1);
-    ai32_append_array(&a1, &a2);
-    assert(ai32_len(&a1) == 3);
+    arri32_push(&a1, 100);
+    arri32_push(&a2, 0);
+    arri32_push(&a2, 1);
+    arri32_append_array(&a1, &a2);
+    assert(arri32_len(&a1) == 3);
     assert(a1.data[0] == 100 && a1.data[1] == 0 && a1.data[2] == 1);
-    ai32_free(&a1);
-    ai32_free(&a2);
+    arri32_free(&a1);
+    arri32_free(&a2);
 
 }
 
@@ -334,4 +345,22 @@ void cxHmapTest(size_t size, size_t nbuckets, const CxAllocator* alloc) {
         mapt2_free(&m2);
     }
 }
+
+void cxStrTest(const CxAllocator* alloc) {
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+}
+
 

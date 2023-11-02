@@ -1,3 +1,64 @@
+/********************************************
+
+Dynamic String Implementation
+
+
+Example
+-------
+
+#define cx_str_name str
+#define cx_str_implement
+#include "cx_str.h"
+
+#define cx_str_name str8
+#define cx_str_cap 8
+#define cx_str_implement
+#include "cx_str.h"
+
+
+int main() {
+
+    str s1 = cxstr_initc("hello");
+    str_catc(&s1, " world");
+    printf("%s\n", str.data); 
+    str_free(&s1);
+
+    str8 s2 = str8_init();
+    str8_printf("counter:%d\n", 42);
+    printf("%s\n", str.data); 
+    str8_free(&s2);
+
+    return 0;
+}
+
+API documentation:
+------------------
+
+Configuration defines:
+-   cx_str_name <name>
+    Sets the name of the string type
+
+-   cx_str_cap <8|16|32>
+    Sets the string maximum capacity
+
+-   cx_str_error_handler <func>
+    Sets error handler function
+
+-   cx_str_allocator
+    Uses custom allocator per instance
+
+-   cx_str_static
+    Prefix functions with 'static'
+
+-   cx_str_camel_case
+    Uses camel case names instead of snake case
+
+-   cx_str_implement
+    Implements functions
+
+
+
+********************************************/
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -13,17 +74,17 @@
 
 // Default capacity
 #ifndef cx_str_cap
-    #define cx_str_cap  cx_str_cap8
+    #define cx_str_cap  cx_str_cap32
 #endif
 #if cx_str_cap == cx_str_cap8
-    #define cx_str_cap_type uint8_t
-    #define cx_str_max_cap  (UINT8_MAX)
+    #define cx_str_cap_type_ uint8_t
+    #define cx_str_max_cap_  (UINT8_MAX)
 #elif cx_str_cap == cx_str_cap16
-    #define cx_str_cap_type uint16_t
-    #define cx_str_max_cap  (UINT16_MAX)
+    #define cx_str_cap_type_ uint16_t
+    #define cx_str_max_cap_  (UINT16_MAX)
 #elif cx_str_cap == cx_str_cap32
-    #define cx_str_cap_type uint32_t
-    #define cx_str_max_cap  (UINT32_MAX)
+    #define cx_str_cap_type_ uint32_t
+    #define cx_str_max_cap_  (UINT32_MAX)
 #else
     #error "invalid cx string capacity bits"
 #endif
@@ -32,6 +93,12 @@
 #ifndef cx_str_error_handler
     #define cx_str_error_handler(msg)\
         printf("CXLIB STR ERROR:%s\n",msg);abort()
+#endif
+
+#ifdef cx_str_static
+    #define linkage static
+#else
+    #define linkage
 #endif
 
 // Use custom instance allocator
@@ -47,7 +114,7 @@
 #else
     #define cx_str_alloc_field_
     #define cx_str_alloc_global_\
-        static const CxAllocator* type_name(_allocator) = NULL;
+        linkage const CxAllocator* type_name(_allocator) = NULL;
     #define str_alloc(s,n)\
         cx_alloc_alloc(type_name(_allocator),n)
     #define str_free(s,p,n)\
@@ -59,11 +126,6 @@
 #define concat1_(a, b) concat2_(a, b)
 #define type_name(name) concat1_(cx_str_name, name)
 
-#ifdef cx_str_static
-    #define linkage static
-#else
-    #define linkage
-#endif
 
 //
 // Function names
@@ -99,6 +161,9 @@
     #define name_cmps           Cmpc
     #define name_vprintf        Vprintf
     #define name_printf         Printf
+    #define name_findn          Findn
+    #define name_findc          Findc
+    #define name_finds          Finds
 #else
     #define name_init           _init
     #define name_initn          _initn
@@ -130,6 +195,9 @@
     #define name_cmps           _cmps
     #define name_vprintf        _vprintf
     #define name_printf         _printf
+    #define name_findn          _findn
+    #define name_findc          _findc
+    #define name_finds          _finds
 #endif
 
 //
@@ -137,8 +205,8 @@
 //
 typedef struct cx_str_name {
     cx_str_alloc_field_;
-    cx_str_cap_type len;
-    cx_str_cap_type cap;
+    cx_str_cap_type_ len;
+    cx_str_cap_type_ cap;
     char* data;
 } cx_str_name;
 
@@ -180,6 +248,9 @@ linkage int  type_name(name_cmpc)(cx_str_name* s, const char* src);
 linkage int  type_name(name_cmps)(cx_str_name* s, const cx_str_name* src);
 linkage void type_name(name_vprintf)(cx_str_name* s, const char *fmt, va_list ap);
 linkage void type_name(name_printf)(cx_str_name* s, const char *fmt, ...);
+linkage ptrdiff_t type_name(name_findn)(cx_str_name* s, const char *src, size_t n);
+linkage ptrdiff_t type_name(name_findc)(cx_str_name* s, const char *src);
+linkage ptrdiff_t type_name(name_finds)(cx_str_name* s, const cx_str_name* src);
 
 
 //
@@ -207,7 +278,7 @@ static void type_name(_grow_)(cx_str_name* s, size_t addLen, size_t minCap) {
     else if (minCap < 4) {
         minCap = 4;
     }
-    if (minCap + 1 > cx_str_max_cap) {
+    if (minCap + 1 > cx_str_max_cap_) {
         cx_str_error_handler("capacity exceeded");
         return;
     }
@@ -521,6 +592,31 @@ linkage void type_name(name_printf)(cx_str_name* s, const char *fmt, ...) {
     va_end(ap);
 }
 
+linkage ptrdiff_t type_name(name_findn)(cx_str_name* s, const char *src, size_t n) {
+
+    if (n > s->len) {
+        return -1;
+    }
+    const size_t maxIndex = s->len - n;
+    for (size_t i = 0; i <= maxIndex; i++) {
+        if (memcmp(s->data + i, src, n) == 0) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+linkage ptrdiff_t type_name(name_findc)(cx_str_name* s, const char *src) {
+
+    return type_name(name_findn)(s, src, strlen(src));
+}
+
+linkage ptrdiff_t type_name(name_finds)(cx_str_name* s, const cx_str_name* src) {
+
+    return type_name(name_findn)(s, src->data, src->len);
+}
+
+
 #endif // cx_str_implement
 
 //
@@ -532,10 +628,10 @@ linkage void type_name(name_printf)(cx_str_name* s, const char *fmt, ...) {
 #undef cx_str_cap32
 #undef cx_str_camel_case
 #undef cx_str_cap
-#undef cx_str_cap_type
-#undef cx_str_max_cap
-#undef cx_str_error
 #undef cx_str_allocator
+#undef cx_str_error_handler
+#undef cx_str_cap_type_
+#undef cx_str_max_cap_
 #undef cx_str_alloc_field_
 #undef cx_str_alloc_global_
 #undef str_alloc

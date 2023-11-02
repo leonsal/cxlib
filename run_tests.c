@@ -49,7 +49,7 @@ int main() {
     str16_setc(&s5, "012345");
     str16_insc(&s5, "abc", 3);
     str16_insc(&s5, "6789", 9);
-    //str16_inss(&s5, &s5, 0);
+    str16_findn(&s5, "12", 2);
 
 
     str16_printf(&s1, "%d %f TEXT\n", 12, 34.34);
