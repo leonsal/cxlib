@@ -140,7 +140,7 @@ Configuration defines:
 #define name_reserve        _reserve
 #define name_cap            _cap
 #define name_len            _len
-#define name_len8           _len8
+#define name_lencp           _lencp
 #define name_data           _data
 #define name_empty          _empty
 #define name_setcap         _setcap
@@ -150,6 +150,7 @@ Configuration defines:
 #define name_ncat           _ncat
 #define name_cat            _cat
 #define name_cats           _cats
+#define name_catcp          _catcp
 #define name_nins           _nins
 #define name_ins            _ins
 #define name_inss           _inss
@@ -162,9 +163,12 @@ Configuration defines:
 #define name_icmps          _icmps
 #define name_vprintf        _vprintf
 #define name_printf         _printf
-#define name_findn          _findn
-#define name_findc          _findc
+#define name_nfind          _nfind
+#define name_find           _find
 #define name_finds          _finds
+#define name_findcp         _findcp
+#define name_ifind          _ifind
+#define name_ifinds         _ifinds
 #define name_startsn        _startsn
 #define name_startsc        _startsc
 #define name_startss        _startss
@@ -204,7 +208,7 @@ linkage void type_name(name_clear)(cx_str_name* s);
 linkage void type_name(name_reserve)(cx_str_name* s, size_t n);
 linkage size_t type_name(name_cap)(const cx_str_name* s);
 linkage size_t type_name(name_len)(const cx_str_name* s);
-linkage size_t type_name(name_len8)(const cx_str_name* s);
+linkage size_t type_name(name_lencp)(const cx_str_name* s);
 linkage const char* type_name(name_data)(const cx_str_name* s);
 linkage bool type_name(name_empty)(const cx_str_name* s);
 linkage void type_name(name_setcap)(cx_str_name* s, size_t cap);
@@ -214,6 +218,7 @@ linkage void type_name(name_cpys)(cx_str_name* s, const cx_str_name* src);
 linkage void type_name(name_ncat)(cx_str_name* s, const char* src, size_t n);
 linkage void type_name(name_cat)(cx_str_name* s, const char* src);
 linkage void type_name(name_cats)(cx_str_name* s, const cx_str_name* src);
+linkage void type_name(name_catcp)(cx_str_name* s, int32_t cp);
 linkage void type_name(name_nins)(cx_str_name* s, const char* src, size_t n, size_t idx);
 linkage void type_name(name_ins)(cx_str_name* s, const char* src, size_t idx);
 linkage void type_name(name_inss)(cx_str_name* s, const cx_str_name* src, size_t idx);
@@ -226,9 +231,12 @@ linkage int  type_name(name_icmp)(cx_str_name* s, const char* src);
 linkage int  type_name(name_icmps)(cx_str_name* s, const cx_str_name* src);
 linkage void type_name(name_vprintf)(cx_str_name* s, const char *fmt, va_list ap);
 linkage void type_name(name_printf)(cx_str_name* s, const char *fmt, ...);
-linkage ptrdiff_t type_name(name_findn)(cx_str_name* s, const char *src, size_t n);
-linkage ptrdiff_t type_name(name_findc)(cx_str_name* s, const char *src);
+linkage ptrdiff_t type_name(name_nfind)(cx_str_name* s, const char *src, size_t n);
+linkage ptrdiff_t type_name(name_find)(cx_str_name* s, const char *src);
 linkage ptrdiff_t type_name(name_finds)(cx_str_name* s, const cx_str_name* src);
+linkage ptrdiff_t type_name(name_findcp)(cx_str_name* s, int32_t cp);
+linkage ptrdiff_t type_name(name_ifind)(cx_str_name* s, const char *src);
+linkage ptrdiff_t type_name(name_ifinds)(cx_str_name* s, const cx_str_name* src);
 linkage bool type_name(name_startsn)(cx_str_name* s, const char* src, size_t n);
 linkage bool type_name(name_startsc)(cx_str_name* s, const char* src);
 linkage bool type_name(name_startss)(cx_str_name* s, const cx_str_name* src);
@@ -254,6 +262,10 @@ linkage char* type_name(name_ncp)(cx_str_name* s, char* iter, int32_t* cp);
     extern void utf8upr(char* str);
     extern void utf8lwr(char* str);
     extern char* utf8codepoint(char* str, int32_t* out_codepoint);
+    extern char* utf8casestr(const char* haystack, const char* needle);
+    extern char* utf8chr(const char* src, int32_t chr);
+    extern size_t utf8codepointsize(int32_t chr);
+    extern char* utf8catcodepoint(char* str, int32_t chr, size_t n);
 
 // Internal string reallocation function
 static void type_name(_grow_)(cx_str_name* s, size_t addLen, size_t minCap) {
@@ -385,7 +397,7 @@ linkage size_t type_name(name_len)(const cx_str_name* s) {
     return s->len;
 }
 
-linkage size_t type_name(name_len8)(const cx_str_name* s) {
+linkage size_t type_name(name_lencp)(const cx_str_name* s) {
 
     return utf8len(s->data);
 }
@@ -453,6 +465,17 @@ linkage void type_name(name_cat)(cx_str_name* s, const char* src) {
 linkage void type_name(name_cats)(cx_str_name* s, const cx_str_name* src) {
 
     type_name(name_ncat)(s, src->data, src->len);
+}
+
+linkage void type_name(name_catcp)(cx_str_name* s, int32_t cp) {
+
+    const size_t size = utf8codepointsize(cp);
+    if (s->len + size > s->cap) {
+        type_name(_grow_)(s, s->len + size, 0);
+    }
+    utf8catcodepoint(s->data + s->len, cp, size);
+    s->len += size;
+    s->data[s->len] = 0;
 }
 
 linkage void type_name(name_nins)(cx_str_name* s, const char* src, size_t n, size_t idx) {
@@ -600,7 +623,7 @@ linkage void type_name(name_printf)(cx_str_name* s, const char *fmt, ...) {
     va_end(ap);
 }
 
-linkage ptrdiff_t type_name(name_findn)(cx_str_name* s, const char *src, size_t n) {
+linkage ptrdiff_t type_name(name_nfind)(cx_str_name* s, const char *src, size_t n) {
 
     if (n > s->len) {
         return -1;
@@ -614,14 +637,40 @@ linkage ptrdiff_t type_name(name_findn)(cx_str_name* s, const char *src, size_t 
     return -1;
 }
 
-linkage ptrdiff_t type_name(name_findc)(cx_str_name* s, const char *src) {
+linkage ptrdiff_t type_name(name_find)(cx_str_name* s, const char *src) {
 
-    return type_name(name_findn)(s, src, strlen(src));
+    return type_name(name_nfind)(s, src, strlen(src));
 }
 
 linkage ptrdiff_t type_name(name_finds)(cx_str_name* s, const cx_str_name* src) {
 
-    return type_name(name_findn)(s, src->data, src->len);
+    return type_name(name_nfind)(s, src->data, src->len);
+}
+
+linkage ptrdiff_t type_name(name_findcp)(cx_str_name* s, int32_t cp) {
+
+    char* n = utf8chr(s->data, cp);
+    if (n == NULL) {
+        return -1;
+    }
+    return n - s->data;
+}
+
+linkage ptrdiff_t type_name(name_ifind)(cx_str_name* s, const char *src) {
+
+    char *n = utf8casestr(s->data, src);
+    if (n == NULL) {
+        return -1;
+    }
+    return n - s->data;
+}
+
+linkage ptrdiff_t type_name(name_ifinds)(cx_str_name* s, const cx_str_name* src) {
+
+    if (s->len < src->len) {
+        return -1;
+    }
+    return type_name(name_ifind)(s, src->data);
 }
 
 linkage bool type_name(name_startsn)(cx_str_name* s, const char* src, size_t n) {

@@ -382,8 +382,8 @@ void cxStrTest(const CxAllocator* alloc) {
     cxstr_cpy(&s1, "hello áéíóú");
     assert(cxstr_len(&s1) == strlen("hello áéíóú"));
     assert(!cxstr_empty(&s1));
-    assert(cxstr_len8(&s1) == 11);
-    assert(cxstr_len8(&s1) != cxstr_len(&s1));
+    assert(cxstr_lencp(&s1) == 11);
+    assert(cxstr_lencp(&s1) != cxstr_len(&s1));
     assert(cxstr_valid8(&s1));
     cxstr_cpys(&s2, &s1);
     assert(cxstr_cmps(&s1, &s2) == 0);
@@ -407,6 +407,14 @@ void cxStrTest(const CxAllocator* alloc) {
     assert(cxstr_len(&s1) == strlen("hello áéíóú"));
     assert(cxstr_cmp(&s1, "hello áéíóú") == 0);
     assert(cxstr_valid8(&s1));
+
+    // cat codepoint
+    cxstr_free(&s1);
+    int32_t codes[] = {225, 233, 237, 243, 250};
+    for (int i = 0; i < 5; i++) {
+        cxstr_catcp(&s1, codes[i]);
+    }
+    assert(cxstr_cmp(&s1,"áéíóú") == 0);
 
     // ins
     cxstr_cpy(&s1, "áéíóú");
@@ -434,10 +442,21 @@ void cxStrTest(const CxAllocator* alloc) {
     // find
     cxstr_clear(&s1);
     cxstr_cpy(&s1, "012345678");
-    assert(cxstr_findc(&s1, "23") == 2);
-    assert(cxstr_findc(&s1, "23X") < 0);
+    assert(cxstr_find(&s1, "23") == 2);
+    assert(cxstr_find(&s1, "23X") < 0);
     cxstr_cpy(&s2, "678");
     assert(cxstr_finds(&s1, &s2) == 6);
+
+    // insensitive case find
+    cxstr_cpy(&s1, u8"áéíóú");
+    assert(cxstr_ifind(&s1, "ÓÚ") == 6); // byte index NOT codepoint index
+    cxstr_cpy(&s2, "éÍó");
+    assert(cxstr_ifinds(&s1, &s2) == 2); // byte index NOT codepoint index
+
+    // Find codepoint
+    cxstr_cpy(&s1, "áéíóú");
+    assert(cxstr_findcp(&s1, 233) == 2); // é
+    assert(cxstr_findcp(&s1, 300) == -1);
 
     // starts
     cxstr_cpy(&s1, "01234567890");
