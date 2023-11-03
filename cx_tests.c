@@ -390,6 +390,17 @@ void cxStrTest(const CxAllocator* alloc) {
     cxstr_free(&s1);
     cxstr_free(&s2);
 
+    // case insentive cmp
+    cxstr_cpy(&s1, "áéíóú");
+    assert(cxstr_cmp(&s1,"ÁÉÍÓÚ") != 0);
+    assert(cxstr_icmp(&s1,"ÁÉÍÓÚ") == 0);
+    assert(cxstr_icmp(&s1,"ÁÉÍÓú") == 0);
+    cxstr_cpy(&s2, "ÁÉÍÓÚ");
+    assert(cxstr_cmps(&s1, &s2) != 0);
+    assert(cxstr_icmps(&s1, &s2) == 0);
+    cxstr_cpy(&s2, "ÁÉÍÓú");
+    assert(cxstr_icmps(&s1, &s2) == 0);
+
     // cat
     cxstr_cpy(&s1, "hello");
     cxstr_cat(&s1, " áéíóú");

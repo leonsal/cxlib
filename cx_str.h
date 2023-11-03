@@ -158,6 +158,8 @@ Configuration defines:
 #define name_ncmp           _ncmp
 #define name_cmp            _cmp
 #define name_cmps           _cmps
+#define name_icmp           _icmp
+#define name_icmps          _icmps
 #define name_vprintf        _vprintf
 #define name_printf         _printf
 #define name_findn          _findn
@@ -220,6 +222,8 @@ linkage void type_name(name_del)(cx_str_name* s, size_t idx);
 linkage int  type_name(name_ncmp)(cx_str_name* s, const char* src, size_t n);
 linkage int  type_name(name_cmp)(cx_str_name* s, const char* src);
 linkage int  type_name(name_cmps)(cx_str_name* s, const cx_str_name* src);
+linkage int  type_name(name_icmp)(cx_str_name* s, const char* src);
+linkage int  type_name(name_icmps)(cx_str_name* s, const cx_str_name* src);
 linkage void type_name(name_vprintf)(cx_str_name* s, const char *fmt, va_list ap);
 linkage void type_name(name_printf)(cx_str_name* s, const char *fmt, ...);
 linkage ptrdiff_t type_name(name_findn)(cx_str_name* s, const char *src, size_t n);
@@ -244,6 +248,7 @@ linkage char* type_name(name_ncp)(cx_str_name* s, char* iter, int32_t* cp);
 #ifdef cx_str_implement
 
     cx_str_alloc_global_;
+    extern int utf8casecmp(const char* src1, const char* src2);
     extern size_t utf8len(const char* str);
     extern char* utf8valid(const char* str);
     extern void utf8upr(char* str);
@@ -514,6 +519,23 @@ linkage int type_name(name_cmps)(cx_str_name* s, const cx_str_name* src) {
 
     return type_name(name_ncmp)(s, src->data, src->len);
 }
+
+linkage int type_name(name_icmp)(cx_str_name* s, const char* src) {
+
+    return utf8casecmp(s->data, src);
+}
+
+linkage int type_name(name_icmps)(cx_str_name* s, const cx_str_name* src) {
+
+    if (s->len > src->len) {
+        return 1;
+    }
+    if (s->len < src->len) {
+        return -1;
+    }
+    return utf8casecmp(s->data, src->data);
+}
+
 
 // Based on https://github.com/antirez/sds/blob/master/sds.c
 linkage void type_name(name_vprintf)(cx_str_name* s, const char *fmt, va_list ap) {
