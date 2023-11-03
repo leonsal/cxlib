@@ -448,7 +448,7 @@ void cxStrTest(const CxAllocator* alloc) {
     cxstr_substr(&s1, 10, 100, &s2);
     cxstr_cmp(&s2, "klm");
 
-    // upper/lower
+    // upper/lower case
     cxstr_cpy(&s1, "áéíóúABCDE");
     cxstr_upper(&s1);
     assert(cxstr_cmp(&s1, "ÁÉÍÓÚABCDE") == 0);
