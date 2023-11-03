@@ -182,8 +182,8 @@ Configuration defines:
 //
 typedef struct cx_str_name {
     cx_str_alloc_field_;
-    cx_str_cap_type_ len;
-    cx_str_cap_type_ cap;
+    cx_str_cap_type_ len_;
+    cx_str_cap_type_ cap_;
     char* data;
 } cx_str_name;
 
@@ -262,17 +262,17 @@ linkage void type_name(name_rtrim)(cx_str_name* s, const char* cset);
 // Internal string reallocation function
 static void type_name(_grow_)(cx_str_name* s, size_t addLen, size_t minCap) {
 
-    size_t minLen = s->len + addLen;
+    size_t minLen = s->len_ + addLen;
     if (minLen > minCap) {
         minCap = minLen;
     }
-    if (minCap <= s->cap) {
+    if (minCap <= s->cap_) {
         return;
     }
 
     // Increase needed capacity to guarantee O(1) amortized
-    if (minCap < 2 * s->cap) {
-        minCap = 2 * s->cap;
+    if (minCap < 2 * s->cap_) {
+        minCap = 2 * s->cap_;
     }
     else if (minCap < 4) {
         minCap = 4;
@@ -292,11 +292,11 @@ static void type_name(_grow_)(cx_str_name* s, size_t addLen, size_t minCap) {
 
     // Copy current data to new area and free previous
     if (s->data) {
-        memcpy(new, s->data, (s->len + 1) * elemSize);
-        cx_str_free_(s, s->data, (s->len + 1) * elemSize);
+        memcpy(new, s->data, (s->len_ + 1) * elemSize);
+        cx_str_free_(s, s->data, (s->len_ + 1) * elemSize);
     }
     s->data = new;
-    s->cap = minCap;
+    s->cap_ = minCap;
 }
 
 #ifdef cx_str_allocator
@@ -361,32 +361,32 @@ static void type_name(_grow_)(cx_str_name* s, size_t addLen, size_t minCap) {
 
 linkage void type_name(name_free)(cx_str_name* s) {
 
-    cx_str_free_(s, s->data, s->cap);
-    s->cap = 0;
-    s->len = 0;
+    cx_str_free_(s, s->data, s->cap_);
+    s->cap_ = 0;
+    s->len_ = 0;
     s->data = NULL;
 }
 
 linkage void type_name(name_clear)(cx_str_name* s) {
 
-    s->len = 0;
+    s->len_ = 0;
 }
 
 linkage void type_name(name_reserve)(cx_str_name* s, size_t n) {
 
-    if (s->len + n < s->cap) {
-        type_name(_grow_)(s, 0, s->len + n);
+    if (s->len_ + n < s->cap_) {
+        type_name(_grow_)(s, 0, s->len_ + n);
     }
 }
 
 linkage size_t type_name(name_cap)(const cx_str_name* s) {
 
-    return s->cap;
+    return s->cap_;
 }
 
 linkage size_t type_name(name_len)(const cx_str_name* s) {
 
-    return s->len;
+    return s->len_;
 }
 
 linkage size_t type_name(name_lencp)(const cx_str_name* s) {
@@ -401,7 +401,7 @@ linkage const char* type_name(name_data)(const cx_str_name* s) {
 
 linkage bool type_name(name_empty)(const cx_str_name* s) {
 
-    return s->len == 0;
+    return s->len_ == 0;
 }
 
 linkage void type_name(name_setcap)(cx_str_name* s, size_t cap) {
@@ -414,13 +414,13 @@ linkage void type_name(name_ncpy)(cx_str_name* s, const char* src, size_t n) {
     if (src == NULL) {
         return;
     }
-    if (n > s->cap) {
+    if (n > s->cap_) {
         type_name(_grow_)(s, 0, n);
     }
     memcpy(s->data, src, n);
-    s->len = n;
-    if (s->len) {
-        s->data[s->len] = 0;
+    s->len_ = n;
+    if (s->len_) {
+        s->data[s->len_] = 0;
     }
 }
 
@@ -434,18 +434,18 @@ linkage void type_name(name_cpy)(cx_str_name* s, const char* src) {
 
 linkage void type_name(name_cpys)(cx_str_name* s, const cx_str_name* src) {
 
-    type_name(name_ncpy)(s, src->data, src->len);
+    type_name(name_ncpy)(s, src->data, src->len_);
 }
 
 linkage void type_name(name_ncat)(cx_str_name* s, const char* src, size_t n) {
 
-    if (s->len + n > s->cap) {
-        type_name(_grow_)(s, s->len + n, 0);
+    if (s->len_ + n > s->cap_) {
+        type_name(_grow_)(s, s->len_ + n, 0);
     }
-    memcpy(s->data + s->len, src, n);
-    s->len += n;
-    if (s->len) {
-        s->data[s->len] = 0;
+    memcpy(s->data + s->len_, src, n);
+    s->len_ += n;
+    if (s->len_) {
+        s->data[s->len_] = 0;
     }
 }
 
@@ -456,33 +456,33 @@ linkage void type_name(name_cat)(cx_str_name* s, const char* src) {
 
 linkage void type_name(name_cats)(cx_str_name* s, const cx_str_name* src) {
 
-    type_name(name_ncat)(s, src->data, src->len);
+    type_name(name_ncat)(s, src->data, src->len_);
 }
 
 linkage void type_name(name_catcp)(cx_str_name* s, int32_t cp) {
 
     const size_t size = utf8codepointsize(cp);
-    if (s->len + size > s->cap) {
-        type_name(_grow_)(s, s->len + size, 0);
+    if (s->len_ + size > s->cap_) {
+        type_name(_grow_)(s, s->len_ + size, 0);
     }
-    utf8catcodepoint(s->data + s->len, cp, size);
-    s->len += size;
-    s->data[s->len] = 0;
+    utf8catcodepoint(s->data + s->len_, cp, size);
+    s->len_ += size;
+    s->data[s->len_] = 0;
 }
 
 linkage void type_name(name_nins)(cx_str_name* s, const char* src, size_t n, size_t idx) {
 
-    if (idx > s->len) {
+    if (idx > s->len_) {
         cx_str_error_handler("invalid index");
         return;
     }
-    if (s->len + n > s->cap) {
-        type_name(_grow_)(s, s->len + n, 0);
+    if (s->len_ + n > s->cap_) {
+        type_name(_grow_)(s, s->len_ + n, 0);
     }
-    memmove(s->data + idx + n, s->data + idx, s->len - idx);
+    memmove(s->data + idx + n, s->data + idx, s->len_ - idx);
     memcpy(s->data + idx, src, n);
-    s->len += n;
-    s->data[s->len] = 0;
+    s->len_ += n;
+    s->data[s->len_] = 0;
 }
 
 linkage void type_name(name_ins)(cx_str_name* s, const char* src, size_t idx) {
@@ -492,20 +492,20 @@ linkage void type_name(name_ins)(cx_str_name* s, const char* src, size_t idx) {
 
 linkage void type_name(name_inss)(cx_str_name* s, const cx_str_name* src, size_t idx) {
 
-    type_name(name_nins)(s, src->data, src->len, idx);
+    type_name(name_nins)(s, src->data, src->len_, idx);
 }
 
 linkage void type_name(name_ndel)(cx_str_name* s, size_t idx, size_t deln) {
 
-    if (idx >= s->len) {
+    if (idx >= s->len_) {
         return;
     }
-    const size_t maxDel = s->len - idx;
+    const size_t maxDel = s->len_ - idx;
     deln = deln > maxDel ? maxDel : deln;
-    memmove(s->data + idx, s->data + idx + deln, s->len - idx - deln);
-    s->len -= deln;
-    if (s->len) {
-        s->data[s->len] = 0;
+    memmove(s->data + idx, s->data + idx + deln, s->len_ - idx - deln);
+    s->len_ -= deln;
+    if (s->len_) {
+        s->data[s->len_] = 0;
     }
 }
 
@@ -516,10 +516,10 @@ linkage void type_name(name_del)(cx_str_name* s, size_t idx) {
 
 linkage int  type_name(name_ncmp)(cx_str_name* s, const char* src, size_t n) {
 
-    if (s->len > n) {
+    if (s->len_ > n) {
         return 1;
     }
-    if (s->len < n) {
+    if (s->len_ < n) {
         return -1;
     }
     return memcmp(s->data, src, n);
@@ -532,7 +532,7 @@ linkage int type_name(name_cmp)(cx_str_name* s, const char* src) {
 
 linkage int type_name(name_cmps)(cx_str_name* s, const cx_str_name* src) {
 
-    return type_name(name_ncmp)(s, src->data, src->len);
+    return type_name(name_ncmp)(s, src->data, src->len_);
 }
 
 linkage int type_name(name_icmp)(cx_str_name* s, const char* src) {
@@ -542,10 +542,10 @@ linkage int type_name(name_icmp)(cx_str_name* s, const char* src) {
 
 linkage int type_name(name_icmps)(cx_str_name* s, const cx_str_name* src) {
 
-    if (s->len > src->len) {
+    if (s->len_ > src->len_) {
         return 1;
     }
-    if (s->len < src->len) {
+    if (s->len_ < src->len_) {
         return -1;
     }
     return utf8casecmp(s->data, src->data);
@@ -617,10 +617,10 @@ linkage void type_name(name_printf)(cx_str_name* s, const char *fmt, ...) {
 
 linkage ptrdiff_t type_name(name_nfind)(cx_str_name* s, const char *src, size_t n) {
 
-    if (n > s->len) {
+    if (n > s->len_) {
         return -1;
     }
-    const size_t maxIndex = s->len - n;
+    const size_t maxIndex = s->len_ - n;
     for (size_t i = 0; i <= maxIndex; i++) {
         if (memcmp(s->data + i, src, n) == 0) {
             return i;
@@ -636,7 +636,7 @@ linkage ptrdiff_t type_name(name_find)(cx_str_name* s, const char *src) {
 
 linkage ptrdiff_t type_name(name_finds)(cx_str_name* s, const cx_str_name* src) {
 
-    return type_name(name_nfind)(s, src->data, src->len);
+    return type_name(name_nfind)(s, src->data, src->len_);
 }
 
 linkage ptrdiff_t type_name(name_findcp)(cx_str_name* s, int32_t cp) {
@@ -659,7 +659,7 @@ linkage ptrdiff_t type_name(name_ifind)(cx_str_name* s, const char *src) {
 
 linkage ptrdiff_t type_name(name_ifinds)(cx_str_name* s, const cx_str_name* src) {
 
-    if (s->len < src->len) {
+    if (s->len_ < src->len_) {
         return -1;
     }
     return type_name(name_ifind)(s, src->data);
@@ -667,11 +667,11 @@ linkage ptrdiff_t type_name(name_ifinds)(cx_str_name* s, const cx_str_name* src)
 
 linkage void type_name(name_substr)(const cx_str_name* s, size_t start, size_t len, cx_str_name* dst) {
 
-     if (start >= s->len) {
-         dst->len = 0;
+     if (start >= s->len_) {
+         dst->len_ = 0;
          return ;
      }
-    const size_t maxSize = s->len - start;
+    const size_t maxSize = s->len_ - start;
     len = len > maxSize ? maxSize : len;
     type_name(name_ncpy)(dst, s->data + start, len);
 }
@@ -693,7 +693,7 @@ linkage void type_name(name_lower)(cx_str_name* s) {
 
 linkage char* type_name(name_ncp)(cx_str_name* s, char* iter, int32_t* cp) {
 
-    if (iter < s->data || iter >= (s->data + s->len)) {
+    if (iter < s->data || iter >= (s->data + s->len_)) {
         return NULL;
     }
     return utf8codepoint(iter, cp);
@@ -701,7 +701,7 @@ linkage char* type_name(name_ncp)(cx_str_name* s, char* iter, int32_t* cp) {
 
 linkage void type_name(name_ltrim)(cx_str_name* s, const char* cset)  {
 
-    if (s->len == 0) {
+    if (s->len_ == 0) {
         return;
     }
     char* data = s->data;
@@ -709,7 +709,7 @@ linkage void type_name(name_ltrim)(cx_str_name* s, const char* cset)  {
     size_t deln = 0;
     while (1) {
         data = utf8codepoint(data, &codepoint);
-        if (data >= s->data + s->len) {
+        if (data >= s->data + s->len_) {
             break;
         }
         if (utf8chr(cset, codepoint) == NULL) {
@@ -725,10 +725,10 @@ linkage void type_name(name_ltrim)(cx_str_name* s, const char* cset)  {
 
 linkage void type_name(name_rtrim)(cx_str_name* s, const char* cset) {
 
-    if (s->len == 0) {
+    if (s->len_ == 0) {
         return;
     }
-    char* data = s->data + s->len - 1;
+    char* data = s->data + s->len_ - 1;
     int32_t codepoint;
     size_t deln = 0;
     while (data >= s->data) {
@@ -748,7 +748,7 @@ linkage void type_name(name_rtrim)(cx_str_name* s, const char* cset) {
     if (deln == 0) {
         return;
     }
-    type_name(name_ndel)(s, s->len - deln, deln);
+    type_name(name_ndel)(s, s->len_ - deln, deln);
 }
 
 #endif // cx_str_implement
