@@ -384,7 +384,7 @@ void cxStrTest(const CxAllocator* alloc) {
     assert(!cxstr_empty(&s1));
     assert(cxstr_lencp(&s1) == 11);
     assert(cxstr_lencp(&s1) != cxstr_len(&s1));
-    assert(cxstr_valid8(&s1));
+    assert(cxstr_validu8(&s1));
     cxstr_cpys(&s2, &s1);
     assert(cxstr_cmps(&s1, &s2) == 0);
     cxstr_free(&s1);
@@ -406,7 +406,7 @@ void cxStrTest(const CxAllocator* alloc) {
     cxstr_cat(&s1, " áéíóú");
     assert(cxstr_len(&s1) == strlen("hello áéíóú"));
     assert(cxstr_cmp(&s1, "hello áéíóú") == 0);
-    assert(cxstr_valid8(&s1));
+    assert(cxstr_validu8(&s1));
 
     // cat codepoint
     cxstr_free(&s1);
@@ -420,16 +420,16 @@ void cxStrTest(const CxAllocator* alloc) {
     cxstr_cpy(&s1, "áéíóú");
     cxstr_ins(&s1, "hello ", 0);
     assert(cxstr_cmp(&s1, "hello áéíóú") == 0);
-    assert(cxstr_valid8(&s1));
+    assert(cxstr_validu8(&s1));
     cxstr_cpy(&s2, " 123");
     cxstr_inss(&s1, &s2, 5);
     assert(cxstr_cmp(&s1, "hello 123 áéíóú") == 0);
-    assert(cxstr_valid8(&s1));
+    assert(cxstr_validu8(&s1));
 
     // del
     cxstr_ndel(&s1, 5, 4);
     assert(cxstr_cmp(&s1, "hello áéíóú") == 0);
-    assert(cxstr_valid8(&s1));
+    assert(cxstr_validu8(&s1));
 
     // printf
     cxstr_clear(&s1);
@@ -437,7 +437,7 @@ void cxStrTest(const CxAllocator* alloc) {
     cxstr_printf(&s1, " z=%d", 3);
     cxstr_printf(&s1, " %s", "áéíóú");
     assert(cxstr_cmp(&s1, "x=1 y=2 z=3 áéíóú") == 0);
-    assert(cxstr_valid8(&s1));
+    assert(cxstr_validu8(&s1));
 
     // find
     cxstr_clear(&s1);
@@ -457,19 +457,6 @@ void cxStrTest(const CxAllocator* alloc) {
     cxstr_cpy(&s1, "áéíóú");
     assert(cxstr_findcp(&s1, 233) == 2); // é
     assert(cxstr_findcp(&s1, 300) == -1);
-
-    // starts
-    cxstr_cpy(&s1, "01234567890");
-    assert(cxstr_startsc(&s1, "012"));
-    assert(!cxstr_startsc(&s1, "123"));
-    cxstr_cpy(&s2, "01234");
-    assert(cxstr_startss(&s1, &s2));
-
-    // ends
-    assert(cxstr_endsc(&s1, "90"));
-    assert(!cxstr_endsc(&s1, "91"));
-    cxstr_cpy(&s2, "4567890");
-    assert(cxstr_endss(&s1, &s2));
 
     // substr
     cxstr_cpy(&s1, "abcdefghijklm");
@@ -496,6 +483,15 @@ void cxStrTest(const CxAllocator* alloc) {
     }
     assert(i == 5);
 
+    // left trim
+    cxstr_cpy(&s1, "áéíóúABCDE");
+    cxstr_ltrim(&s1, "éáó");
+    assert(cxstr_cmp(&s1, "íóúABCDE") == 0);
+    
+    // right trim
+    cxstr_cpy(&s1, "ABCDEáéíóú");
+    cxstr_rtrim(&s1, "íúóá");
+    assert(cxstr_cmp(&s1, "ABCDEáé") == 0);
 
     cxstr_free(&s1);
     cxstr_free(&s2);

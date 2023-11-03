@@ -169,17 +169,13 @@ Configuration defines:
 #define name_findcp         _findcp
 #define name_ifind          _ifind
 #define name_ifinds         _ifinds
-#define name_startsn        _startsn
-#define name_startsc        _startsc
-#define name_startss        _startss
-#define name_endsn          _endsn
-#define name_endsc          _endsc
-#define name_endss          _endss
 #define name_substr         _substr
-#define name_valid8         _valid8
+#define name_validu8        _validu8
 #define name_upper          _upper
 #define name_lower          _lower
 #define name_ncp            _ncp
+#define name_ltrim          _ltrim
+#define name_rtrim          _rtrim
 
 //
 // Declarations
@@ -237,17 +233,13 @@ linkage ptrdiff_t type_name(name_finds)(cx_str_name* s, const cx_str_name* src);
 linkage ptrdiff_t type_name(name_findcp)(cx_str_name* s, int32_t cp);
 linkage ptrdiff_t type_name(name_ifind)(cx_str_name* s, const char *src);
 linkage ptrdiff_t type_name(name_ifinds)(cx_str_name* s, const cx_str_name* src);
-linkage bool type_name(name_startsn)(cx_str_name* s, const char* src, size_t n);
-linkage bool type_name(name_startsc)(cx_str_name* s, const char* src);
-linkage bool type_name(name_startss)(cx_str_name* s, const cx_str_name* src);
-linkage bool type_name(name_endsn)(cx_str_name* s, const char* src, size_t n);
-linkage bool type_name(name_endsc)(cx_str_name* s, const char* src);
-linkage bool type_name(name_endss)(cx_str_name* s, const cx_str_name* src);
 linkage void type_name(name_substr)(const cx_str_name* s, size_t start, size_t len, cx_str_name* dst);
-linkage bool type_name(name_valid8)(const cx_str_name* s);
+linkage bool type_name(name_validu8)(const cx_str_name* s);
 linkage void type_name(name_upper)(cx_str_name* s);
 linkage void type_name(name_lower)(cx_str_name* s);
 linkage char* type_name(name_ncp)(cx_str_name* s, char* iter, int32_t* cp);
+linkage void type_name(name_ltrim)(cx_str_name* s, const char* cset);
+linkage void type_name(name_rtrim)(cx_str_name* s, const char* cset);
 
 
 //
@@ -673,42 +665,6 @@ linkage ptrdiff_t type_name(name_ifinds)(cx_str_name* s, const cx_str_name* src)
     return type_name(name_ifind)(s, src->data);
 }
 
-linkage bool type_name(name_startsn)(cx_str_name* s, const char* src, size_t n) {
-
-    if (s->len < n) {
-        return false;
-    }
-    return memcmp(s->data, src, n) == 0;
-}
-
-linkage bool type_name(name_startsc)(cx_str_name* s, const char* src) {
-
-    return type_name(name_startsn)(s, src, strlen(src));
-}
-
-linkage bool type_name(name_startss)(cx_str_name* s, const cx_str_name* src) {
-
-    return type_name(name_startsn)(s, src->data, src->len);
-}
-
-linkage bool type_name(name_endsn)(cx_str_name* s, const char* src, size_t n) {
-
-    if (s->len < n) {
-        return false;
-    }
-    return memcmp(s->data + s->len - n, src, n) == 0;
-}
-
-linkage bool type_name(name_endsc)(cx_str_name* s, const char* src) {
-
-    return type_name(name_endsn)(s, src, strlen(src));
-}
-
-linkage bool type_name(name_endss)(cx_str_name* s, const cx_str_name* src) {
-
-    return type_name(name_endsn)(s, src->data, src->len);
-}
-
 linkage void type_name(name_substr)(const cx_str_name* s, size_t start, size_t len, cx_str_name* dst) {
 
      if (start >= s->len) {
@@ -720,7 +676,7 @@ linkage void type_name(name_substr)(const cx_str_name* s, size_t start, size_t l
     type_name(name_ncpy)(dst, s->data + start, len);
 }
 
-linkage bool type_name(name_valid8)(const cx_str_name* s) {
+linkage bool type_name(name_validu8)(const cx_str_name* s) {
 
     return utf8valid(s->data) == 0;
 }
@@ -743,6 +699,57 @@ linkage char* type_name(name_ncp)(cx_str_name* s, char* iter, int32_t* cp) {
     return utf8codepoint(iter, cp);
 }
 
+linkage void type_name(name_ltrim)(cx_str_name* s, const char* cset)  {
+
+    if (s->len == 0) {
+        return;
+    }
+    char* data = s->data;
+    int32_t codepoint;
+    size_t deln = 0;
+    while (1) {
+        data = utf8codepoint(data, &codepoint);
+        if (data >= s->data + s->len) {
+            break;
+        }
+        if (utf8chr(cset, codepoint) == NULL) {
+            break;
+        }
+        deln += utf8codepointsize(codepoint);
+    }
+    if (deln == 0) {
+        return;
+    }
+    type_name(name_ndel)(s, 0, deln);
+}
+
+linkage void type_name(name_rtrim)(cx_str_name* s, const char* cset) {
+
+    if (s->len == 0) {
+        return;
+    }
+    char* data = s->data + s->len - 1;
+    int32_t codepoint;
+    size_t deln = 0;
+    while (data >= s->data) {
+        // Looks for start of last codepoint
+        // leading bytes: 0XXXXXXX | 11XXXXXX
+        if (!((*data & 0x80) == 0 || (*data & 0x40) != 0)) {
+            data--;
+            continue;
+        }
+        utf8codepoint(data, &codepoint);
+        if (utf8chr(cset, codepoint) == NULL) {
+            break;
+        }
+        deln += utf8codepointsize(codepoint);
+        data--;
+    }
+    if (deln == 0) {
+        return;
+    }
+    type_name(name_ndel)(s, s->len - deln, deln);
+}
 
 #endif // cx_str_implement
 
