@@ -498,6 +498,7 @@ linkage void type_name(name_inss)(cx_str_name* s, const cx_str_name* src, size_t
 linkage void type_name(name_ndel)(cx_str_name* s, size_t idx, size_t deln) {
 
     if (idx >= s->len_) {
+        cx_str_error_handler("invalid index");
         return;
     }
     const size_t maxDel = s->len_ - idx;

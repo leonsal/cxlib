@@ -3,6 +3,9 @@
 #include <time.h>
 #include "cx_tests.h"
 
+// For cxstr error handler
+static const char* cxstr_error = NULL;
+
 #define cx_array_name arri32
 #define cx_array_type int
 #define cx_array_implement
@@ -25,6 +28,8 @@
 #define cx_str_name cxstr
 #define cx_str_cap 8
 #define cx_str_static
+#define cx_str_error_handler(msg)\
+    cxstr_error=msg
 #ifdef CX_STR_ALLOCATOR
     #define cx_str_allocator
 #endif
@@ -36,6 +41,7 @@
 static int sort_int_desc(const int* v1, const int* v2) {
     return *v2 > *v1;
 }
+
 
 void cxTests(void) {
 
@@ -425,6 +431,12 @@ void cxStrTest(const CxAllocator* alloc) {
     cxstr_inss(&s1, &s2, 5);
     assert(cxstr_cmp(&s1, "hello 123 áéíóú") == 0);
     assert(cxstr_validu8(&s1));
+
+    // checks index error
+    assert(cxstr_error == NULL);
+    cxstr_ins(&s1, "error", cxstr_len(&s1)+1);
+    assert(cxstr_error != NULL);
+    cxstr_error = NULL;
 
     // del
     cxstr_ndel(&s1, 5, 4);
