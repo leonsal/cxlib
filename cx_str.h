@@ -171,6 +171,8 @@ Configuration defines:
 #define name_endss          _endss
 #define name_substr         _substr
 #define name_valid8         _valid8
+#define name_upper          _upper
+#define name_lower          _lower
 
 //
 // Declarations
@@ -230,6 +232,8 @@ linkage bool type_name(name_endsc)(cx_str_name* s, const char* src);
 linkage bool type_name(name_endss)(cx_str_name* s, const cx_str_name* src);
 linkage void type_name(name_substr)(const cx_str_name* s, size_t start, size_t len, cx_str_name* dst);
 linkage bool type_name(name_valid8)(const cx_str_name* s);
+linkage void type_name(name_upper)(cx_str_name* s);
+linkage void type_name(name_lower)(cx_str_name* s);
 
 
 //
@@ -240,6 +244,8 @@ linkage bool type_name(name_valid8)(const cx_str_name* s);
     cx_str_alloc_global_;
     extern size_t utf8len(const char* str);
     extern char* utf8valid(const char* str);
+    extern void utf8upr(char* str);
+    extern void utf8lwr(char* str);
 
 // Internal string reallocation function
 static void type_name(_grow_)(cx_str_name* s, size_t addLen, size_t minCap) {
@@ -643,6 +649,16 @@ linkage void type_name(name_substr)(const cx_str_name* s, size_t start, size_t l
 linkage bool type_name(name_valid8)(const cx_str_name* s) {
 
     return utf8valid(s->data) == 0;
+}
+
+linkage void type_name(name_upper)(cx_str_name* s) {
+
+    utf8upr(s->data);
+}
+
+linkage void type_name(name_lower)(cx_str_name* s) {
+
+    utf8lwr(s->data);
 }
 
 
