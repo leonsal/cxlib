@@ -455,6 +455,18 @@ void cxStrTest(const CxAllocator* alloc) {
     cxstr_lower(&s1);
     assert(cxstr_cmp(&s1, "áéíóúabcde") == 0);
 
+    // iterate codepoints
+    int32_t codepoint;
+    cxstr_cpy(&s1, "áéíóú");
+    int32_t expected[] = {225, 233, 237, 243, 250};
+    int i = 0;
+    for (char* iter = s1.data; (iter = cxstr_ncp(&s1, iter, &codepoint));) {
+        assert(codepoint == expected[i]);
+        i++;
+    }
+    assert(i == 5);
+
+
     cxstr_free(&s1);
     cxstr_free(&s2);
 }

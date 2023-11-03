@@ -1,6 +1,6 @@
 
 ASAN=-fsanitize=address,leak
-CC=gcc -g -O0 
+CC=gcc -g -O0
 
 SOURCES=run_tests.c\
 		cx_alloc.c\

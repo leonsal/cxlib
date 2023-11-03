@@ -173,6 +173,7 @@ Configuration defines:
 #define name_valid8         _valid8
 #define name_upper          _upper
 #define name_lower          _lower
+#define name_ncp            _ncp
 
 //
 // Declarations
@@ -234,6 +235,7 @@ linkage void type_name(name_substr)(const cx_str_name* s, size_t start, size_t l
 linkage bool type_name(name_valid8)(const cx_str_name* s);
 linkage void type_name(name_upper)(cx_str_name* s);
 linkage void type_name(name_lower)(cx_str_name* s);
+linkage char* type_name(name_ncp)(cx_str_name* s, char* iter, int32_t* cp);
 
 
 //
@@ -246,6 +248,7 @@ linkage void type_name(name_lower)(cx_str_name* s);
     extern char* utf8valid(const char* str);
     extern void utf8upr(char* str);
     extern void utf8lwr(char* str);
+    extern char* utf8codepoint(char* str, int32_t* out_codepoint);
 
 // Internal string reallocation function
 static void type_name(_grow_)(cx_str_name* s, size_t addLen, size_t minCap) {
@@ -659,6 +662,14 @@ linkage void type_name(name_upper)(cx_str_name* s) {
 linkage void type_name(name_lower)(cx_str_name* s) {
 
     utf8lwr(s->data);
+}
+
+linkage char* type_name(name_ncp)(cx_str_name* s, char* iter, int32_t* cp) {
+
+    if (iter < s->data || iter >= (s->data + s->len)) {
+        return NULL;
+    }
+    return utf8codepoint(iter, cp);
 }
 
 
