@@ -1,8 +1,8 @@
 # Configuration
-LIBS=
-INCS=
 TARGET=run_tests
 CFLAGS=-g -Wall -Wno-unused-function
+LIBS=
+INCS=
 
 # Uses clang instead of gcc
 ifdef clang
