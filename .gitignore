@@ -1,3 +1,6 @@
 .cache
 run_tests
+*.o
+makedeps
+
 

@@ -170,6 +170,7 @@ Configuration defines:
 #define name_ifind          _ifind
 #define name_ifinds         _ifinds
 #define name_substr         _substr
+#define name_replace        _replace
 #define name_validu8        _validu8
 #define name_upper          _upper
 #define name_lower          _lower
@@ -234,6 +235,7 @@ linkage ptrdiff_t type_name(name_findcp)(cx_str_name* s, int32_t cp);
 linkage ptrdiff_t type_name(name_ifind)(cx_str_name* s, const char *src);
 linkage ptrdiff_t type_name(name_ifinds)(cx_str_name* s, const cx_str_name* src);
 linkage void type_name(name_substr)(const cx_str_name* s, size_t start, size_t len, cx_str_name* dst);
+linkage void type_name(name_replace)(cx_str_name* s, const char* old, const char* new, size_t count);
 linkage bool type_name(name_validu8)(const cx_str_name* s);
 linkage void type_name(name_upper)(cx_str_name* s);
 linkage void type_name(name_lower)(cx_str_name* s);
@@ -552,13 +554,11 @@ linkage int type_name(name_icmps)(cx_str_name* s, const cx_str_name* src) {
     return utf8casecmp(s->data, src->data);
 }
 
-
 // Based on https://github.com/antirez/sds/blob/master/sds.c
 linkage void type_name(name_vprintf)(cx_str_name* s, const char *fmt, va_list ap) {
     va_list cpy;
     char  staticbuf[1024];
     char* buf = staticbuf;
-    char* *t;
     size_t buflen = strlen(fmt)*2;
     int bufstrlen;
 
@@ -610,7 +610,6 @@ linkage void type_name(name_vprintf)(cx_str_name* s, const char *fmt, va_list ap
 linkage void type_name(name_printf)(cx_str_name* s, const char *fmt, ...) {
 
     va_list ap;
-    char *t;
     va_start(ap, fmt);
     type_name(_vprintf)(s, fmt, ap);
     va_end(ap);
@@ -676,6 +675,31 @@ linkage void type_name(name_substr)(const cx_str_name* s, size_t start, size_t l
     len = len > maxSize ? maxSize : len;
     type_name(name_ncpy)(dst, s->data + start, len);
 }
+
+linkage void type_name(name_replace)(cx_str_name* s, const char* old, const char* new, size_t count) {
+
+    const size_t olen = strlen(old);
+    const size_t nlen = strlen(new);
+    while (1) {
+        ptrdiff_t pos = type_name(name_find)((cx_str_name*)s, old);
+        if (pos < 0) {
+            break;
+        }
+        if (olen > nlen) {
+            type_name(name_ndel)(s, pos, olen - nlen);
+            memcpy(s->data + pos, new, nlen);
+        } else if (olen < nlen) {
+            type_name(name_nins)(s, new, nlen, pos);
+        }
+        if (count) {
+            count--;
+            if (count == 0) {
+                break;
+            }
+        }
+    }
+}
+
 
 linkage bool type_name(name_validu8)(const cx_str_name* s) {
 

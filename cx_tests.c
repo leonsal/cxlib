@@ -505,6 +505,10 @@ void cxStrTest(const CxAllocator* alloc) {
     cxstr_rtrim(&s1, "íúóá");
     assert(cxstr_cmp(&s1, "ABCDEáé") == 0);
 
+    // replace
+    // cxstr_cpy(&s1, "01234567890123456789");
+    // cxstr_replace(&s1, "567", "abcdefg", 0);
+
     cxstr_free(&s1);
     cxstr_free(&s2);
 }
