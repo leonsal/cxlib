@@ -228,7 +228,7 @@ linkage int  type_name(name_icmp)(cx_str_name* s, const char* src);
 linkage int  type_name(name_icmps)(cx_str_name* s, const cx_str_name* src);
 linkage void type_name(name_vprintf)(cx_str_name* s, const char *fmt, va_list ap);
 linkage void type_name(name_printf)(cx_str_name* s, const char *fmt, ...);
-linkage ptrdiff_t type_name(name_nfind)(cx_str_name* s, const char *src, size_t n);
+linkage ptrdiff_t type_name(name_nfind)(cx_str_name* s, size_t start, const char *src, size_t n);
 linkage ptrdiff_t type_name(name_find)(cx_str_name* s, const char *src);
 linkage ptrdiff_t type_name(name_finds)(cx_str_name* s, const cx_str_name* src);
 linkage ptrdiff_t type_name(name_findcp)(cx_str_name* s, int32_t cp);
@@ -479,7 +479,7 @@ linkage void type_name(name_nins)(cx_str_name* s, const char* src, size_t n, siz
         return;
     }
     if (s->len_ + n > s->cap_) {
-        type_name(_grow_)(s, s->len_ + n, 0);
+        type_name(_grow_)(s, n, 0);
     }
     memmove(s->data + idx + n, s->data + idx, s->len_ - idx);
     memcpy(s->data + idx, src, n);
@@ -615,13 +615,16 @@ linkage void type_name(name_printf)(cx_str_name* s, const char *fmt, ...) {
     va_end(ap);
 }
 
-linkage ptrdiff_t type_name(name_nfind)(cx_str_name* s, const char *src, size_t n) {
+linkage ptrdiff_t type_name(name_nfind)(cx_str_name* s, size_t start, const char *src, size_t n) {
 
+    if (start >= s->len_) {
+        return -1;
+    }
     if (n > s->len_) {
         return -1;
     }
     const size_t maxIndex = s->len_ - n;
-    for (size_t i = 0; i <= maxIndex; i++) {
+    for (size_t i = start; i <= maxIndex; i++) {
         if (memcmp(s->data + i, src, n) == 0) {
             return i;
         }
@@ -631,12 +634,12 @@ linkage ptrdiff_t type_name(name_nfind)(cx_str_name* s, const char *src, size_t 
 
 linkage ptrdiff_t type_name(name_find)(cx_str_name* s, const char *src) {
 
-    return type_name(name_nfind)(s, src, strlen(src));
+    return type_name(name_nfind)(s, 0, src, strlen(src));
 }
 
 linkage ptrdiff_t type_name(name_finds)(cx_str_name* s, const cx_str_name* src) {
 
-    return type_name(name_nfind)(s, src->data, src->len_);
+    return type_name(name_nfind)(s, 0, src->data, src->len_);
 }
 
 linkage ptrdiff_t type_name(name_findcp)(cx_str_name* s, int32_t cp) {
@@ -680,23 +683,31 @@ linkage void type_name(name_replace)(cx_str_name* s, const char* old, const char
 
     const size_t olen = strlen(old);
     const size_t nlen = strlen(new);
+    size_t start = 0;
     while (1) {
-        ptrdiff_t pos = type_name(name_find)((cx_str_name*)s, old);
+        ptrdiff_t pos = type_name(name_nfind)((cx_str_name*)s, start, old, olen);
         if (pos < 0) {
             break;
         }
         if (olen > nlen) {
             type_name(name_ndel)(s, pos, olen - nlen);
-            memcpy(s->data + pos, new, nlen);
         } else if (olen < nlen) {
-            type_name(name_nins)(s, new, nlen, pos);
+            const size_t addLen = nlen - olen;
+            if (s->len_ + addLen > s->cap_) {
+                type_name(_grow_)(s, addLen, 0);
+            }
+            memmove(s->data + pos + olen + addLen, s->data + pos + olen, s->len_ - pos);
+            s->len_ += addLen;
+            s->data[s->len_] = 0;
         }
+        memcpy(s->data + pos, new, nlen);
         if (count) {
             count--;
             if (count == 0) {
                 break;
             }
         }
+        start += pos + nlen;
     }
 }
 

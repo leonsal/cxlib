@@ -508,6 +508,15 @@ void cxStrTest(const CxAllocator* alloc) {
     // replace
     // cxstr_cpy(&s1, "01234567890123456789");
     // cxstr_replace(&s1, "567", "abcdefg", 0);
+    cxstr_free(&s1);
+    cxstr_cpy(&s1, "ABCD");
+    cxstr_replace(&s1, "BC", "xxx", 0);
+    assert(cxstr_cmp(&s1, "AxxxD") == 0);
+    cxstr_replace(&s1, "xxx", "", 0);
+    assert(cxstr_cmp(&s1, "AD") == 0);
+    cxstr_cpy(&s1, "AB_AB_AB_AB");
+    cxstr_replace(&s1, "AB", "C", 3);
+    assert(cxstr_cmp(&s1, "C_C_C_AB") == 0);
 
     cxstr_free(&s1);
     cxstr_free(&s2);
