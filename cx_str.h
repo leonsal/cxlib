@@ -1,15 +1,13 @@
-/********************************************
-
-Dynamic String Implementation
-
+/* Dynamic String Implementation
 
 Example
 -------
 
 #define cx_str_name cxstr
+#define cx_str_static
+#define cx_str_inline
 #define cx_str_implement
 #include "cx_str.h"
-
 
 int main() {
 
@@ -26,44 +24,66 @@ int main() {
     return 0;
 }
 
-API documentation:
-------------------
+Configuration before including header file
+------------------------------------------
 
-Configuration defines:
--   cx_str_name <name>
-    Sets the name of the string type
+Define the name of the string type (mandatory):
+    #define cx_str_name <name>
 
--   cx_str_cap <8|16|32> (optional, default=32)
-    Sets the string maximum capacity
+Define the string maximum capacity (optional, default = 32):
+    #define cx_str_cap <8|16|32>
 
--   cx_str_error_handler <func>
-    Sets error handler function
+Define error handler function (optional):
+    #define cx_str_error_handler <func>
 
--   cx_str_allocator
-    Uses custom allocator per instance
+Sets if string uses custom allocator per instance
+    #define cx_str_allocator
 
--   cx_str_static
-    Prefix functions with 'static'
+Sets if all string functions are prefixed with 'static'
+    #define cx_str_static
 
--   cx_str_inline
-    Prefix functions with 'inline'
+Sets if all string functions are prefixed with 'inline'
+    #define cx_str_inline
 
--   cx_str_implement
-    Implements functions
+Sets to implement functions in this translation unit:
+    #define cx_str_implement
 
-Initialize string with custom allocator:
-    <cx_str_name> <cx_str_name>_init(const CxAllocator* a);
+
+API
+---
+Assuming: #define cx_str_name cxstr
+
+Initialize string with custom allocator
+    cxstr cxstr_init(const CxAllocator* a);
 
 Initialize string with custom allocator from pointer and count
-    <cx_str_name> <cx_str_name_initn(const CxAllocator* a, const char* src, size_t n);
+    cxstr cxstr_initn(const CxAllocator* a, const char* src, size_t n);
 
 Initialize string with custom allocator from nul terminated C string
-    <cx_str_name> <cx_str_name>_initc(const CxAllocator* a, const char* src);
+    cxstr cxstr_initc(const CxAllocator* a, const char* src);
 
-Initialize string with custom allocator from anoter cx string
-    <cx_str_name> <cx_str_name>_inits(const CxAllocator* a, const <cx_str_name>* src);
+Initialize string with custom allocator from another cxstr
+    cxstr cxtr_inits(const CxAllocator* a, const cxstr* src);
 
-********************************************/
+Initialize string
+    cxstr cxstr_init();
+
+Initialize string from pointer and count
+    cxstr cxstr_initn(const char* src, size_t n);
+
+Initialize string from nul terminated C string
+    cxstr cxstr_initc(const char* src);
+
+Initialize string from another cxstr
+    cxstr cxtr_inits(const cxstr* src);
+
+Free string allocated memory
+    void cxstr_free(cxstr* s);
+
+Clear the strings setting is length to zero without deallocating its memory
+    void cxstr_clear(cxstr* s);
+
+*/
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -76,6 +96,11 @@ Initialize string with custom allocator from anoter cx string
 #ifndef cx_str_name
     #error "cx_str_name not defined" 
 #endif
+
+// Auxiliary internal macros
+#define cx_str_concat2_(a, b) a ## b
+#define cx_str_concat1_(a, b) cx_str_concat2_(a, b)
+#define cx_str_name_(name) cx_str_concat1_(cx_str_name, name)
 
 // String capacity in number of bits
 #define cx_str_cap8_     8
@@ -129,17 +154,12 @@ Initialize string with custom allocator from anoter cx string
 #else
     #define cx_str_alloc_field_
     #define cx_str_alloc_global_\
-        static const CxAllocator* cx_type_name_(_allocator) = NULL;
+        static const CxAllocator* cx_str_name_(_allocator) = NULL;
     #define cx_str_alloc_(s,n)\
-        cx_alloc_alloc(cx_type_name_(_allocator),n)
+        cx_alloc_alloc(cx_str_name_(_allocator),n)
     #define cx_str_free_(s,p,n)\
-        cx_alloc_free(cx_type_name_(_allocator),p,n)
+        cx_alloc_free(cx_str_name_(_allocator),p,n)
 #endif
-
-// Auxiliary internal macros
-#define cx_str_concat2_(a, b) a ## b
-#define cx_str_concat1_(a, b) cx_str_concat2_(a, b)
-#define cx_type_name_(name) cx_str_concat1_(cx_str_name, name)
 
 //
 // Function names
@@ -202,59 +222,58 @@ typedef struct cx_str_name {
 } cx_str_name;
 
 #ifdef cx_str_allocator
-    cx_str_api_ cx_str_name cx_type_name_(name_init)(const CxAllocator* a);
-    cx_str_api_ cx_str_name cx_type_name_(name_initn)(const CxAllocator* a, const char* src, size_t n);
-    cx_str_api_ cx_str_name cx_type_name_(name_initc)(const CxAllocator* a, const char* src);
-    cx_str_api_ cx_str_name cx_type_name_(name_inits)(const CxAllocator* a, const cx_str_name* src);
+    cx_str_api_ cx_str_name cx_str_name_(name_init)(const CxAllocator* a);
+    cx_str_api_ cx_str_name cx_str_name_(name_initn)(const CxAllocator* a, const char* src, size_t n);
+    cx_str_api_ cx_str_name cx_str_name_(name_initc)(const CxAllocator* a, const char* src);
+    cx_str_api_ cx_str_name cx_str_name_(name_inits)(const CxAllocator* a, const cx_str_name* src);
 #else
-    cx_str_api_ cx_str_name cx_type_name_(name_init)(void);
-    cx_str_api_ cx_str_name cx_type_name_(name_initn)(const char* src, size_t n);
-    cx_str_api_ cx_str_name cx_type_name_(name_initc)(const char* src);
-    cx_str_api_ cx_str_name cx_type_name_(name_inits)(const cx_str_name* src);
+    cx_str_api_ cx_str_name cx_str_name_(name_init)(void);
+    cx_str_api_ cx_str_name cx_str_name_(name_initn)(const char* src, size_t n);
+    cx_str_api_ cx_str_name cx_str_name_(name_initc)(const char* src);
+    cx_str_api_ cx_str_name cx_str_name_(name_inits)(const cx_str_name* src);
 #endif
-cx_str_api_ void cx_type_name_(name_set)(cx_str_name* s, const char* src);
-cx_str_api_ void cx_type_name_(name_free)(cx_str_name* s);
-cx_str_api_ void cx_type_name_(name_clear)(cx_str_name* s);
-cx_str_api_ void cx_type_name_(name_reserve)(cx_str_name* s, size_t n);
-cx_str_api_ size_t cx_type_name_(name_cap)(const cx_str_name* s);
-cx_str_api_ size_t cx_type_name_(name_len)(const cx_str_name* s);
-cx_str_api_ size_t cx_type_name_(name_lencp)(const cx_str_name* s);
-cx_str_api_ const char* cx_type_name_(name_data)(const cx_str_name* s);
-cx_str_api_ bool cx_type_name_(name_empty)(const cx_str_name* s);
-cx_str_api_ void cx_type_name_(name_setcap)(cx_str_name* s, size_t cap);
-cx_str_api_ void cx_type_name_(name_ncpy)(cx_str_name* s, const char* src, size_t n);
-cx_str_api_ void cx_type_name_(name_cpy)(cx_str_name* s, const char* src);
-cx_str_api_ void cx_type_name_(name_cpys)(cx_str_name* s, const cx_str_name* src);
-cx_str_api_ void cx_type_name_(name_ncat)(cx_str_name* s, const char* src, size_t n);
-cx_str_api_ void cx_type_name_(name_cat)(cx_str_name* s, const char* src);
-cx_str_api_ void cx_type_name_(name_cats)(cx_str_name* s, const cx_str_name* src);
-cx_str_api_ void cx_type_name_(name_catcp)(cx_str_name* s, int32_t cp);
-cx_str_api_ void cx_type_name_(name_nins)(cx_str_name* s, const char* src, size_t n, size_t idx);
-cx_str_api_ void cx_type_name_(name_ins)(cx_str_name* s, const char* src, size_t idx);
-cx_str_api_ void cx_type_name_(name_inss)(cx_str_name* s, const cx_str_name* src, size_t idx);
-cx_str_api_ void cx_type_name_(name_ndel)(cx_str_name* s, size_t idx, size_t deln);
-cx_str_api_ void cx_type_name_(name_del)(cx_str_name* s, size_t idx);
-cx_str_api_ int  cx_type_name_(name_ncmp)(cx_str_name* s, const char* src, size_t n);
-cx_str_api_ int  cx_type_name_(name_cmp)(cx_str_name* s, const char* src);
-cx_str_api_ int  cx_type_name_(name_cmps)(cx_str_name* s, const cx_str_name* src);
-cx_str_api_ int  cx_type_name_(name_icmp)(cx_str_name* s, const char* src);
-cx_str_api_ int  cx_type_name_(name_icmps)(cx_str_name* s, const cx_str_name* src);
-cx_str_api_ void cx_type_name_(name_vprintf)(cx_str_name* s, const char *fmt, va_list ap);
-cx_str_api_ void cx_type_name_(name_printf)(cx_str_name* s, const char *fmt, ...);
-cx_str_api_ ptrdiff_t cx_type_name_(name_nfind)(cx_str_name* s, size_t start, const char *src, size_t n);
-cx_str_api_ ptrdiff_t cx_type_name_(name_find)(cx_str_name* s, const char *src);
-cx_str_api_ ptrdiff_t cx_type_name_(name_finds)(cx_str_name* s, const cx_str_name* src);
-cx_str_api_ ptrdiff_t cx_type_name_(name_findcp)(cx_str_name* s, int32_t cp);
-cx_str_api_ ptrdiff_t cx_type_name_(name_ifind)(cx_str_name* s, const char *src);
-cx_str_api_ ptrdiff_t cx_type_name_(name_ifinds)(cx_str_name* s, const cx_str_name* src);
-cx_str_api_ void cx_type_name_(name_substr)(const cx_str_name* s, size_t start, size_t len, cx_str_name* dst);
-cx_str_api_ void cx_type_name_(name_replace)(cx_str_name* s, const char* old, const char* new, size_t count);
-cx_str_api_ bool cx_type_name_(name_validu8)(const cx_str_name* s);
-cx_str_api_ void cx_type_name_(name_upper)(cx_str_name* s);
-cx_str_api_ void cx_type_name_(name_lower)(cx_str_name* s);
-cx_str_api_ char* cx_type_name_(name_ncp)(cx_str_name* s, char* iter, int32_t* cp);
-cx_str_api_ void cx_type_name_(name_ltrim)(cx_str_name* s, const char* cset);
-cx_str_api_ void cx_type_name_(name_rtrim)(cx_str_name* s, const char* cset);
+cx_str_api_ void cx_str_name_(name_free)(cx_str_name* s);
+cx_str_api_ void cx_str_name_(name_clear)(cx_str_name* s);
+cx_str_api_ void cx_str_name_(name_reserve)(cx_str_name* s, size_t n);
+cx_str_api_ size_t cx_str_name_(name_cap)(const cx_str_name* s);
+cx_str_api_ size_t cx_str_name_(name_len)(const cx_str_name* s);
+cx_str_api_ size_t cx_str_name_(name_lencp)(const cx_str_name* s);
+cx_str_api_ const char* cx_str_name_(name_data)(const cx_str_name* s);
+cx_str_api_ bool cx_str_name_(name_empty)(const cx_str_name* s);
+cx_str_api_ void cx_str_name_(name_setcap)(cx_str_name* s, size_t cap);
+cx_str_api_ void cx_str_name_(name_ncpy)(cx_str_name* s, const char* src, size_t n);
+cx_str_api_ void cx_str_name_(name_cpy)(cx_str_name* s, const char* src);
+cx_str_api_ void cx_str_name_(name_cpys)(cx_str_name* s, const cx_str_name* src);
+cx_str_api_ void cx_str_name_(name_ncat)(cx_str_name* s, const char* src, size_t n);
+cx_str_api_ void cx_str_name_(name_cat)(cx_str_name* s, const char* src);
+cx_str_api_ void cx_str_name_(name_cats)(cx_str_name* s, const cx_str_name* src);
+cx_str_api_ void cx_str_name_(name_catcp)(cx_str_name* s, int32_t cp);
+cx_str_api_ void cx_str_name_(name_nins)(cx_str_name* s, const char* src, size_t n, size_t idx);
+cx_str_api_ void cx_str_name_(name_ins)(cx_str_name* s, const char* src, size_t idx);
+cx_str_api_ void cx_str_name_(name_inss)(cx_str_name* s, const cx_str_name* src, size_t idx);
+cx_str_api_ void cx_str_name_(name_ndel)(cx_str_name* s, size_t idx, size_t deln);
+cx_str_api_ void cx_str_name_(name_del)(cx_str_name* s, size_t idx);
+cx_str_api_ int  cx_str_name_(name_ncmp)(cx_str_name* s, const char* src, size_t n);
+cx_str_api_ int  cx_str_name_(name_cmp)(cx_str_name* s, const char* src);
+cx_str_api_ int  cx_str_name_(name_cmps)(cx_str_name* s, const cx_str_name* src);
+cx_str_api_ int  cx_str_name_(name_icmp)(cx_str_name* s, const char* src);
+cx_str_api_ int  cx_str_name_(name_icmps)(cx_str_name* s, const cx_str_name* src);
+cx_str_api_ void cx_str_name_(name_vprintf)(cx_str_name* s, const char *fmt, va_list ap);
+cx_str_api_ void cx_str_name_(name_printf)(cx_str_name* s, const char *fmt, ...);
+cx_str_api_ ptrdiff_t cx_str_name_(name_nfind)(cx_str_name* s, size_t start, const char *src, size_t n);
+cx_str_api_ ptrdiff_t cx_str_name_(name_find)(cx_str_name* s, const char *src);
+cx_str_api_ ptrdiff_t cx_str_name_(name_finds)(cx_str_name* s, const cx_str_name* src);
+cx_str_api_ ptrdiff_t cx_str_name_(name_findcp)(cx_str_name* s, int32_t cp);
+cx_str_api_ ptrdiff_t cx_str_name_(name_ifind)(cx_str_name* s, const char *src);
+cx_str_api_ ptrdiff_t cx_str_name_(name_ifinds)(cx_str_name* s, const cx_str_name* src);
+cx_str_api_ void cx_str_name_(name_substr)(const cx_str_name* s, size_t start, size_t len, cx_str_name* dst);
+cx_str_api_ void cx_str_name_(name_replace)(cx_str_name* s, const char* old, const char* new, size_t count);
+cx_str_api_ bool cx_str_name_(name_validu8)(const cx_str_name* s);
+cx_str_api_ void cx_str_name_(name_upper)(cx_str_name* s);
+cx_str_api_ void cx_str_name_(name_lower)(cx_str_name* s);
+cx_str_api_ char* cx_str_name_(name_ncp)(cx_str_name* s, char* iter, int32_t* cp);
+cx_str_api_ void cx_str_name_(name_ltrim)(cx_str_name* s, const char* cset);
+cx_str_api_ void cx_str_name_(name_rtrim)(cx_str_name* s, const char* cset);
 
 
 //
@@ -275,7 +294,7 @@ cx_str_api_ void cx_type_name_(name_rtrim)(cx_str_name* s, const char* cset);
     extern char* utf8catcodepoint(char* str, int32_t chr, size_t n);
 
 // Internal string reallocation function
-static void cx_type_name_(_grow_)(cx_str_name* s, size_t addLen, size_t minCap) {
+static void cx_str_name_(_grow_)(cx_str_name* s, size_t addLen, size_t minCap) {
 
     size_t minLen = s->len_ + addLen;
     if (minLen > minCap) {
@@ -316,65 +335,65 @@ static void cx_type_name_(_grow_)(cx_str_name* s, size_t addLen, size_t minCap) 
 
 #ifdef cx_str_allocator
 
-    cx_str_api_ cx_str_name cx_type_name_(name_init)(const CxAllocator* a) {
+    cx_str_api_ cx_str_name cx_str_name_(name_init)(const CxAllocator* a) {
 
         return (cx_str_name) {.alloc = a};
     }
 
-    cx_str_api_ cx_str_name cx_type_name_(name_initn)(const CxAllocator* a, const char* src, size_t n) {
+    cx_str_api_ cx_str_name cx_str_name_(name_initn)(const CxAllocator* a, const char* src, size_t n) {
 
         cx_str_name s = {.alloc = a};
-        cx_type_name_(_ncpy)(&s, src, n);
+        cx_str_name_(_ncpy)(&s, src, n);
         return s;
     }
 
-    cx_str_api_ cx_str_name cx_type_name_(name_initc)(const CxAllocator* a, const char* src) {
+    cx_str_api_ cx_str_name cx_str_name_(name_initc)(const CxAllocator* a, const char* src) {
 
         cx_str_name s = {.alloc = a};
-        cx_type_name_(_cpy)(&s, src);
+        cx_str_name_(_cpy)(&s, src);
         return s;
     }
 
-    cx_str_api_ cx_str_name cx_type_name_(name_inits)(const CxAllocator* a, const cx_str_name* src) {
+    cx_str_api_ cx_str_name cx_str_name_(name_inits)(const CxAllocator* a, const cx_str_name* src) {
 
         cx_str_name s = {.alloc = a};
-        cx_type_name_(_cpys)(&s, src);
+        cx_str_name_(_cpys)(&s, src);
         return s;
     }
 
 #else
 
-    cx_str_api_ cx_str_name cx_type_name_(name_init)(void) {
-        if (cx_type_name_(_allocator) == NULL) {
-            cx_type_name_(_allocator) = cxDefaultAllocator();
+    cx_str_api_ cx_str_name cx_str_name_(name_init)(void) {
+        if (cx_str_name_(_allocator) == NULL) {
+            cx_str_name_(_allocator) = cxDefaultAllocator();
         }
         return (cx_str_name) {0};
     }
 
-    cx_str_api_ cx_str_name cx_type_name_(name_initn)(const char* src, size_t n) {
+    cx_str_api_ cx_str_name cx_str_name_(name_initn)(const char* src, size_t n) {
 
-        cx_str_name s = cx_type_name_(name_init)();
-        cx_type_name_(_ncpy)(&s, src, n);
+        cx_str_name s = cx_str_name_(name_init)();
+        cx_str_name_(_ncpy)(&s, src, n);
         return s;
     }
 
-    cx_str_api_ cx_str_name cx_type_name_(name_initc)(const char* src) {
+    cx_str_api_ cx_str_name cx_str_name_(name_initc)(const char* src) {
 
-        cx_str_name s = cx_type_name_(name_init)();
-        cx_type_name_(_cpy)(&s, src);
+        cx_str_name s = cx_str_name_(name_init)();
+        cx_str_name_(_cpy)(&s, src);
         return s;
     }
 
-    cx_str_api_ cx_str_name cx_type_name_(name_inits)(const cx_str_name* src) {
+    cx_str_api_ cx_str_name cx_str_name_(name_inits)(const cx_str_name* src) {
 
-        cx_str_name s = cx_type_name_(name_init)();
-        cx_type_name_(_cpys)(&s, src);
+        cx_str_name s = cx_str_name_(name_init)();
+        cx_str_name_(_cpys)(&s, src);
         return s;
     }
 #endif
 
 
-cx_str_api_ void cx_type_name_(name_free)(cx_str_name* s) {
+cx_str_api_ void cx_str_name_(name_free)(cx_str_name* s) {
 
     cx_str_free_(s, s->data, s->cap_);
     s->cap_ = 0;
@@ -382,55 +401,55 @@ cx_str_api_ void cx_type_name_(name_free)(cx_str_name* s) {
     s->data = NULL;
 }
 
-cx_str_api_ void cx_type_name_(name_clear)(cx_str_name* s) {
+cx_str_api_ void cx_str_name_(name_clear)(cx_str_name* s) {
 
     s->len_ = 0;
 }
 
-cx_str_api_ void cx_type_name_(name_reserve)(cx_str_name* s, size_t n) {
+cx_str_api_ void cx_str_name_(name_reserve)(cx_str_name* s, size_t n) {
 
     if (s->len_ + n < s->cap_) {
-        cx_type_name_(_grow_)(s, 0, s->len_ + n);
+        cx_str_name_(_grow_)(s, 0, s->len_ + n);
     }
 }
 
-cx_str_api_ size_t cx_type_name_(name_cap)(const cx_str_name* s) {
+cx_str_api_ size_t cx_str_name_(name_cap)(const cx_str_name* s) {
 
     return s->cap_;
 }
 
-cx_str_api_ size_t cx_type_name_(name_len)(const cx_str_name* s) {
+cx_str_api_ size_t cx_str_name_(name_len)(const cx_str_name* s) {
 
     return s->len_;
 }
 
-cx_str_api_ size_t cx_type_name_(name_lencp)(const cx_str_name* s) {
+cx_str_api_ size_t cx_str_name_(name_lencp)(const cx_str_name* s) {
 
     return utf8len(s->data);
 }
 
-cx_str_api_ const char* cx_type_name_(name_data)(const cx_str_name* s) {
+cx_str_api_ const char* cx_str_name_(name_data)(const cx_str_name* s) {
 
     return s->data;
 }
 
-cx_str_api_ bool cx_type_name_(name_empty)(const cx_str_name* s) {
+cx_str_api_ bool cx_str_name_(name_empty)(const cx_str_name* s) {
 
     return s->len_ == 0;
 }
 
-cx_str_api_ void cx_type_name_(name_setcap)(cx_str_name* s, size_t cap) {
+cx_str_api_ void cx_str_name_(name_setcap)(cx_str_name* s, size_t cap) {
 
-    cx_type_name_(_grow_)(s, 0, cap);
+    cx_str_name_(_grow_)(s, 0, cap);
 }
 
-cx_str_api_ void cx_type_name_(name_ncpy)(cx_str_name* s, const char* src, size_t n) {
+cx_str_api_ void cx_str_name_(name_ncpy)(cx_str_name* s, const char* src, size_t n) {
 
     if (src == NULL) {
         return;
     }
     if (n > s->cap_) {
-        cx_type_name_(_grow_)(s, 0, n);
+        cx_str_name_(_grow_)(s, 0, n);
     }
     memcpy(s->data, src, n);
     s->len_ = n;
@@ -439,23 +458,23 @@ cx_str_api_ void cx_type_name_(name_ncpy)(cx_str_name* s, const char* src, size_
     }
 }
 
-cx_str_api_ void cx_type_name_(name_cpy)(cx_str_name* s, const char* src) {
+cx_str_api_ void cx_str_name_(name_cpy)(cx_str_name* s, const char* src) {
 
     if (src == NULL) {
         return;
     }
-    cx_type_name_(name_ncpy)(s, src, strlen(src));
+    cx_str_name_(name_ncpy)(s, src, strlen(src));
 }
 
-cx_str_api_ void cx_type_name_(name_cpys)(cx_str_name* s, const cx_str_name* src) {
+cx_str_api_ void cx_str_name_(name_cpys)(cx_str_name* s, const cx_str_name* src) {
 
-    cx_type_name_(name_ncpy)(s, src->data, src->len_);
+    cx_str_name_(name_ncpy)(s, src->data, src->len_);
 }
 
-cx_str_api_ void cx_type_name_(name_ncat)(cx_str_name* s, const char* src, size_t n) {
+cx_str_api_ void cx_str_name_(name_ncat)(cx_str_name* s, const char* src, size_t n) {
 
     if (s->len_ + n > s->cap_) {
-        cx_type_name_(_grow_)(s, s->len_ + n, 0);
+        cx_str_name_(_grow_)(s, s->len_ + n, 0);
     }
     memcpy(s->data + s->len_, src, n);
     s->len_ += n;
@@ -464,35 +483,35 @@ cx_str_api_ void cx_type_name_(name_ncat)(cx_str_name* s, const char* src, size_
     }
 }
 
-cx_str_api_ void cx_type_name_(name_cat)(cx_str_name* s, const char* src) {
+cx_str_api_ void cx_str_name_(name_cat)(cx_str_name* s, const char* src) {
 
-    cx_type_name_(name_ncat)(s, src, strlen(src));
+    cx_str_name_(name_ncat)(s, src, strlen(src));
 }
 
-cx_str_api_ void cx_type_name_(name_cats)(cx_str_name* s, const cx_str_name* src) {
+cx_str_api_ void cx_str_name_(name_cats)(cx_str_name* s, const cx_str_name* src) {
 
-    cx_type_name_(name_ncat)(s, src->data, src->len_);
+    cx_str_name_(name_ncat)(s, src->data, src->len_);
 }
 
-cx_str_api_ void cx_type_name_(name_catcp)(cx_str_name* s, int32_t cp) {
+cx_str_api_ void cx_str_name_(name_catcp)(cx_str_name* s, int32_t cp) {
 
     const size_t size = utf8codepointsize(cp);
     if (s->len_ + size > s->cap_) {
-        cx_type_name_(_grow_)(s, s->len_ + size, 0);
+        cx_str_name_(_grow_)(s, s->len_ + size, 0);
     }
     utf8catcodepoint(s->data + s->len_, cp, size);
     s->len_ += size;
     s->data[s->len_] = 0;
 }
 
-cx_str_api_ void cx_type_name_(name_nins)(cx_str_name* s, const char* src, size_t n, size_t idx) {
+cx_str_api_ void cx_str_name_(name_nins)(cx_str_name* s, const char* src, size_t n, size_t idx) {
 
     if (idx > s->len_) {
         cx_str_error_handler("invalid index");
         return;
     }
     if (s->len_ + n > s->cap_) {
-        cx_type_name_(_grow_)(s, n, 0);
+        cx_str_name_(_grow_)(s, n, 0);
     }
     memmove(s->data + idx + n, s->data + idx, s->len_ - idx);
     memcpy(s->data + idx, src, n);
@@ -500,17 +519,17 @@ cx_str_api_ void cx_type_name_(name_nins)(cx_str_name* s, const char* src, size_
     s->data[s->len_] = 0;
 }
 
-cx_str_api_ void cx_type_name_(name_ins)(cx_str_name* s, const char* src, size_t idx) {
+cx_str_api_ void cx_str_name_(name_ins)(cx_str_name* s, const char* src, size_t idx) {
 
-    cx_type_name_(name_nins)(s, src, strlen(src), idx);
+    cx_str_name_(name_nins)(s, src, strlen(src), idx);
 }
 
-cx_str_api_ void cx_type_name_(name_inss)(cx_str_name* s, const cx_str_name* src, size_t idx) {
+cx_str_api_ void cx_str_name_(name_inss)(cx_str_name* s, const cx_str_name* src, size_t idx) {
 
-    cx_type_name_(name_nins)(s, src->data, src->len_, idx);
+    cx_str_name_(name_nins)(s, src->data, src->len_, idx);
 }
 
-cx_str_api_ void cx_type_name_(name_ndel)(cx_str_name* s, size_t idx, size_t deln) {
+cx_str_api_ void cx_str_name_(name_ndel)(cx_str_name* s, size_t idx, size_t deln) {
 
     if (idx >= s->len_) {
         cx_str_error_handler("invalid index");
@@ -525,12 +544,12 @@ cx_str_api_ void cx_type_name_(name_ndel)(cx_str_name* s, size_t idx, size_t del
     }
 }
 
-cx_str_api_ void cx_type_name_(name_del)(cx_str_name* s, size_t idx) {
+cx_str_api_ void cx_str_name_(name_del)(cx_str_name* s, size_t idx) {
 
-    cx_type_name_(name_ndel)(s, idx, 1);
+    cx_str_name_(name_ndel)(s, idx, 1);
 }
 
-cx_str_api_ int  cx_type_name_(name_ncmp)(cx_str_name* s, const char* src, size_t n) {
+cx_str_api_ int  cx_str_name_(name_ncmp)(cx_str_name* s, const char* src, size_t n) {
 
     if (s->len_ > n) {
         return 1;
@@ -541,22 +560,22 @@ cx_str_api_ int  cx_type_name_(name_ncmp)(cx_str_name* s, const char* src, size_
     return memcmp(s->data, src, n);
 }
 
-cx_str_api_ int cx_type_name_(name_cmp)(cx_str_name* s, const char* src) {
+cx_str_api_ int cx_str_name_(name_cmp)(cx_str_name* s, const char* src) {
 
-    return cx_type_name_(name_ncmp)(s, src, strlen(src));
+    return cx_str_name_(name_ncmp)(s, src, strlen(src));
 }
 
-cx_str_api_ int cx_type_name_(name_cmps)(cx_str_name* s, const cx_str_name* src) {
+cx_str_api_ int cx_str_name_(name_cmps)(cx_str_name* s, const cx_str_name* src) {
 
-    return cx_type_name_(name_ncmp)(s, src->data, src->len_);
+    return cx_str_name_(name_ncmp)(s, src->data, src->len_);
 }
 
-cx_str_api_ int cx_type_name_(name_icmp)(cx_str_name* s, const char* src) {
+cx_str_api_ int cx_str_name_(name_icmp)(cx_str_name* s, const char* src) {
 
     return utf8casecmp(s->data, src);
 }
 
-cx_str_api_ int cx_type_name_(name_icmps)(cx_str_name* s, const cx_str_name* src) {
+cx_str_api_ int cx_str_name_(name_icmps)(cx_str_name* s, const cx_str_name* src) {
 
     if (s->len_ > src->len_) {
         return 1;
@@ -568,7 +587,7 @@ cx_str_api_ int cx_type_name_(name_icmps)(cx_str_name* s, const cx_str_name* src
 }
 
 // Based on https://github.com/antirez/sds/blob/master/sds.c
-cx_str_api_ void cx_type_name_(name_vprintf)(cx_str_name* s, const char *fmt, va_list ap) {
+cx_str_api_ void cx_str_name_(name_vprintf)(cx_str_name* s, const char *fmt, va_list ap) {
     va_list cpy;
     char  staticbuf[1024];
     char* buf = staticbuf;
@@ -613,22 +632,22 @@ cx_str_api_ void cx_type_name_(name_vprintf)(cx_str_name* s, const char *fmt, va
     }
 
     // Finally concat the obtained string to the SDS string and return it.
-    cx_type_name_(name_ncat)(s, buf, bufstrlen);
+    cx_str_name_(name_ncat)(s, buf, bufstrlen);
     if (buf != staticbuf) {
         cx_str_free_(s, buf, buflen);
     }
 }
 
 // Based on https://github.com/antirez/sds/blob/master/sds.c
-cx_str_api_ void cx_type_name_(name_printf)(cx_str_name* s, const char *fmt, ...) {
+cx_str_api_ void cx_str_name_(name_printf)(cx_str_name* s, const char *fmt, ...) {
 
     va_list ap;
     va_start(ap, fmt);
-    cx_type_name_(_vprintf)(s, fmt, ap);
+    cx_str_name_(_vprintf)(s, fmt, ap);
     va_end(ap);
 }
 
-cx_str_api_ ptrdiff_t cx_type_name_(name_nfind)(cx_str_name* s, size_t start, const char *src, size_t n) {
+cx_str_api_ ptrdiff_t cx_str_name_(name_nfind)(cx_str_name* s, size_t start, const char *src, size_t n) {
 
     if (start >= s->len_) {
         return -1;
@@ -645,17 +664,17 @@ cx_str_api_ ptrdiff_t cx_type_name_(name_nfind)(cx_str_name* s, size_t start, co
     return -1;
 }
 
-cx_str_api_ ptrdiff_t cx_type_name_(name_find)(cx_str_name* s, const char *src) {
+cx_str_api_ ptrdiff_t cx_str_name_(name_find)(cx_str_name* s, const char *src) {
 
-    return cx_type_name_(name_nfind)(s, 0, src, strlen(src));
+    return cx_str_name_(name_nfind)(s, 0, src, strlen(src));
 }
 
-cx_str_api_ ptrdiff_t cx_type_name_(name_finds)(cx_str_name* s, const cx_str_name* src) {
+cx_str_api_ ptrdiff_t cx_str_name_(name_finds)(cx_str_name* s, const cx_str_name* src) {
 
-    return cx_type_name_(name_nfind)(s, 0, src->data, src->len_);
+    return cx_str_name_(name_nfind)(s, 0, src->data, src->len_);
 }
 
-cx_str_api_ ptrdiff_t cx_type_name_(name_findcp)(cx_str_name* s, int32_t cp) {
+cx_str_api_ ptrdiff_t cx_str_name_(name_findcp)(cx_str_name* s, int32_t cp) {
 
     char* n = utf8chr(s->data, cp);
     if (n == NULL) {
@@ -664,7 +683,7 @@ cx_str_api_ ptrdiff_t cx_type_name_(name_findcp)(cx_str_name* s, int32_t cp) {
     return n - s->data;
 }
 
-cx_str_api_ ptrdiff_t cx_type_name_(name_ifind)(cx_str_name* s, const char *src) {
+cx_str_api_ ptrdiff_t cx_str_name_(name_ifind)(cx_str_name* s, const char *src) {
 
     char *n = utf8casestr(s->data, src);
     if (n == NULL) {
@@ -673,15 +692,15 @@ cx_str_api_ ptrdiff_t cx_type_name_(name_ifind)(cx_str_name* s, const char *src)
     return n - s->data;
 }
 
-cx_str_api_ ptrdiff_t cx_type_name_(name_ifinds)(cx_str_name* s, const cx_str_name* src) {
+cx_str_api_ ptrdiff_t cx_str_name_(name_ifinds)(cx_str_name* s, const cx_str_name* src) {
 
     if (s->len_ < src->len_) {
         return -1;
     }
-    return cx_type_name_(name_ifind)(s, src->data);
+    return cx_str_name_(name_ifind)(s, src->data);
 }
 
-cx_str_api_ void cx_type_name_(name_substr)(const cx_str_name* s, size_t start, size_t len, cx_str_name* dst) {
+cx_str_api_ void cx_str_name_(name_substr)(const cx_str_name* s, size_t start, size_t len, cx_str_name* dst) {
 
      if (start >= s->len_) {
          dst->len_ = 0;
@@ -689,25 +708,25 @@ cx_str_api_ void cx_type_name_(name_substr)(const cx_str_name* s, size_t start, 
      }
     const size_t maxSize = s->len_ - start;
     len = len > maxSize ? maxSize : len;
-    cx_type_name_(name_ncpy)(dst, s->data + start, len);
+    cx_str_name_(name_ncpy)(dst, s->data + start, len);
 }
 
-cx_str_api_ void cx_type_name_(name_replace)(cx_str_name* s, const char* old, const char* new, size_t count) {
+cx_str_api_ void cx_str_name_(name_replace)(cx_str_name* s, const char* old, const char* new, size_t count) {
 
     const size_t olen = strlen(old);
     const size_t nlen = strlen(new);
     size_t start = 0;
     while (1) {
-        ptrdiff_t pos = cx_type_name_(name_nfind)((cx_str_name*)s, start, old, olen);
+        ptrdiff_t pos = cx_str_name_(name_nfind)((cx_str_name*)s, start, old, olen);
         if (pos < 0) {
             break;
         }
         if (olen > nlen) {
-            cx_type_name_(name_ndel)(s, pos, olen - nlen);
+            cx_str_name_(name_ndel)(s, pos, olen - nlen);
         } else if (olen < nlen) {
             const size_t addLen = nlen - olen;
             if (s->len_ + addLen > s->cap_) {
-                cx_type_name_(_grow_)(s, addLen, 0);
+                cx_str_name_(_grow_)(s, addLen, 0);
             }
             memmove(s->data + pos + olen + addLen, s->data + pos + olen, s->len_ - pos);
             s->len_ += addLen;
@@ -725,22 +744,22 @@ cx_str_api_ void cx_type_name_(name_replace)(cx_str_name* s, const char* old, co
 }
 
 
-cx_str_api_ bool cx_type_name_(name_validu8)(const cx_str_name* s) {
+cx_str_api_ bool cx_str_name_(name_validu8)(const cx_str_name* s) {
 
     return utf8valid(s->data) == 0;
 }
 
-cx_str_api_ void cx_type_name_(name_upper)(cx_str_name* s) {
+cx_str_api_ void cx_str_name_(name_upper)(cx_str_name* s) {
 
     utf8upr(s->data);
 }
 
-cx_str_api_ void cx_type_name_(name_lower)(cx_str_name* s) {
+cx_str_api_ void cx_str_name_(name_lower)(cx_str_name* s) {
 
     utf8lwr(s->data);
 }
 
-cx_str_api_ char* cx_type_name_(name_ncp)(cx_str_name* s, char* iter, int32_t* cp) {
+cx_str_api_ char* cx_str_name_(name_ncp)(cx_str_name* s, char* iter, int32_t* cp) {
 
     if (iter < s->data || iter >= (s->data + s->len_)) {
         return NULL;
@@ -748,7 +767,7 @@ cx_str_api_ char* cx_type_name_(name_ncp)(cx_str_name* s, char* iter, int32_t* c
     return utf8codepoint(iter, cp);
 }
 
-cx_str_api_ void cx_type_name_(name_ltrim)(cx_str_name* s, const char* cset)  {
+cx_str_api_ void cx_str_name_(name_ltrim)(cx_str_name* s, const char* cset)  {
 
     if (s->len_ == 0) {
         return;
@@ -769,10 +788,10 @@ cx_str_api_ void cx_type_name_(name_ltrim)(cx_str_name* s, const char* cset)  {
     if (deln == 0) {
         return;
     }
-    cx_type_name_(name_ndel)(s, 0, deln);
+    cx_str_name_(name_ndel)(s, 0, deln);
 }
 
-cx_str_api_ void cx_type_name_(name_rtrim)(cx_str_name* s, const char* cset) {
+cx_str_api_ void cx_str_name_(name_rtrim)(cx_str_name* s, const char* cset) {
 
     if (s->len_ == 0) {
         return;
@@ -797,24 +816,24 @@ cx_str_api_ void cx_type_name_(name_rtrim)(cx_str_name* s, const char* cset) {
     if (deln == 0) {
         return;
     }
-    cx_type_name_(name_ndel)(s, s->len_ - deln, deln);
+    cx_str_name_(name_ndel)(s, s->len_ - deln, deln);
 }
 
 #endif // cx_str_implement
 
-//
 // Undefine config  macros
-//
 #undef cx_str_name
 #undef cx_str_static
 #undef cx_str_inline
 #undef cx_str_cap
 #undef cx_str_allocator
 #undef cx_str_error_handler
+#undef cx_str_implement
 
-//
 // Undefine internal macros
-//
+#undef cx_str_concat2_
+#undef cx_str_concat1_
+#undef cx_str_name_
 #undef cx_str_cap_type_
 #undef cx_str_cap8_
 #undef cx_str_cap16_
