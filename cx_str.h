@@ -45,14 +45,23 @@ Configuration defines:
 -   cx_str_static
     Prefix functions with 'static'
 
--   cx_str_camel_case
-    Uses camel case names instead of snake case
+-   cx_str_inline
+    Prefix functions with 'inline'
 
 -   cx_str_implement
     Implements functions
 
--   cx_str_thread (TODO thread safe)
+Initialize string with custom allocator:
+    <cx_str_name> <cx_str_name>_init(const CxAllocator* a);
 
+Initialize string with custom allocator from pointer and count
+    <cx_str_name> <cx_str_name_initn(const CxAllocator* a, const char* src, size_t n);
+
+Initialize string with custom allocator from nul terminated C string
+    <cx_str_name> <cx_str_name>_initc(const CxAllocator* a, const char* src);
+
+Initialize string with custom allocator from anoter cx string
+    <cx_str_name> <cx_str_name>_inits(const CxAllocator* a, const <cx_str_name>* src);
 
 ********************************************/
 #include <stdint.h>
@@ -196,7 +205,7 @@ typedef struct cx_str_name {
     cx_str_api_ cx_str_name type_name(name_init)(const CxAllocator* a);
     cx_str_api_ cx_str_name type_name(name_initn)(const CxAllocator* a, const char* src, size_t n);
     cx_str_api_ cx_str_name type_name(name_initc)(const CxAllocator* a, const char* src);
-    cx_str_api_ cx_str_name type_name(name_inits)(const CxAllocator* a, cx_str_name* src);
+    cx_str_api_ cx_str_name type_name(name_inits)(const CxAllocator* a, const cx_str_name* src);
 #else
     cx_str_api_ cx_str_name type_name(name_init)(void);
     cx_str_api_ cx_str_name type_name(name_initn)(const char* src, size_t n);
@@ -326,7 +335,7 @@ static void type_name(_grow_)(cx_str_name* s, size_t addLen, size_t minCap) {
         return s;
     }
 
-    cx_str_api_ cx_str_name type_name(name_inits)(const CxAllocator* a, cx_str_name* src) {
+    cx_str_api_ cx_str_name type_name(name_inits)(const CxAllocator* a, const cx_str_name* src) {
 
         cx_str_name s = {.alloc = a};
         type_name(_cpys)(&s, src);
