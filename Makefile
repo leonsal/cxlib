@@ -8,7 +8,6 @@ INCS=
 ifdef clang
 	CC=clang
 endif
-
 # Sets address sanitizer option
 ifdef asan 
 	CFLAGS+=-fsanitize=address,leak
