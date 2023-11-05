@@ -1,21 +1,6 @@
 
-UTF8: ?
-    find,
-    starts,
-    ends
-    substr
+cxstr
+    error handler ??
 
-
-
-cx_str trim_leftn
-cx_str trim_leftc
-cx_str trim_lefts
-
-cx_str trim_suffixn
-cx_str trim_suffixc
-cx_str trim_suffixs
-
-
-cx_str repl(s, start, end)
 
 
