@@ -1,6 +1,5 @@
-.cache
-run_tests
 *.o
-makedeps
-
-
+.cache
+make_deps
+make_options
+run_tests
