@@ -382,7 +382,7 @@ void cxStrTest(const CxAllocator* alloc) {
     assert(cxstr_cmp(&s1, "") == 0);
 
     // cpy
-    cxstr_ncpy(&s1, "123\0x00456", 7);
+    cxstr_cpyn(&s1, "123\0x00456", 7);
     assert(strlen(s1.data) == 3);
     assert(cxstr_len(&s1) == 7);
     cxstr_cpy(&s1, "hello áéíóú");
@@ -439,7 +439,7 @@ void cxStrTest(const CxAllocator* alloc) {
     cxstr_error = NULL;
 
     // del
-    cxstr_ndel(&s1, 5, 4);
+    cxstr_deln(&s1, 5, 4);
     assert(cxstr_cmp(&s1, "hello áéíóú") == 0);
     assert(cxstr_validu8(&s1));
 
