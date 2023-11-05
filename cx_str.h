@@ -63,10 +63,10 @@ Configuration defines:
 #include <stdarg.h>
 #include "cx_alloc.h"
 
+// String type name must be defined
 #ifndef cx_str_name
     #error "cx_str_name not defined" 
 #endif
-
 
 // String capacity in number of bits
 #define cx_str_cap8_     8
@@ -96,10 +96,15 @@ Configuration defines:
         printf("CXLIB STR ERROR:%s\n",msg);abort()
 #endif
 
-#ifdef cx_str_static
-    #define linkage static
+// API attributes
+#if defined(cx_str_static) && defined(cx_str_inline)
+    #define cx_str_api_ static inline
+#elif defined(cx_str_static)
+    #define cx_str_api_ static
+#elif defined(cx_str_inline)
+    #define cx_str_api_ inline
 #else
-    #define linkage
+    #define cx_str_api_
 #endif
 
 // Use custom instance allocator
@@ -115,7 +120,7 @@ Configuration defines:
 #else
     #define cx_str_alloc_field_
     #define cx_str_alloc_global_\
-        linkage const CxAllocator* type_name(_allocator) = NULL;
+        static const CxAllocator* type_name(_allocator) = NULL;
     #define cx_str_alloc_(s,n)\
         cx_alloc_alloc(type_name(_allocator),n)
     #define cx_str_free_(s,p,n)\
@@ -126,7 +131,6 @@ Configuration defines:
 #define concat2_(a, b) a ## b
 #define concat1_(a, b) concat2_(a, b)
 #define type_name(name) concat1_(cx_str_name, name)
-
 
 //
 // Function names
@@ -182,66 +186,66 @@ Configuration defines:
 // Declarations
 //
 typedef struct cx_str_name {
-    cx_str_alloc_field_;
+    cx_str_alloc_field_
     cx_str_cap_type_ len_;
     cx_str_cap_type_ cap_;
     char* data;
 } cx_str_name;
 
 #ifdef cx_str_allocator
-    linkage cx_str_name type_name(name_init)(const CxAllocator* a);
-    linkage cx_str_name type_name(name_initn)(const CxAllocator* a, const char* src, size_t n);
-    linkage cx_str_name type_name(name_initc)(const CxAllocator* a, const char* src);
-    linkage cx_str_name type_name(name_inits)(const CxAllocator* a, cx_str_name* src);
+    cx_str_api_ cx_str_name type_name(name_init)(const CxAllocator* a);
+    cx_str_api_ cx_str_name type_name(name_initn)(const CxAllocator* a, const char* src, size_t n);
+    cx_str_api_ cx_str_name type_name(name_initc)(const CxAllocator* a, const char* src);
+    cx_str_api_ cx_str_name type_name(name_inits)(const CxAllocator* a, cx_str_name* src);
 #else
-    linkage cx_str_name type_name(name_init)(void);
-    linkage cx_str_name type_name(name_initn)(const char* src, size_t n);
-    linkage cx_str_name type_name(name_initc)(const char* src);
-    linkage cx_str_name type_name(name_inits)(const cx_str_name* src);
+    cx_str_api_ cx_str_name type_name(name_init)(void);
+    cx_str_api_ cx_str_name type_name(name_initn)(const char* src, size_t n);
+    cx_str_api_ cx_str_name type_name(name_initc)(const char* src);
+    cx_str_api_ cx_str_name type_name(name_inits)(const cx_str_name* src);
 #endif
-linkage void type_name(name_set)(cx_str_name* s, const char* src);
-linkage void type_name(name_free)(cx_str_name* s);
-linkage void type_name(name_clear)(cx_str_name* s);
-linkage void type_name(name_reserve)(cx_str_name* s, size_t n);
-linkage size_t type_name(name_cap)(const cx_str_name* s);
-linkage size_t type_name(name_len)(const cx_str_name* s);
-linkage size_t type_name(name_lencp)(const cx_str_name* s);
-linkage const char* type_name(name_data)(const cx_str_name* s);
-linkage bool type_name(name_empty)(const cx_str_name* s);
-linkage void type_name(name_setcap)(cx_str_name* s, size_t cap);
-linkage void type_name(name_ncpy)(cx_str_name* s, const char* src, size_t n);
-linkage void type_name(name_cpy)(cx_str_name* s, const char* src);
-linkage void type_name(name_cpys)(cx_str_name* s, const cx_str_name* src);
-linkage void type_name(name_ncat)(cx_str_name* s, const char* src, size_t n);
-linkage void type_name(name_cat)(cx_str_name* s, const char* src);
-linkage void type_name(name_cats)(cx_str_name* s, const cx_str_name* src);
-linkage void type_name(name_catcp)(cx_str_name* s, int32_t cp);
-linkage void type_name(name_nins)(cx_str_name* s, const char* src, size_t n, size_t idx);
-linkage void type_name(name_ins)(cx_str_name* s, const char* src, size_t idx);
-linkage void type_name(name_inss)(cx_str_name* s, const cx_str_name* src, size_t idx);
-linkage void type_name(name_ndel)(cx_str_name* s, size_t idx, size_t deln);
-linkage void type_name(name_del)(cx_str_name* s, size_t idx);
-linkage int  type_name(name_ncmp)(cx_str_name* s, const char* src, size_t n);
-linkage int  type_name(name_cmp)(cx_str_name* s, const char* src);
-linkage int  type_name(name_cmps)(cx_str_name* s, const cx_str_name* src);
-linkage int  type_name(name_icmp)(cx_str_name* s, const char* src);
-linkage int  type_name(name_icmps)(cx_str_name* s, const cx_str_name* src);
-linkage void type_name(name_vprintf)(cx_str_name* s, const char *fmt, va_list ap);
-linkage void type_name(name_printf)(cx_str_name* s, const char *fmt, ...);
-linkage ptrdiff_t type_name(name_nfind)(cx_str_name* s, size_t start, const char *src, size_t n);
-linkage ptrdiff_t type_name(name_find)(cx_str_name* s, const char *src);
-linkage ptrdiff_t type_name(name_finds)(cx_str_name* s, const cx_str_name* src);
-linkage ptrdiff_t type_name(name_findcp)(cx_str_name* s, int32_t cp);
-linkage ptrdiff_t type_name(name_ifind)(cx_str_name* s, const char *src);
-linkage ptrdiff_t type_name(name_ifinds)(cx_str_name* s, const cx_str_name* src);
-linkage void type_name(name_substr)(const cx_str_name* s, size_t start, size_t len, cx_str_name* dst);
-linkage void type_name(name_replace)(cx_str_name* s, const char* old, const char* new, size_t count);
-linkage bool type_name(name_validu8)(const cx_str_name* s);
-linkage void type_name(name_upper)(cx_str_name* s);
-linkage void type_name(name_lower)(cx_str_name* s);
-linkage char* type_name(name_ncp)(cx_str_name* s, char* iter, int32_t* cp);
-linkage void type_name(name_ltrim)(cx_str_name* s, const char* cset);
-linkage void type_name(name_rtrim)(cx_str_name* s, const char* cset);
+cx_str_api_ void type_name(name_set)(cx_str_name* s, const char* src);
+cx_str_api_ void type_name(name_free)(cx_str_name* s);
+cx_str_api_ void type_name(name_clear)(cx_str_name* s);
+cx_str_api_ void type_name(name_reserve)(cx_str_name* s, size_t n);
+cx_str_api_ size_t type_name(name_cap)(const cx_str_name* s);
+cx_str_api_ size_t type_name(name_len)(const cx_str_name* s);
+cx_str_api_ size_t type_name(name_lencp)(const cx_str_name* s);
+cx_str_api_ const char* type_name(name_data)(const cx_str_name* s);
+cx_str_api_ bool type_name(name_empty)(const cx_str_name* s);
+cx_str_api_ void type_name(name_setcap)(cx_str_name* s, size_t cap);
+cx_str_api_ void type_name(name_ncpy)(cx_str_name* s, const char* src, size_t n);
+cx_str_api_ void type_name(name_cpy)(cx_str_name* s, const char* src);
+cx_str_api_ void type_name(name_cpys)(cx_str_name* s, const cx_str_name* src);
+cx_str_api_ void type_name(name_ncat)(cx_str_name* s, const char* src, size_t n);
+cx_str_api_ void type_name(name_cat)(cx_str_name* s, const char* src);
+cx_str_api_ void type_name(name_cats)(cx_str_name* s, const cx_str_name* src);
+cx_str_api_ void type_name(name_catcp)(cx_str_name* s, int32_t cp);
+cx_str_api_ void type_name(name_nins)(cx_str_name* s, const char* src, size_t n, size_t idx);
+cx_str_api_ void type_name(name_ins)(cx_str_name* s, const char* src, size_t idx);
+cx_str_api_ void type_name(name_inss)(cx_str_name* s, const cx_str_name* src, size_t idx);
+cx_str_api_ void type_name(name_ndel)(cx_str_name* s, size_t idx, size_t deln);
+cx_str_api_ void type_name(name_del)(cx_str_name* s, size_t idx);
+cx_str_api_ int  type_name(name_ncmp)(cx_str_name* s, const char* src, size_t n);
+cx_str_api_ int  type_name(name_cmp)(cx_str_name* s, const char* src);
+cx_str_api_ int  type_name(name_cmps)(cx_str_name* s, const cx_str_name* src);
+cx_str_api_ int  type_name(name_icmp)(cx_str_name* s, const char* src);
+cx_str_api_ int  type_name(name_icmps)(cx_str_name* s, const cx_str_name* src);
+cx_str_api_ void type_name(name_vprintf)(cx_str_name* s, const char *fmt, va_list ap);
+cx_str_api_ void type_name(name_printf)(cx_str_name* s, const char *fmt, ...);
+cx_str_api_ ptrdiff_t type_name(name_nfind)(cx_str_name* s, size_t start, const char *src, size_t n);
+cx_str_api_ ptrdiff_t type_name(name_find)(cx_str_name* s, const char *src);
+cx_str_api_ ptrdiff_t type_name(name_finds)(cx_str_name* s, const cx_str_name* src);
+cx_str_api_ ptrdiff_t type_name(name_findcp)(cx_str_name* s, int32_t cp);
+cx_str_api_ ptrdiff_t type_name(name_ifind)(cx_str_name* s, const char *src);
+cx_str_api_ ptrdiff_t type_name(name_ifinds)(cx_str_name* s, const cx_str_name* src);
+cx_str_api_ void type_name(name_substr)(const cx_str_name* s, size_t start, size_t len, cx_str_name* dst);
+cx_str_api_ void type_name(name_replace)(cx_str_name* s, const char* old, const char* new, size_t count);
+cx_str_api_ bool type_name(name_validu8)(const cx_str_name* s);
+cx_str_api_ void type_name(name_upper)(cx_str_name* s);
+cx_str_api_ void type_name(name_lower)(cx_str_name* s);
+cx_str_api_ char* type_name(name_ncp)(cx_str_name* s, char* iter, int32_t* cp);
+cx_str_api_ void type_name(name_ltrim)(cx_str_name* s, const char* cset);
+cx_str_api_ void type_name(name_rtrim)(cx_str_name* s, const char* cset);
 
 
 //
@@ -303,26 +307,26 @@ static void type_name(_grow_)(cx_str_name* s, size_t addLen, size_t minCap) {
 
 #ifdef cx_str_allocator
 
-    linkage cx_str_name type_name(name_init)(const CxAllocator* a) {
+    cx_str_api_ cx_str_name type_name(name_init)(const CxAllocator* a) {
 
         return (cx_str_name) {.alloc = a};
     }
 
-    linkage cx_str_name type_name(name_initn)(const CxAllocator* a, const char* src, size_t n) {
+    cx_str_api_ cx_str_name type_name(name_initn)(const CxAllocator* a, const char* src, size_t n) {
 
         cx_str_name s = {.alloc = a};
         type_name(_ncpy)(&s, src, n);
         return s;
     }
 
-    linkage cx_str_name type_name(name_initc)(const CxAllocator* a, const char* src) {
+    cx_str_api_ cx_str_name type_name(name_initc)(const CxAllocator* a, const char* src) {
 
         cx_str_name s = {.alloc = a};
         type_name(_cpy)(&s, src);
         return s;
     }
 
-    linkage cx_str_name type_name(name_inits)(const CxAllocator* a, cx_str_name* src) {
+    cx_str_api_ cx_str_name type_name(name_inits)(const CxAllocator* a, cx_str_name* src) {
 
         cx_str_name s = {.alloc = a};
         type_name(_cpys)(&s, src);
@@ -331,28 +335,28 @@ static void type_name(_grow_)(cx_str_name* s, size_t addLen, size_t minCap) {
 
 #else
 
-    linkage cx_str_name type_name(name_init)(void) {
+    cx_str_api_ cx_str_name type_name(name_init)(void) {
         if (type_name(_allocator) == NULL) {
             type_name(_allocator) = cxDefaultAllocator();
         }
         return (cx_str_name) {0};
     }
 
-    linkage cx_str_name type_name(name_initn)(const char* src, size_t n) {
+    cx_str_api_ cx_str_name type_name(name_initn)(const char* src, size_t n) {
 
         cx_str_name s = type_name(name_init)();
         type_name(_ncpy)(&s, src, n);
         return s;
     }
 
-    linkage cx_str_name type_name(name_initc)(const char* src) {
+    cx_str_api_ cx_str_name type_name(name_initc)(const char* src) {
 
         cx_str_name s = type_name(name_init)();
         type_name(_cpy)(&s, src);
         return s;
     }
 
-    linkage cx_str_name type_name(name_inits)(const cx_str_name* src) {
+    cx_str_api_ cx_str_name type_name(name_inits)(const cx_str_name* src) {
 
         cx_str_name s = type_name(name_init)();
         type_name(_cpys)(&s, src);
@@ -361,7 +365,7 @@ static void type_name(_grow_)(cx_str_name* s, size_t addLen, size_t minCap) {
 #endif
 
 
-linkage void type_name(name_free)(cx_str_name* s) {
+cx_str_api_ void type_name(name_free)(cx_str_name* s) {
 
     cx_str_free_(s, s->data, s->cap_);
     s->cap_ = 0;
@@ -369,49 +373,49 @@ linkage void type_name(name_free)(cx_str_name* s) {
     s->data = NULL;
 }
 
-linkage void type_name(name_clear)(cx_str_name* s) {
+cx_str_api_ void type_name(name_clear)(cx_str_name* s) {
 
     s->len_ = 0;
 }
 
-linkage void type_name(name_reserve)(cx_str_name* s, size_t n) {
+cx_str_api_ void type_name(name_reserve)(cx_str_name* s, size_t n) {
 
     if (s->len_ + n < s->cap_) {
         type_name(_grow_)(s, 0, s->len_ + n);
     }
 }
 
-linkage size_t type_name(name_cap)(const cx_str_name* s) {
+cx_str_api_ size_t type_name(name_cap)(const cx_str_name* s) {
 
     return s->cap_;
 }
 
-linkage size_t type_name(name_len)(const cx_str_name* s) {
+cx_str_api_ size_t type_name(name_len)(const cx_str_name* s) {
 
     return s->len_;
 }
 
-linkage size_t type_name(name_lencp)(const cx_str_name* s) {
+cx_str_api_ size_t type_name(name_lencp)(const cx_str_name* s) {
 
     return utf8len(s->data);
 }
 
-linkage const char* type_name(name_data)(const cx_str_name* s) {
+cx_str_api_ const char* type_name(name_data)(const cx_str_name* s) {
 
     return s->data;
 }
 
-linkage bool type_name(name_empty)(const cx_str_name* s) {
+cx_str_api_ bool type_name(name_empty)(const cx_str_name* s) {
 
     return s->len_ == 0;
 }
 
-linkage void type_name(name_setcap)(cx_str_name* s, size_t cap) {
+cx_str_api_ void type_name(name_setcap)(cx_str_name* s, size_t cap) {
 
     type_name(_grow_)(s, 0, cap);
 }
 
-linkage void type_name(name_ncpy)(cx_str_name* s, const char* src, size_t n) {
+cx_str_api_ void type_name(name_ncpy)(cx_str_name* s, const char* src, size_t n) {
 
     if (src == NULL) {
         return;
@@ -426,7 +430,7 @@ linkage void type_name(name_ncpy)(cx_str_name* s, const char* src, size_t n) {
     }
 }
 
-linkage void type_name(name_cpy)(cx_str_name* s, const char* src) {
+cx_str_api_ void type_name(name_cpy)(cx_str_name* s, const char* src) {
 
     if (src == NULL) {
         return;
@@ -434,12 +438,12 @@ linkage void type_name(name_cpy)(cx_str_name* s, const char* src) {
     type_name(name_ncpy)(s, src, strlen(src));
 }
 
-linkage void type_name(name_cpys)(cx_str_name* s, const cx_str_name* src) {
+cx_str_api_ void type_name(name_cpys)(cx_str_name* s, const cx_str_name* src) {
 
     type_name(name_ncpy)(s, src->data, src->len_);
 }
 
-linkage void type_name(name_ncat)(cx_str_name* s, const char* src, size_t n) {
+cx_str_api_ void type_name(name_ncat)(cx_str_name* s, const char* src, size_t n) {
 
     if (s->len_ + n > s->cap_) {
         type_name(_grow_)(s, s->len_ + n, 0);
@@ -451,17 +455,17 @@ linkage void type_name(name_ncat)(cx_str_name* s, const char* src, size_t n) {
     }
 }
 
-linkage void type_name(name_cat)(cx_str_name* s, const char* src) {
+cx_str_api_ void type_name(name_cat)(cx_str_name* s, const char* src) {
 
     type_name(name_ncat)(s, src, strlen(src));
 }
 
-linkage void type_name(name_cats)(cx_str_name* s, const cx_str_name* src) {
+cx_str_api_ void type_name(name_cats)(cx_str_name* s, const cx_str_name* src) {
 
     type_name(name_ncat)(s, src->data, src->len_);
 }
 
-linkage void type_name(name_catcp)(cx_str_name* s, int32_t cp) {
+cx_str_api_ void type_name(name_catcp)(cx_str_name* s, int32_t cp) {
 
     const size_t size = utf8codepointsize(cp);
     if (s->len_ + size > s->cap_) {
@@ -472,7 +476,7 @@ linkage void type_name(name_catcp)(cx_str_name* s, int32_t cp) {
     s->data[s->len_] = 0;
 }
 
-linkage void type_name(name_nins)(cx_str_name* s, const char* src, size_t n, size_t idx) {
+cx_str_api_ void type_name(name_nins)(cx_str_name* s, const char* src, size_t n, size_t idx) {
 
     if (idx > s->len_) {
         cx_str_error_handler("invalid index");
@@ -487,17 +491,17 @@ linkage void type_name(name_nins)(cx_str_name* s, const char* src, size_t n, siz
     s->data[s->len_] = 0;
 }
 
-linkage void type_name(name_ins)(cx_str_name* s, const char* src, size_t idx) {
+cx_str_api_ void type_name(name_ins)(cx_str_name* s, const char* src, size_t idx) {
 
     type_name(name_nins)(s, src, strlen(src), idx);
 }
 
-linkage void type_name(name_inss)(cx_str_name* s, const cx_str_name* src, size_t idx) {
+cx_str_api_ void type_name(name_inss)(cx_str_name* s, const cx_str_name* src, size_t idx) {
 
     type_name(name_nins)(s, src->data, src->len_, idx);
 }
 
-linkage void type_name(name_ndel)(cx_str_name* s, size_t idx, size_t deln) {
+cx_str_api_ void type_name(name_ndel)(cx_str_name* s, size_t idx, size_t deln) {
 
     if (idx >= s->len_) {
         cx_str_error_handler("invalid index");
@@ -512,12 +516,12 @@ linkage void type_name(name_ndel)(cx_str_name* s, size_t idx, size_t deln) {
     }
 }
 
-linkage void type_name(name_del)(cx_str_name* s, size_t idx) {
+cx_str_api_ void type_name(name_del)(cx_str_name* s, size_t idx) {
 
     type_name(name_ndel)(s, idx, 1);
 }
 
-linkage int  type_name(name_ncmp)(cx_str_name* s, const char* src, size_t n) {
+cx_str_api_ int  type_name(name_ncmp)(cx_str_name* s, const char* src, size_t n) {
 
     if (s->len_ > n) {
         return 1;
@@ -528,22 +532,22 @@ linkage int  type_name(name_ncmp)(cx_str_name* s, const char* src, size_t n) {
     return memcmp(s->data, src, n);
 }
 
-linkage int type_name(name_cmp)(cx_str_name* s, const char* src) {
+cx_str_api_ int type_name(name_cmp)(cx_str_name* s, const char* src) {
 
     return type_name(name_ncmp)(s, src, strlen(src));
 }
 
-linkage int type_name(name_cmps)(cx_str_name* s, const cx_str_name* src) {
+cx_str_api_ int type_name(name_cmps)(cx_str_name* s, const cx_str_name* src) {
 
     return type_name(name_ncmp)(s, src->data, src->len_);
 }
 
-linkage int type_name(name_icmp)(cx_str_name* s, const char* src) {
+cx_str_api_ int type_name(name_icmp)(cx_str_name* s, const char* src) {
 
     return utf8casecmp(s->data, src);
 }
 
-linkage int type_name(name_icmps)(cx_str_name* s, const cx_str_name* src) {
+cx_str_api_ int type_name(name_icmps)(cx_str_name* s, const cx_str_name* src) {
 
     if (s->len_ > src->len_) {
         return 1;
@@ -555,7 +559,7 @@ linkage int type_name(name_icmps)(cx_str_name* s, const cx_str_name* src) {
 }
 
 // Based on https://github.com/antirez/sds/blob/master/sds.c
-linkage void type_name(name_vprintf)(cx_str_name* s, const char *fmt, va_list ap) {
+cx_str_api_ void type_name(name_vprintf)(cx_str_name* s, const char *fmt, va_list ap) {
     va_list cpy;
     char  staticbuf[1024];
     char* buf = staticbuf;
@@ -607,7 +611,7 @@ linkage void type_name(name_vprintf)(cx_str_name* s, const char *fmt, va_list ap
 }
 
 // Based on https://github.com/antirez/sds/blob/master/sds.c
-linkage void type_name(name_printf)(cx_str_name* s, const char *fmt, ...) {
+cx_str_api_ void type_name(name_printf)(cx_str_name* s, const char *fmt, ...) {
 
     va_list ap;
     va_start(ap, fmt);
@@ -615,7 +619,7 @@ linkage void type_name(name_printf)(cx_str_name* s, const char *fmt, ...) {
     va_end(ap);
 }
 
-linkage ptrdiff_t type_name(name_nfind)(cx_str_name* s, size_t start, const char *src, size_t n) {
+cx_str_api_ ptrdiff_t type_name(name_nfind)(cx_str_name* s, size_t start, const char *src, size_t n) {
 
     if (start >= s->len_) {
         return -1;
@@ -632,17 +636,17 @@ linkage ptrdiff_t type_name(name_nfind)(cx_str_name* s, size_t start, const char
     return -1;
 }
 
-linkage ptrdiff_t type_name(name_find)(cx_str_name* s, const char *src) {
+cx_str_api_ ptrdiff_t type_name(name_find)(cx_str_name* s, const char *src) {
 
     return type_name(name_nfind)(s, 0, src, strlen(src));
 }
 
-linkage ptrdiff_t type_name(name_finds)(cx_str_name* s, const cx_str_name* src) {
+cx_str_api_ ptrdiff_t type_name(name_finds)(cx_str_name* s, const cx_str_name* src) {
 
     return type_name(name_nfind)(s, 0, src->data, src->len_);
 }
 
-linkage ptrdiff_t type_name(name_findcp)(cx_str_name* s, int32_t cp) {
+cx_str_api_ ptrdiff_t type_name(name_findcp)(cx_str_name* s, int32_t cp) {
 
     char* n = utf8chr(s->data, cp);
     if (n == NULL) {
@@ -651,7 +655,7 @@ linkage ptrdiff_t type_name(name_findcp)(cx_str_name* s, int32_t cp) {
     return n - s->data;
 }
 
-linkage ptrdiff_t type_name(name_ifind)(cx_str_name* s, const char *src) {
+cx_str_api_ ptrdiff_t type_name(name_ifind)(cx_str_name* s, const char *src) {
 
     char *n = utf8casestr(s->data, src);
     if (n == NULL) {
@@ -660,7 +664,7 @@ linkage ptrdiff_t type_name(name_ifind)(cx_str_name* s, const char *src) {
     return n - s->data;
 }
 
-linkage ptrdiff_t type_name(name_ifinds)(cx_str_name* s, const cx_str_name* src) {
+cx_str_api_ ptrdiff_t type_name(name_ifinds)(cx_str_name* s, const cx_str_name* src) {
 
     if (s->len_ < src->len_) {
         return -1;
@@ -668,7 +672,7 @@ linkage ptrdiff_t type_name(name_ifinds)(cx_str_name* s, const cx_str_name* src)
     return type_name(name_ifind)(s, src->data);
 }
 
-linkage void type_name(name_substr)(const cx_str_name* s, size_t start, size_t len, cx_str_name* dst) {
+cx_str_api_ void type_name(name_substr)(const cx_str_name* s, size_t start, size_t len, cx_str_name* dst) {
 
      if (start >= s->len_) {
          dst->len_ = 0;
@@ -679,7 +683,7 @@ linkage void type_name(name_substr)(const cx_str_name* s, size_t start, size_t l
     type_name(name_ncpy)(dst, s->data + start, len);
 }
 
-linkage void type_name(name_replace)(cx_str_name* s, const char* old, const char* new, size_t count) {
+cx_str_api_ void type_name(name_replace)(cx_str_name* s, const char* old, const char* new, size_t count) {
 
     const size_t olen = strlen(old);
     const size_t nlen = strlen(new);
@@ -712,22 +716,22 @@ linkage void type_name(name_replace)(cx_str_name* s, const char* old, const char
 }
 
 
-linkage bool type_name(name_validu8)(const cx_str_name* s) {
+cx_str_api_ bool type_name(name_validu8)(const cx_str_name* s) {
 
     return utf8valid(s->data) == 0;
 }
 
-linkage void type_name(name_upper)(cx_str_name* s) {
+cx_str_api_ void type_name(name_upper)(cx_str_name* s) {
 
     utf8upr(s->data);
 }
 
-linkage void type_name(name_lower)(cx_str_name* s) {
+cx_str_api_ void type_name(name_lower)(cx_str_name* s) {
 
     utf8lwr(s->data);
 }
 
-linkage char* type_name(name_ncp)(cx_str_name* s, char* iter, int32_t* cp) {
+cx_str_api_ char* type_name(name_ncp)(cx_str_name* s, char* iter, int32_t* cp) {
 
     if (iter < s->data || iter >= (s->data + s->len_)) {
         return NULL;
@@ -735,7 +739,7 @@ linkage char* type_name(name_ncp)(cx_str_name* s, char* iter, int32_t* cp) {
     return utf8codepoint(iter, cp);
 }
 
-linkage void type_name(name_ltrim)(cx_str_name* s, const char* cset)  {
+cx_str_api_ void type_name(name_ltrim)(cx_str_name* s, const char* cset)  {
 
     if (s->len_ == 0) {
         return;
@@ -759,7 +763,7 @@ linkage void type_name(name_ltrim)(cx_str_name* s, const char* cset)  {
     type_name(name_ndel)(s, 0, deln);
 }
 
-linkage void type_name(name_rtrim)(cx_str_name* s, const char* cset) {
+cx_str_api_ void type_name(name_rtrim)(cx_str_name* s, const char* cset) {
 
     if (s->len_ == 0) {
         return;
@@ -793,7 +797,8 @@ linkage void type_name(name_rtrim)(cx_str_name* s, const char* cset) {
 // Undefine config  macros
 //
 #undef cx_str_name
-#undef cx_str_camel_case
+#undef cx_str_static
+#undef cx_str_inline
 #undef cx_str_cap
 #undef cx_str_allocator
 #undef cx_str_error_handler
@@ -810,4 +815,6 @@ linkage void type_name(name_rtrim)(cx_str_name* s, const char* cset) {
 #undef cx_str_alloc_global_
 #undef cx_str_alloc_
 #undef cx_str_free_
+#undef cx_str_api_
+
 
