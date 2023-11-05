@@ -83,6 +83,72 @@ Free string allocated memory
 Clear the strings setting is length to zero without deallocating its memory
     void cxstr_clear(cxstr* s);
 
+Reserve string capacity for at least 'n' bytes
+    void cxstr_reserve(cxtr* s, size_t n);
+
+Returns current string capacity in number of bytes
+    size_t cxstr_cap(const cxstr* s);
+
+Returns current string length in number of bytes
+    size_t cxstr_len(const cx_str_name* s);
+
+Returns current number of UTF8 codepoints in the string
+    size_t cxstr_lencp(const cx_str_name* s);
+
+Returns const pointer to string data
+    const char* cxstr_data(const cx_str_name* s);
+
+Returns if the string is empty
+    bool cxstr_empty(const cx_str_name* s);
+
+Sets string capacity to at least 'cap'
+    void cxstr_setcap(cxstr* s, size_t cap);
+
+Copy 'n' bytes from 'src' to 's', replacing current text
+    void cxstr_cpyn(cxstr* s, const char* src, size_t n);
+
+Copy bytes from nul terminated 'src' string to 's', replacing current text
+    void cxstr_cpy(cx_str_name* s, const char* src);
+
+Copy cxstr 'src' to 's', replacing current text
+    void cxstr_cpys(cx_str_name* s, const cx_str_name* src);
+
+Appends 'n' bytes from 'src' to 's'
+    void cxstr_catn(cxstr* s, const char* src, size_t n);
+
+Appends nul terminated string 'src' to 's'
+    void cxstr_cat(cx_str_name* s, const char* src);
+
+Appends cxstr 'src' to 's'
+    void cxstr_cats(cx_str_name* s, const cx_str_name* src);
+
+Appends UTF8 bytes encoded from codepoint 'cp' to 's'
+    void cxstr_catcp(cx_str_name* s, int32_t cp);
+
+Inserts 'n' bytes from 'src' into 's' at index 'idx'
+    void cxstr_insn)(cxstr* s, const char* src, size_t n, size_t idx);
+
+Inserts nul terminated string 'src' to 's' at index 'idx'
+    void cxstr_ins(cx_str_name* s, const char* src, size_t idx);
+
+Inserts cxstr 'src' to 's' at index idx
+    void cxstr_inss(cxstr* s, const cx_str_name* src, size_t idx);
+
+Deletes 'n' bytes from 's' starting at 'idx'
+    void void cxstr_deln(cxstr* s, size_t idx, size_t n);
+
+Compares 'n' bytes from 'src' with bytes from 's'.
+Return 0 if equal, -1 or 1 (as memcmp())
+    int cxstr_cmpn(cxstr* s, const char* src, size_t n);
+
+Compares bytes from nul terminated string 'src' with bytes from 's'.
+Return 0 if equal, -1 or 1 (as memcmp())
+    int cxstr_cmp(cxstr* s, const char* src);
+
+Compares bytes from cxstr 'src' with bytes from 's'.
+Return 0 if equal, -1 or 1 (as memcmp())
+    int cxstr_cmps(cxstr* s, const cx_str_name* src);
+
 */
 #include <stdint.h>
 #include <stdbool.h>
@@ -102,7 +168,7 @@ Clear the strings setting is length to zero without deallocating its memory
 #define cx_str_concat1_(a, b) cx_str_concat2_(a, b)
 #define cx_str_name_(name) cx_str_concat1_(cx_str_name, name)
 
-// String capacity in number of bits
+// String maximum capacity in number of bits
 #define cx_str_cap8_     8
 #define cx_str_cap16_    16
 #define cx_str_cap32_    32
@@ -162,56 +228,6 @@ Clear the strings setting is length to zero without deallocating its memory
 #endif
 
 //
-// Function names
-//
-#define name_init           _init
-#define name_initn          _initn
-#define name_initc          _initc
-#define name_inits          _inits
-#define name_free           _free
-#define name_clear          _clear
-#define name_reserve        _reserve
-#define name_cap            _cap
-#define name_len            _len
-#define name_lencp           _lencp
-#define name_data           _data
-#define name_empty          _empty
-#define name_setcap         _setcap
-#define name_cpyn           _cpyn
-#define name_cpy            _cpy
-#define name_cpys           _cpys
-#define name_ncat           _ncat
-#define name_cat            _cat
-#define name_cats           _cats
-#define name_catcp          _catcp
-#define name_insn           _insn
-#define name_ins            _ins
-#define name_inss           _inss
-#define name_deln           _deln
-#define name_del            _del
-#define name_cmpn           _cmpn
-#define name_cmp            _cmp
-#define name_cmps           _cmps
-#define name_icmp           _icmp
-#define name_icmps          _icmps
-#define name_vprintf        _vprintf
-#define name_printf         _printf
-#define name_findn          _findn
-#define name_find           _find
-#define name_finds          _finds
-#define name_findcp         _findcp
-#define name_ifind          _ifind
-#define name_ifinds         _ifinds
-#define name_substr         _substr
-#define name_replace        _replace
-#define name_validu8        _validu8
-#define name_upper          _upper
-#define name_lower          _lower
-#define name_ncp            _ncp
-#define name_ltrim          _ltrim
-#define name_rtrim          _rtrim
-
-//
 // Declarations
 //
 typedef struct cx_str_name {
@@ -222,58 +238,57 @@ typedef struct cx_str_name {
 } cx_str_name;
 
 #ifdef cx_str_allocator
-    cx_str_api_ cx_str_name cx_str_name_(name_init)(const CxAllocator* a);
-    cx_str_api_ cx_str_name cx_str_name_(name_initn)(const CxAllocator* a, const char* src, size_t n);
-    cx_str_api_ cx_str_name cx_str_name_(name_initc)(const CxAllocator* a, const char* src);
-    cx_str_api_ cx_str_name cx_str_name_(name_inits)(const CxAllocator* a, const cx_str_name* src);
+    cx_str_api_ cx_str_name cx_str_name_(_init)(const CxAllocator* a);
+    cx_str_api_ cx_str_name cx_str_name_(_initn)(const CxAllocator* a, const char* src, size_t n);
+    cx_str_api_ cx_str_name cx_str_name_(_initc)(const CxAllocator* a, const char* src);
+    cx_str_api_ cx_str_name cx_str_name_(_inits)(const CxAllocator* a, const cx_str_name* src);
 #else
-    cx_str_api_ cx_str_name cx_str_name_(name_init)(void);
-    cx_str_api_ cx_str_name cx_str_name_(name_initn)(const char* src, size_t n);
-    cx_str_api_ cx_str_name cx_str_name_(name_initc)(const char* src);
-    cx_str_api_ cx_str_name cx_str_name_(name_inits)(const cx_str_name* src);
+    cx_str_api_ cx_str_name cx_str_name_(_init)(void);
+    cx_str_api_ cx_str_name cx_str_name_(_initn)(const char* src, size_t n);
+    cx_str_api_ cx_str_name cx_str_name_(_initc)(const char* src);
+    cx_str_api_ cx_str_name cx_str_name_(_inits)(const cx_str_name* src);
 #endif
-cx_str_api_ void cx_str_name_(name_free)(cx_str_name* s);
-cx_str_api_ void cx_str_name_(name_clear)(cx_str_name* s);
-cx_str_api_ void cx_str_name_(name_reserve)(cx_str_name* s, size_t n);
-cx_str_api_ size_t cx_str_name_(name_cap)(const cx_str_name* s);
-cx_str_api_ size_t cx_str_name_(name_len)(const cx_str_name* s);
-cx_str_api_ size_t cx_str_name_(name_lencp)(const cx_str_name* s);
-cx_str_api_ const char* cx_str_name_(name_data)(const cx_str_name* s);
-cx_str_api_ bool cx_str_name_(name_empty)(const cx_str_name* s);
-cx_str_api_ void cx_str_name_(name_setcap)(cx_str_name* s, size_t cap);
-cx_str_api_ void cx_str_name_(name_cpyn)(cx_str_name* s, const char* src, size_t n);
-cx_str_api_ void cx_str_name_(name_cpy)(cx_str_name* s, const char* src);
-cx_str_api_ void cx_str_name_(name_cpys)(cx_str_name* s, const cx_str_name* src);
-cx_str_api_ void cx_str_name_(name_ncat)(cx_str_name* s, const char* src, size_t n);
-cx_str_api_ void cx_str_name_(name_cat)(cx_str_name* s, const char* src);
-cx_str_api_ void cx_str_name_(name_cats)(cx_str_name* s, const cx_str_name* src);
-cx_str_api_ void cx_str_name_(name_catcp)(cx_str_name* s, int32_t cp);
-cx_str_api_ void cx_str_name_(name_insn)(cx_str_name* s, const char* src, size_t n, size_t idx);
-cx_str_api_ void cx_str_name_(name_ins)(cx_str_name* s, const char* src, size_t idx);
-cx_str_api_ void cx_str_name_(name_inss)(cx_str_name* s, const cx_str_name* src, size_t idx);
-cx_str_api_ void cx_str_name_(name_deln)(cx_str_name* s, size_t idx, size_t deln);
-cx_str_api_ void cx_str_name_(name_del)(cx_str_name* s, size_t idx);
-cx_str_api_ int  cx_str_name_(name_cmpn)(cx_str_name* s, const char* src, size_t n);
-cx_str_api_ int  cx_str_name_(name_cmp)(cx_str_name* s, const char* src);
-cx_str_api_ int  cx_str_name_(name_cmps)(cx_str_name* s, const cx_str_name* src);
-cx_str_api_ int  cx_str_name_(name_icmp)(cx_str_name* s, const char* src);
-cx_str_api_ int  cx_str_name_(name_icmps)(cx_str_name* s, const cx_str_name* src);
-cx_str_api_ void cx_str_name_(name_vprintf)(cx_str_name* s, const char *fmt, va_list ap);
-cx_str_api_ void cx_str_name_(name_printf)(cx_str_name* s, const char *fmt, ...);
-cx_str_api_ ptrdiff_t cx_str_name_(name_findn)(cx_str_name* s, size_t start, const char *src, size_t n);
-cx_str_api_ ptrdiff_t cx_str_name_(name_find)(cx_str_name* s, const char *src);
-cx_str_api_ ptrdiff_t cx_str_name_(name_finds)(cx_str_name* s, const cx_str_name* src);
-cx_str_api_ ptrdiff_t cx_str_name_(name_findcp)(cx_str_name* s, int32_t cp);
-cx_str_api_ ptrdiff_t cx_str_name_(name_ifind)(cx_str_name* s, const char *src);
-cx_str_api_ ptrdiff_t cx_str_name_(name_ifinds)(cx_str_name* s, const cx_str_name* src);
-cx_str_api_ void cx_str_name_(name_substr)(const cx_str_name* s, size_t start, size_t len, cx_str_name* dst);
-cx_str_api_ void cx_str_name_(name_replace)(cx_str_name* s, const char* old, const char* new, size_t count);
-cx_str_api_ bool cx_str_name_(name_validu8)(const cx_str_name* s);
-cx_str_api_ void cx_str_name_(name_upper)(cx_str_name* s);
-cx_str_api_ void cx_str_name_(name_lower)(cx_str_name* s);
-cx_str_api_ char* cx_str_name_(name_ncp)(cx_str_name* s, char* iter, int32_t* cp);
-cx_str_api_ void cx_str_name_(name_ltrim)(cx_str_name* s, const char* cset);
-cx_str_api_ void cx_str_name_(name_rtrim)(cx_str_name* s, const char* cset);
+cx_str_api_ void cx_str_name_(_free)(cx_str_name* s);
+cx_str_api_ void cx_str_name_(_clear)(cx_str_name* s);
+cx_str_api_ void cx_str_name_(_reserve)(cx_str_name* s, size_t n);
+cx_str_api_ size_t cx_str_name_(_cap)(const cx_str_name* s);
+cx_str_api_ size_t cx_str_name_(_len)(const cx_str_name* s);
+cx_str_api_ size_t cx_str_name_(_lencp)(const cx_str_name* s);
+cx_str_api_ const char* cx_str_name_(_data)(const cx_str_name* s);
+cx_str_api_ bool cx_str_name_(_empty)(const cx_str_name* s);
+cx_str_api_ void cx_str_name_(_setcap)(cx_str_name* s, size_t cap);
+cx_str_api_ void cx_str_name_(_cpyn)(cx_str_name* s, const char* src, size_t n);
+cx_str_api_ void cx_str_name_(_cpy)(cx_str_name* s, const char* src);
+cx_str_api_ void cx_str_name_(_cpys)(cx_str_name* s, const cx_str_name* src);
+cx_str_api_ void cx_str_name_(_catn)(cx_str_name* s, const char* src, size_t n);
+cx_str_api_ void cx_str_name_(_cat)(cx_str_name* s, const char* src);
+cx_str_api_ void cx_str_name_(_cats)(cx_str_name* s, const cx_str_name* src);
+cx_str_api_ void cx_str_name_(_catcp)(cx_str_name* s, int32_t cp);
+cx_str_api_ void cx_str_name_(_insn)(cx_str_name* s, const char* src, size_t n, size_t idx);
+cx_str_api_ void cx_str_name_(_ins)(cx_str_name* s, const char* src, size_t idx);
+cx_str_api_ void cx_str_name_(_inss)(cx_str_name* s, const cx_str_name* src, size_t idx);
+cx_str_api_ void cx_str_name_(_deln)(cx_str_name* s, size_t idx, size_t n);
+cx_str_api_ int  cx_str_name_(_cmpn)(cx_str_name* s, const char* src, size_t n);
+cx_str_api_ int  cx_str_name_(_cmp)(cx_str_name* s, const char* src);
+cx_str_api_ int  cx_str_name_(_cmps)(cx_str_name* s, const cx_str_name* src);
+cx_str_api_ int  cx_str_name_(_icmp)(cx_str_name* s, const char* src);
+cx_str_api_ int  cx_str_name_(_icmps)(cx_str_name* s, const cx_str_name* src);
+cx_str_api_ void cx_str_name_(_vprintf)(cx_str_name* s, const char *fmt, va_list ap);
+cx_str_api_ void cx_str_name_(_printf)(cx_str_name* s, const char *fmt, ...);
+cx_str_api_ ptrdiff_t cx_str_name_(_findn)(cx_str_name* s, size_t start, const char *src, size_t n);
+cx_str_api_ ptrdiff_t cx_str_name_(_find)(cx_str_name* s, const char *src);
+cx_str_api_ ptrdiff_t cx_str_name_(_finds)(cx_str_name* s, const cx_str_name* src);
+cx_str_api_ ptrdiff_t cx_str_name_(_findcp)(cx_str_name* s, int32_t cp);
+cx_str_api_ ptrdiff_t cx_str_name_(_ifind)(cx_str_name* s, const char *src);
+cx_str_api_ ptrdiff_t cx_str_name_(_ifinds)(cx_str_name* s, const cx_str_name* src);
+cx_str_api_ void cx_str_name_(_substr)(const cx_str_name* s, size_t start, size_t len, cx_str_name* dst);
+cx_str_api_ void cx_str_name_(_replace)(cx_str_name* s, const char* old, const char* new, size_t count);
+cx_str_api_ bool cx_str_name_(_validu8)(const cx_str_name* s);
+cx_str_api_ void cx_str_name_(_upper)(cx_str_name* s);
+cx_str_api_ void cx_str_name_(_lower)(cx_str_name* s);
+cx_str_api_ char* cx_str_name_(_ncp)(cx_str_name* s, char* iter, int32_t* cp);
+cx_str_api_ void cx_str_name_(_ltrim)(cx_str_name* s, const char* cset);
+cx_str_api_ void cx_str_name_(_rtrim)(cx_str_name* s, const char* cset);
 
 
 //
@@ -335,26 +350,26 @@ static void cx_str_name_(_grow_)(cx_str_name* s, size_t addLen, size_t minCap) {
 
 #ifdef cx_str_allocator
 
-    cx_str_api_ cx_str_name cx_str_name_(name_init)(const CxAllocator* a) {
+    cx_str_api_ cx_str_name cx_str_name_(_init)(const CxAllocator* a) {
 
         return (cx_str_name) {.alloc = a};
     }
 
-    cx_str_api_ cx_str_name cx_str_name_(name_initn)(const CxAllocator* a, const char* src, size_t n) {
+    cx_str_api_ cx_str_name cx_str_name_(_initn)(const CxAllocator* a, const char* src, size_t n) {
 
         cx_str_name s = {.alloc = a};
         cx_str_name_(_cpyn)(&s, src, n);
         return s;
     }
 
-    cx_str_api_ cx_str_name cx_str_name_(name_initc)(const CxAllocator* a, const char* src) {
+    cx_str_api_ cx_str_name cx_str_name_(_initc)(const CxAllocator* a, const char* src) {
 
         cx_str_name s = {.alloc = a};
         cx_str_name_(_cpy)(&s, src);
         return s;
     }
 
-    cx_str_api_ cx_str_name cx_str_name_(name_inits)(const CxAllocator* a, const cx_str_name* src) {
+    cx_str_api_ cx_str_name cx_str_name_(_inits)(const CxAllocator* a, const cx_str_name* src) {
 
         cx_str_name s = {.alloc = a};
         cx_str_name_(_cpys)(&s, src);
@@ -363,37 +378,37 @@ static void cx_str_name_(_grow_)(cx_str_name* s, size_t addLen, size_t minCap) {
 
 #else
 
-    cx_str_api_ cx_str_name cx_str_name_(name_init)(void) {
+    cx_str_api_ cx_str_name cx_str_name_(_init)(void) {
         if (cx_str_name_(_allocator) == NULL) {
             cx_str_name_(_allocator) = cxDefaultAllocator();
         }
         return (cx_str_name) {0};
     }
 
-    cx_str_api_ cx_str_name cx_str_name_(name_initn)(const char* src, size_t n) {
+    cx_str_api_ cx_str_name cx_str_name_(_initn)(const char* src, size_t n) {
 
-        cx_str_name s = cx_str_name_(name_init)();
+        cx_str_name s = cx_str_name_(_init)();
         cx_str_name_(_cpyn)(&s, src, n);
         return s;
     }
 
-    cx_str_api_ cx_str_name cx_str_name_(name_initc)(const char* src) {
+    cx_str_api_ cx_str_name cx_str_name_(_initc)(const char* src) {
 
-        cx_str_name s = cx_str_name_(name_init)();
+        cx_str_name s = cx_str_name_(_init)();
         cx_str_name_(_cpy)(&s, src);
         return s;
     }
 
-    cx_str_api_ cx_str_name cx_str_name_(name_inits)(const cx_str_name* src) {
+    cx_str_api_ cx_str_name cx_str_name_(_inits)(const cx_str_name* src) {
 
-        cx_str_name s = cx_str_name_(name_init)();
+        cx_str_name s = cx_str_name_(_init)();
         cx_str_name_(_cpys)(&s, src);
         return s;
     }
 #endif
 
 
-cx_str_api_ void cx_str_name_(name_free)(cx_str_name* s) {
+cx_str_api_ void cx_str_name_(_free)(cx_str_name* s) {
 
     cx_str_free_(s, s->data, s->cap_);
     s->cap_ = 0;
@@ -401,49 +416,49 @@ cx_str_api_ void cx_str_name_(name_free)(cx_str_name* s) {
     s->data = NULL;
 }
 
-cx_str_api_ void cx_str_name_(name_clear)(cx_str_name* s) {
+cx_str_api_ void cx_str_name_(_clear)(cx_str_name* s) {
 
     s->len_ = 0;
 }
 
-cx_str_api_ void cx_str_name_(name_reserve)(cx_str_name* s, size_t n) {
+cx_str_api_ void cx_str_name_(_reserve)(cx_str_name* s, size_t n) {
 
     if (s->len_ + n < s->cap_) {
         cx_str_name_(_grow_)(s, 0, s->len_ + n);
     }
 }
 
-cx_str_api_ size_t cx_str_name_(name_cap)(const cx_str_name* s) {
+cx_str_api_ size_t cx_str_name_(_cap)(const cx_str_name* s) {
 
     return s->cap_;
 }
 
-cx_str_api_ size_t cx_str_name_(name_len)(const cx_str_name* s) {
+cx_str_api_ size_t cx_str_name_(_len)(const cx_str_name* s) {
 
     return s->len_;
 }
 
-cx_str_api_ size_t cx_str_name_(name_lencp)(const cx_str_name* s) {
+cx_str_api_ size_t cx_str_name_(_lencp)(const cx_str_name* s) {
 
     return utf8len(s->data);
 }
 
-cx_str_api_ const char* cx_str_name_(name_data)(const cx_str_name* s) {
+cx_str_api_ const char* cx_str_name_(_data)(const cx_str_name* s) {
 
     return s->data;
 }
 
-cx_str_api_ bool cx_str_name_(name_empty)(const cx_str_name* s) {
+cx_str_api_ bool cx_str_name_(_empty)(const cx_str_name* s) {
 
     return s->len_ == 0;
 }
 
-cx_str_api_ void cx_str_name_(name_setcap)(cx_str_name* s, size_t cap) {
+cx_str_api_ void cx_str_name_(_setcap)(cx_str_name* s, size_t cap) {
 
     cx_str_name_(_grow_)(s, 0, cap);
 }
 
-cx_str_api_ void cx_str_name_(name_cpyn)(cx_str_name* s, const char* src, size_t n) {
+cx_str_api_ void cx_str_name_(_cpyn)(cx_str_name* s, const char* src, size_t n) {
 
     if (src == NULL) {
         return;
@@ -458,20 +473,20 @@ cx_str_api_ void cx_str_name_(name_cpyn)(cx_str_name* s, const char* src, size_t
     }
 }
 
-cx_str_api_ void cx_str_name_(name_cpy)(cx_str_name* s, const char* src) {
+cx_str_api_ void cx_str_name_(_cpy)(cx_str_name* s, const char* src) {
 
     if (src == NULL) {
         return;
     }
-    cx_str_name_(name_cpyn)(s, src, strlen(src));
+    cx_str_name_(_cpyn)(s, src, strlen(src));
 }
 
-cx_str_api_ void cx_str_name_(name_cpys)(cx_str_name* s, const cx_str_name* src) {
+cx_str_api_ void cx_str_name_(_cpys)(cx_str_name* s, const cx_str_name* src) {
 
-    cx_str_name_(name_cpyn)(s, src->data, src->len_);
+    cx_str_name_(_cpyn)(s, src->data, src->len_);
 }
 
-cx_str_api_ void cx_str_name_(name_ncat)(cx_str_name* s, const char* src, size_t n) {
+cx_str_api_ void cx_str_name_(_catn)(cx_str_name* s, const char* src, size_t n) {
 
     if (s->len_ + n > s->cap_) {
         cx_str_name_(_grow_)(s, s->len_ + n, 0);
@@ -483,17 +498,17 @@ cx_str_api_ void cx_str_name_(name_ncat)(cx_str_name* s, const char* src, size_t
     }
 }
 
-cx_str_api_ void cx_str_name_(name_cat)(cx_str_name* s, const char* src) {
+cx_str_api_ void cx_str_name_(_cat)(cx_str_name* s, const char* src) {
 
-    cx_str_name_(name_ncat)(s, src, strlen(src));
+    cx_str_name_(_catn)(s, src, strlen(src));
 }
 
-cx_str_api_ void cx_str_name_(name_cats)(cx_str_name* s, const cx_str_name* src) {
+cx_str_api_ void cx_str_name_(_cats)(cx_str_name* s, const cx_str_name* src) {
 
-    cx_str_name_(name_ncat)(s, src->data, src->len_);
+    cx_str_name_(_catn)(s, src->data, src->len_);
 }
 
-cx_str_api_ void cx_str_name_(name_catcp)(cx_str_name* s, int32_t cp) {
+cx_str_api_ void cx_str_name_(_catcp)(cx_str_name* s, int32_t cp) {
 
     const size_t size = utf8codepointsize(cp);
     if (s->len_ + size > s->cap_) {
@@ -504,7 +519,7 @@ cx_str_api_ void cx_str_name_(name_catcp)(cx_str_name* s, int32_t cp) {
     s->data[s->len_] = 0;
 }
 
-cx_str_api_ void cx_str_name_(name_insn)(cx_str_name* s, const char* src, size_t n, size_t idx) {
+cx_str_api_ void cx_str_name_(_insn)(cx_str_name* s, const char* src, size_t n, size_t idx) {
 
     if (idx > s->len_) {
         cx_str_error_handler("invalid index");
@@ -519,37 +534,32 @@ cx_str_api_ void cx_str_name_(name_insn)(cx_str_name* s, const char* src, size_t
     s->data[s->len_] = 0;
 }
 
-cx_str_api_ void cx_str_name_(name_ins)(cx_str_name* s, const char* src, size_t idx) {
+cx_str_api_ void cx_str_name_(_ins)(cx_str_name* s, const char* src, size_t idx) {
 
-    cx_str_name_(name_insn)(s, src, strlen(src), idx);
+    cx_str_name_(_insn)(s, src, strlen(src), idx);
 }
 
-cx_str_api_ void cx_str_name_(name_inss)(cx_str_name* s, const cx_str_name* src, size_t idx) {
+cx_str_api_ void cx_str_name_(_inss)(cx_str_name* s, const cx_str_name* src, size_t idx) {
 
-    cx_str_name_(name_insn)(s, src->data, src->len_, idx);
+    cx_str_name_(_insn)(s, src->data, src->len_, idx);
 }
 
-cx_str_api_ void cx_str_name_(name_deln)(cx_str_name* s, size_t idx, size_t deln) {
+cx_str_api_ void cx_str_name_(_deln)(cx_str_name* s, size_t idx, size_t n) {
 
     if (idx >= s->len_) {
         cx_str_error_handler("invalid index");
         return;
     }
     const size_t maxDel = s->len_ - idx;
-    deln = deln > maxDel ? maxDel : deln;
-    memmove(s->data + idx, s->data + idx + deln, s->len_ - idx - deln);
-    s->len_ -= deln;
+    n = n > maxDel ? maxDel : n;
+    memmove(s->data + idx, s->data + idx + n, s->len_ - idx - n);
+    s->len_ -= n;
     if (s->len_) {
         s->data[s->len_] = 0;
     }
 }
 
-cx_str_api_ void cx_str_name_(name_del)(cx_str_name* s, size_t idx) {
-
-    cx_str_name_(name_deln)(s, idx, 1);
-}
-
-cx_str_api_ int  cx_str_name_(name_cmpn)(cx_str_name* s, const char* src, size_t n) {
+cx_str_api_ int  cx_str_name_(_cmpn)(cx_str_name* s, const char* src, size_t n) {
 
     if (s->len_ > n) {
         return 1;
@@ -560,22 +570,22 @@ cx_str_api_ int  cx_str_name_(name_cmpn)(cx_str_name* s, const char* src, size_t
     return memcmp(s->data, src, n);
 }
 
-cx_str_api_ int cx_str_name_(name_cmp)(cx_str_name* s, const char* src) {
+cx_str_api_ int cx_str_name_(_cmp)(cx_str_name* s, const char* src) {
 
-    return cx_str_name_(name_cmpn)(s, src, strlen(src));
+    return cx_str_name_(_cmpn)(s, src, strlen(src));
 }
 
-cx_str_api_ int cx_str_name_(name_cmps)(cx_str_name* s, const cx_str_name* src) {
+cx_str_api_ int cx_str_name_(_cmps)(cx_str_name* s, const cx_str_name* src) {
 
-    return cx_str_name_(name_cmpn)(s, src->data, src->len_);
+    return cx_str_name_(_cmpn)(s, src->data, src->len_);
 }
 
-cx_str_api_ int cx_str_name_(name_icmp)(cx_str_name* s, const char* src) {
+cx_str_api_ int cx_str_name_(_icmp)(cx_str_name* s, const char* src) {
 
     return utf8casecmp(s->data, src);
 }
 
-cx_str_api_ int cx_str_name_(name_icmps)(cx_str_name* s, const cx_str_name* src) {
+cx_str_api_ int cx_str_name_(_icmps)(cx_str_name* s, const cx_str_name* src) {
 
     if (s->len_ > src->len_) {
         return 1;
@@ -587,7 +597,7 @@ cx_str_api_ int cx_str_name_(name_icmps)(cx_str_name* s, const cx_str_name* src)
 }
 
 // Based on https://github.com/antirez/sds/blob/master/sds.c
-cx_str_api_ void cx_str_name_(name_vprintf)(cx_str_name* s, const char *fmt, va_list ap) {
+cx_str_api_ void cx_str_name_(_vprintf)(cx_str_name* s, const char *fmt, va_list ap) {
     va_list cpy;
     char  staticbuf[1024];
     char* buf = staticbuf;
@@ -632,14 +642,14 @@ cx_str_api_ void cx_str_name_(name_vprintf)(cx_str_name* s, const char *fmt, va_
     }
 
     // Finally concat the obtained string to the SDS string and return it.
-    cx_str_name_(name_ncat)(s, buf, bufstrlen);
+    cx_str_name_(_catn)(s, buf, bufstrlen);
     if (buf != staticbuf) {
         cx_str_free_(s, buf, buflen);
     }
 }
 
 // Based on https://github.com/antirez/sds/blob/master/sds.c
-cx_str_api_ void cx_str_name_(name_printf)(cx_str_name* s, const char *fmt, ...) {
+cx_str_api_ void cx_str_name_(_printf)(cx_str_name* s, const char *fmt, ...) {
 
     va_list ap;
     va_start(ap, fmt);
@@ -647,7 +657,7 @@ cx_str_api_ void cx_str_name_(name_printf)(cx_str_name* s, const char *fmt, ...)
     va_end(ap);
 }
 
-cx_str_api_ ptrdiff_t cx_str_name_(name_findn)(cx_str_name* s, size_t start, const char *src, size_t n) {
+cx_str_api_ ptrdiff_t cx_str_name_(_findn)(cx_str_name* s, size_t start, const char *src, size_t n) {
 
     if (start >= s->len_) {
         return -1;
@@ -664,17 +674,17 @@ cx_str_api_ ptrdiff_t cx_str_name_(name_findn)(cx_str_name* s, size_t start, con
     return -1;
 }
 
-cx_str_api_ ptrdiff_t cx_str_name_(name_find)(cx_str_name* s, const char *src) {
+cx_str_api_ ptrdiff_t cx_str_name_(_find)(cx_str_name* s, const char *src) {
 
-    return cx_str_name_(name_findn)(s, 0, src, strlen(src));
+    return cx_str_name_(_findn)(s, 0, src, strlen(src));
 }
 
-cx_str_api_ ptrdiff_t cx_str_name_(name_finds)(cx_str_name* s, const cx_str_name* src) {
+cx_str_api_ ptrdiff_t cx_str_name_(_finds)(cx_str_name* s, const cx_str_name* src) {
 
-    return cx_str_name_(name_findn)(s, 0, src->data, src->len_);
+    return cx_str_name_(_findn)(s, 0, src->data, src->len_);
 }
 
-cx_str_api_ ptrdiff_t cx_str_name_(name_findcp)(cx_str_name* s, int32_t cp) {
+cx_str_api_ ptrdiff_t cx_str_name_(_findcp)(cx_str_name* s, int32_t cp) {
 
     char* n = utf8chr(s->data, cp);
     if (n == NULL) {
@@ -683,7 +693,7 @@ cx_str_api_ ptrdiff_t cx_str_name_(name_findcp)(cx_str_name* s, int32_t cp) {
     return n - s->data;
 }
 
-cx_str_api_ ptrdiff_t cx_str_name_(name_ifind)(cx_str_name* s, const char *src) {
+cx_str_api_ ptrdiff_t cx_str_name_(_ifind)(cx_str_name* s, const char *src) {
 
     char *n = utf8casestr(s->data, src);
     if (n == NULL) {
@@ -692,15 +702,15 @@ cx_str_api_ ptrdiff_t cx_str_name_(name_ifind)(cx_str_name* s, const char *src) 
     return n - s->data;
 }
 
-cx_str_api_ ptrdiff_t cx_str_name_(name_ifinds)(cx_str_name* s, const cx_str_name* src) {
+cx_str_api_ ptrdiff_t cx_str_name_(_ifinds)(cx_str_name* s, const cx_str_name* src) {
 
     if (s->len_ < src->len_) {
         return -1;
     }
-    return cx_str_name_(name_ifind)(s, src->data);
+    return cx_str_name_(_ifind)(s, src->data);
 }
 
-cx_str_api_ void cx_str_name_(name_substr)(const cx_str_name* s, size_t start, size_t len, cx_str_name* dst) {
+cx_str_api_ void cx_str_name_(_substr)(const cx_str_name* s, size_t start, size_t len, cx_str_name* dst) {
 
      if (start >= s->len_) {
          dst->len_ = 0;
@@ -708,21 +718,21 @@ cx_str_api_ void cx_str_name_(name_substr)(const cx_str_name* s, size_t start, s
      }
     const size_t maxSize = s->len_ - start;
     len = len > maxSize ? maxSize : len;
-    cx_str_name_(name_cpyn)(dst, s->data + start, len);
+    cx_str_name_(_cpyn)(dst, s->data + start, len);
 }
 
-cx_str_api_ void cx_str_name_(name_replace)(cx_str_name* s, const char* old, const char* new, size_t count) {
+cx_str_api_ void cx_str_name_(_replace)(cx_str_name* s, const char* old, const char* new, size_t count) {
 
     const size_t olen = strlen(old);
     const size_t nlen = strlen(new);
     size_t start = 0;
     while (1) {
-        ptrdiff_t pos = cx_str_name_(name_findn)((cx_str_name*)s, start, old, olen);
+        ptrdiff_t pos = cx_str_name_(_findn)((cx_str_name*)s, start, old, olen);
         if (pos < 0) {
             break;
         }
         if (olen > nlen) {
-            cx_str_name_(name_deln)(s, pos, olen - nlen);
+            cx_str_name_(_deln)(s, pos, olen - nlen);
         } else if (olen < nlen) {
             const size_t addLen = nlen - olen;
             if (s->len_ + addLen > s->cap_) {
@@ -744,22 +754,22 @@ cx_str_api_ void cx_str_name_(name_replace)(cx_str_name* s, const char* old, con
 }
 
 
-cx_str_api_ bool cx_str_name_(name_validu8)(const cx_str_name* s) {
+cx_str_api_ bool cx_str_name_(_validu8)(const cx_str_name* s) {
 
     return utf8valid(s->data) == 0;
 }
 
-cx_str_api_ void cx_str_name_(name_upper)(cx_str_name* s) {
+cx_str_api_ void cx_str_name_(_upper)(cx_str_name* s) {
 
     utf8upr(s->data);
 }
 
-cx_str_api_ void cx_str_name_(name_lower)(cx_str_name* s) {
+cx_str_api_ void cx_str_name_(_lower)(cx_str_name* s) {
 
     utf8lwr(s->data);
 }
 
-cx_str_api_ char* cx_str_name_(name_ncp)(cx_str_name* s, char* iter, int32_t* cp) {
+cx_str_api_ char* cx_str_name_(_ncp)(cx_str_name* s, char* iter, int32_t* cp) {
 
     if (iter < s->data || iter >= (s->data + s->len_)) {
         return NULL;
@@ -767,7 +777,7 @@ cx_str_api_ char* cx_str_name_(name_ncp)(cx_str_name* s, char* iter, int32_t* cp
     return utf8codepoint(iter, cp);
 }
 
-cx_str_api_ void cx_str_name_(name_ltrim)(cx_str_name* s, const char* cset)  {
+cx_str_api_ void cx_str_name_(_ltrim)(cx_str_name* s, const char* cset)  {
 
     if (s->len_ == 0) {
         return;
@@ -788,10 +798,10 @@ cx_str_api_ void cx_str_name_(name_ltrim)(cx_str_name* s, const char* cset)  {
     if (deln == 0) {
         return;
     }
-    cx_str_name_(name_deln)(s, 0, deln);
+    cx_str_name_(_deln)(s, 0, deln);
 }
 
-cx_str_api_ void cx_str_name_(name_rtrim)(cx_str_name* s, const char* cset) {
+cx_str_api_ void cx_str_name_(_rtrim)(cx_str_name* s, const char* cset) {
 
     if (s->len_ == 0) {
         return;
@@ -816,7 +826,7 @@ cx_str_api_ void cx_str_name_(name_rtrim)(cx_str_name* s, const char* cset) {
     if (deln == 0) {
         return;
     }
-    cx_str_name_(name_deln)(s, s->len_ - deln, deln);
+    cx_str_name_(_deln)(s, s->len_ - deln, deln);
 }
 
 #endif // cx_str_implement
