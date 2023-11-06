@@ -47,6 +47,38 @@ Define the type of the array elements (mandatory):
 #define cx_array_concat1_(a, b) cx_array_concat2_(a, b)
 #define cx_array_name_(name) cx_array_concat1_(cx_array_name, name)
 
+// Array maximum capacity in number of bits
+#define cx_array_cap8_     8
+#define cx_array_cap16_    16
+#define cx_array_cap32_    32
+#define cx_array_cap64_    64
+
+// Default capacity
+#ifndef cx_array_cap
+    #define cx_array_cap  cx_array_cap32_
+#endif
+#if cx_array_cap == cx_array_cap8_
+    #define cx_array_cap_type_ uint8_t
+    #define cx_array_max_cap_  (UINT8_MAX)
+#elif cx_array_cap == cx_array_cap16_
+    #define cx_array_cap_type_ uint16_t
+    #define cx_array_max_cap_  (UINT16_MAX)
+#elif cx_array_cap == cx_array_cap32_
+    #define cx_array_cap_type_ uint32_t
+    #define cx_array_max_cap_  (UINT32_MAX)
+#elif cx_array_cap == cx_array_cap64_
+    #define cx_array_cap_type_ uint64_t
+    #define cx_array_max_cap_  (UINT64_MAX)
+#else
+    #error "invalid cx array capacity bits"
+#endif
+
+// Error handler
+#ifndef cx_array_error_handler
+    #define cx_array_error_handler(msg)\
+        printf("CXLIB ARRAY ERROR:%s\n",msg);abort()
+#endif
+
 // API attributes
 #if defined(cx_array_static) && defined(cx_array_inline)
     #define cx_array_api_ static inline
@@ -62,10 +94,10 @@ Define the type of the array elements (mandatory):
 // Declarations
 //
 typedef struct cx_array_name {
-    const CxAllocator* alloc;
-    ptrdiff_t   len;
-    ptrdiff_t   cap;
-    cx_array_type*  data;
+    const CxAllocator*  alloc;
+    cx_array_cap_type_  len;
+    cx_array_cap_type_  cap;
+    cx_array_type*      data;
 } cx_array_name;
 
 cx_array_api_ cx_array_name cx_array_name_(_init)(void);
@@ -236,36 +268,15 @@ cx_array_api_ void cx_array_name_(_sort)(cx_array_name* a, int (*f)(const cx_arr
 
 #endif
 
+// Undefine config  macros
 #undef cx_array_name
 #undef cx_array_type
 #undef cx_array_static
-#undef cx_array_camel_case
-#undef concat2_
-#undef concat1_
+#undef cx_array_inline
+
+// Undefine internal macros
+#undef cx_array_concat2_
+#undef cx_array_concat1_
 #undef cx_array_name_
 #undef cx_array_api_
-#undef name_init
-#undef name_init2
-#undef name_free
-#undef name_clear
-#undef name_clone
-#undef name_cap
-#undef name_len
-#undef name_empty
-#undef name_setcap
-#undef name_setlen
-#undef name_push
-#undef name_pop
-#undef name_append
-#undef name_append_array
-#undef name_at
-#undef name_last
-#undef name_reserve
-#undef name_insn
-#undef name_ins
-#undef name_deln
-#undef name_del
-#undef name_delswap
-#undef name_sort
-
 
