@@ -128,7 +128,7 @@ void cxArrayTests(void) {
 void cxArrayTest(size_t size, const CxAllocator* alloc) {
 
     // Fill array with push
-    arri32 a1 = arri32_init2(alloc);
+    arri32 a1 = arri32_init();
     assert(arri32_len(&a1) == 0);
     assert(arri32_cap(&a1) == 0);
     assert(arri32_empty(&a1));
