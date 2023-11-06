@@ -1,3 +1,15 @@
+/* Dynamic Array Implementation
+ 
+Configuration before including header file
+------------------------------------------
+
+Define the name of the array type (mandatory):
+    #define cx_array_name <name>
+
+Define the type of the array elements (mandatory):
+    #define cx_array_type <name>
+
+*/ 
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>

@@ -76,6 +76,11 @@ $(TARGET): $(OBJS) Makefile
 include make_deps
 include make_options
 
+# Preprocess main target piping its output to clang format
+.PHONY: pp
+pp:
+> clang -P -E run_tests.c | clang-format
+
 # Generate dependencies rules file
 make_deps:
 > $(CC) -MM *.c > make_deps
