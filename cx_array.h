@@ -95,8 +95,8 @@ Define the type of the array elements (mandatory):
 //
 typedef struct cx_array_name {
     const CxAllocator*  alloc;
-    cx_array_cap_type_  len;
-    cx_array_cap_type_  cap;
+    cx_array_cap_type_  len_;
+    cx_array_cap_type_  cap_;
     cx_array_type*      data;
 } cx_array_name;
 
@@ -133,8 +133,8 @@ void cxArrayGrowFn(void* ag, size_t elemsize, size_t addlen, size_t min_cap);
 cx_array_api_ cx_array_name cx_array_name_(_init)(void) {
     return (cx_array_name) {
         .alloc = cxDefaultAllocator(),
-        .len = 0,
-        .cap = 0,
+        .len_ = 0,
+        .cap_ = 0,
         .data = NULL,
     };
 }
@@ -142,29 +142,29 @@ cx_array_api_ cx_array_name cx_array_name_(_init)(void) {
 cx_array_api_ cx_array_name cx_array_name_(_init2)(const CxAllocator* alloc) {
     return (cx_array_name) {
         .alloc = alloc,
-        .len = 0,
-        .cap = 0,
+        .len_ = 0,
+        .cap_ = 0,
         .data = NULL,
     };
 }
 
 cx_array_api_ void cx_array_name_(_free)(cx_array_name* a) {
-    a->alloc->free(a->alloc->ctx, a->data, a->cap * sizeof(*(a->data)));
-    a->len = 0;
-    a->cap = 0;
+    a->alloc->free(a->alloc->ctx, a->data, a->cap_ * sizeof(*(a->data)));
+    a->len_ = 0;
+    a->cap_ = 0;
     a->data = NULL;
 }
 
 cx_array_api_ void cx_array_name_(_clear)(cx_array_name* a) {
-    a->len = 0;
+    a->len_ = 0;
 }
 
 cx_array_api_ cx_array_name cx_array_name_(_clone)(cx_array_name* a) {
-    const size_t alloc_size = a->len * sizeof(*(a->data));
+    const size_t alloc_size = a->len_ * sizeof(*(a->data));
     cx_array_name cloned = {
         .alloc = a->alloc,
-        .len   = a->len,
-        .cap   = a->len,
+        .len_   = a->len_,
+        .cap_   = a->len_,
         .data  = a->alloc->alloc(a->alloc->ctx, alloc_size),
     };\
     memcpy(cloned.data, a->data, alloc_size);
@@ -172,15 +172,15 @@ cx_array_api_ cx_array_name cx_array_name_(_clone)(cx_array_name* a) {
 }
 
 cx_array_api_ ptrdiff_t cx_array_name_(_cap)(cx_array_name* a) {
-    return a->cap;
+    return a->cap_;
 }
 
 cx_array_api_ ptrdiff_t cx_array_name_(_len)(cx_array_name* a) {
-    return a->len;
+    return a->len_;
 }
 
 cx_array_api_ bool cx_array_name_(_empty)(cx_array_name* a) {
-    return a->len == 0;
+    return a->len_ == 0;
 } 
 
 cx_array_api_ void cx_array_name_(_setcap)(cx_array_name* a, size_t cap) {
@@ -188,59 +188,59 @@ cx_array_api_ void cx_array_name_(_setcap)(cx_array_name* a, size_t cap) {
 }
 
 cx_array_api_ void cx_array_name_(_setlen)(cx_array_name* a, size_t len) {
-    if (a->cap < len) {
+    if (a->cap_ < len) {
         cxArrayGrowFn(a, sizeof(*(a->data)), len, 0);
     }
-    a->len = len;
+    a->len_ = len;
 }
 
 cx_array_api_ void cx_array_name_(_push)(cx_array_name* a, cx_array_type v) {
-    if (a->len >= a->cap) {
+    if (a->len_ >= a->cap_) {
         cxArrayGrowFn(a, sizeof(*(a->data)), 1, 0);
     }
-    a->data[a->len++] = v;
+    a->data[a->len_++] = v;
 }
  
 cx_array_api_ cx_array_type cx_array_name_(_pop)(cx_array_name* a) {
-    a->len--;
-    return a->data[a->len];
+    a->len_--;
+    return a->data[a->len_];
 }
 
 cx_array_api_ void cx_array_name_(_append)(cx_array_name* a, cx_array_type* p, size_t n) {
-    if (a->len + n > a->cap) {
+    if (a->len_ + n > a->cap_) {
         cxArrayGrowFn(a, sizeof(*(a->data)), n, 0);
     }
-    memcpy(&a->data[a->len], p, n * sizeof(*(a->data)));
-    a->len += n;
+    memcpy(&a->data[a->len_], p, n * sizeof(*(a->data)));
+    a->len_ += n;
 }
 
 cx_array_api_ void cx_array_name_(_append_array)(cx_array_name* a, const cx_array_name* src) {
-    cx_array_name_(_append)(a, src->data, src->len);
+    cx_array_name_(_append)(a, src->data, src->len_);
 }
 
 cx_array_api_ cx_array_type* cx_array_name_(_at)(cx_array_name* a, size_t idx) {
-    if (idx > a->len) {
+    if (idx > a->len_) {
         abort();
     }
     return &a->data[idx];
 }
 
 cx_array_api_ cx_array_type cx_array_name_(_last)(const cx_array_name* a) {
-    return a->data[a->len-1];
+    return a->data[a->len_-1];
 }
 
 cx_array_api_ void cx_array_name_(_reserve)(cx_array_name* a, size_t n) {
-    if (a->cap < a->len + n) {
-        cxArrayGrowFn(a, sizeof(*(a->data)), 0, a->len+n);
+    if (a->cap_ < a->len_ + n) {
+        cxArrayGrowFn(a, sizeof(*(a->data)), 0, a->len_+n);
     }
 }
 
 cx_array_api_ void cx_array_name_(_insn)(cx_array_name* a, size_t i, size_t n) {
-    if (a->len + n > a->cap) {
+    if (a->len_ + n > a->cap_) {
         cxArrayGrowFn(a, sizeof(*(a->data)),n,0);
     }
-    a->len += n;
-    memmove(&a->data[i+n], &a->data[i], sizeof(*(a->data)) * (a->len-n-i));
+    a->len_ += n;
+    memmove(&a->data[i+n], &a->data[i], sizeof(*(a->data)) * (a->len_-n-i));
 }
 
 cx_array_api_ void cx_array_name_(_ins)(cx_array_name* a, size_t i, cx_array_type v) {
@@ -249,8 +249,8 @@ cx_array_api_ void cx_array_name_(_ins)(cx_array_name* a, size_t i, cx_array_typ
 }
 
 cx_array_api_ void cx_array_name_(_deln)(cx_array_name* a, size_t i, size_t n) {
-    memmove(&a->data[i], &a->data[i+n], sizeof(*(a->data)) * (a->len-n-i));
-    a->len -= n;
+    memmove(&a->data[i], &a->data[i+n], sizeof(*(a->data)) * (a->len_-n-i));
+    a->len_ -= n;
 }
 
 cx_array_api_ void cx_array_name_(_del)(cx_array_name* a, size_t i) {
@@ -259,11 +259,11 @@ cx_array_api_ void cx_array_name_(_del)(cx_array_name* a, size_t i) {
 
 cx_array_api_ void cx_array_name_(_delswap)(cx_array_name* a, size_t i) {
     a->data[i] = cx_array_name_(_last)(a);
-    a->len--;
+    a->len_--;
 }
 
 cx_array_api_ void cx_array_name_(_sort)(cx_array_name* a, int (*f)(const cx_array_type*, const cx_array_type*)) {
-    qsort(a->data,a->len,sizeof(*(a->data)),(int (*)(const void*,const void*))f);
+    qsort(a->data,a->len_,sizeof(*(a->data)),(int (*)(const void*,const void*))f);
 }
 
 #endif
