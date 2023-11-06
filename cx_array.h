@@ -59,59 +59,6 @@ Define the type of the array elements (mandatory):
 #endif
 
 //
-// Function names
-//
-#ifdef cx_array_camel_case
-    #define name_init           Init
-    #define name_init2          Init2
-    #define name_free           Free
-    #define name_clear          Clear
-    #define name_clone          Clone
-    #define name_cap            Cap
-    #define name_len            Len
-    #define name_empty          Empty
-    #define name_setcap         SetCap
-    #define name_setlen         SetLen
-    #define name_push           Push
-    #define name_pop            Pop
-    #define name_append         Append
-    #define name_append_array   AppendArray
-    #define name_at             At
-    #define name_last           Last
-    #define name_reserve        Reserve
-    #define name_insn           Insn
-    #define name_ins            Ins
-    #define name_deln           Deln
-    #define name_del            Del
-    #define name_delswap        DelSwap
-    #define name_sort           Sort
-#else
-    #define name_init           _init
-    #define name_init2          _init2
-    #define name_free           _free
-    #define name_clear          _clear
-    #define name_clone          _clone
-    #define name_cap            _cap
-    #define name_len            _len
-    #define name_empty          _empty
-    #define name_setcap         _setcap
-    #define name_setlen         _setlen
-    #define name_push           _push
-    #define name_pop            _pop
-    #define name_append         _append
-    #define name_append_array   _append_array
-    #define name_at             _at
-    #define name_last           _last
-    #define name_reserve        _reserve
-    #define name_insn           _insn
-    #define name_ins            _ins
-    #define name_deln           _deln
-    #define name_del            _del
-    #define name_delswap        _del_swap
-    #define name_sort           _sort
-#endif
-
-//
 // Declarations
 //
 typedef struct cx_array_name {
@@ -121,29 +68,29 @@ typedef struct cx_array_name {
     cx_array_type*  data;
 } cx_array_name;
 
-cx_array_api_ cx_array_name cx_array_name_(name_init)(void);
-cx_array_api_ cx_array_name cx_array_name_(name_init2)(const CxAllocator*);
-cx_array_api_ void cx_array_name_(name_free)(cx_array_name* a);
-cx_array_api_ void cx_array_name_(name_clear)(cx_array_name* a);
-cx_array_api_ cx_array_name cx_array_name_(name_clone)(cx_array_name* a);
-cx_array_api_ ptrdiff_t cx_array_name_(name_cap)(cx_array_name* a);
-cx_array_api_ ptrdiff_t cx_array_name_(name_len)(cx_array_name* a);
-cx_array_api_ bool cx_array_name_(name_empty)(cx_array_name* a);
-cx_array_api_ void cx_array_name_(name_setcap)(cx_array_name* a, size_t cap);
-cx_array_api_ void cx_array_name_(name_setlen)(cx_array_name* a, size_t len);
-cx_array_api_ void cx_array_name_(name_push)(cx_array_name* a, cx_array_type v);
-cx_array_api_ cx_array_type cx_array_name_(name_pop)(cx_array_name* a);
-cx_array_api_ void cx_array_name_(name_append)(cx_array_name* a, cx_array_type* p, size_t n);
-cx_array_api_ void cx_array_name_(name_append_array)(cx_array_name* a, const cx_array_name* src);
-cx_array_api_ cx_array_type* cx_array_name_(name_at)(cx_array_name* a, size_t idx);
-cx_array_api_ cx_array_type cx_array_name_(name_last)(const cx_array_name* a);
-cx_array_api_ void cx_array_name_(name_reserve)(cx_array_name* a, size_t n);
-cx_array_api_ void cx_array_name_(name_insn)(cx_array_name* a, size_t i, size_t n);
-cx_array_api_ void cx_array_name_(name_ins)(cx_array_name* a, size_t i, cx_array_type v);
-cx_array_api_ void cx_array_name_(name_deln)(cx_array_name* a, size_t i, size_t n);
-cx_array_api_ void cx_array_name_(name_del)(cx_array_name* a, size_t i);
-cx_array_api_ void cx_array_name_(name_delswap)(cx_array_name* a, size_t i);
-cx_array_api_ void cx_array_name_(name_sort)(cx_array_name* a, int (*f)(const cx_array_type*, const cx_array_type*));
+cx_array_api_ cx_array_name cx_array_name_(_init)(void);
+cx_array_api_ cx_array_name cx_array_name_(_init2)(const CxAllocator*);
+cx_array_api_ void cx_array_name_(_free)(cx_array_name* a);
+cx_array_api_ void cx_array_name_(_clear)(cx_array_name* a);
+cx_array_api_ cx_array_name cx_array_name_(_clone)(cx_array_name* a);
+cx_array_api_ ptrdiff_t cx_array_name_(_cap)(cx_array_name* a);
+cx_array_api_ ptrdiff_t cx_array_name_(_len)(cx_array_name* a);
+cx_array_api_ bool cx_array_name_(_empty)(cx_array_name* a);
+cx_array_api_ void cx_array_name_(_setcap)(cx_array_name* a, size_t cap);
+cx_array_api_ void cx_array_name_(_setlen)(cx_array_name* a, size_t len);
+cx_array_api_ void cx_array_name_(_push)(cx_array_name* a, cx_array_type v);
+cx_array_api_ cx_array_type cx_array_name_(_pop)(cx_array_name* a);
+cx_array_api_ void cx_array_name_(_append)(cx_array_name* a, cx_array_type* p, size_t n);
+cx_array_api_ void cx_array_name_(_append_array)(cx_array_name* a, const cx_array_name* src);
+cx_array_api_ cx_array_type* cx_array_name_(_at)(cx_array_name* a, size_t idx);
+cx_array_api_ cx_array_type cx_array_name_(_last)(const cx_array_name* a);
+cx_array_api_ void cx_array_name_(_reserve)(cx_array_name* a, size_t n);
+cx_array_api_ void cx_array_name_(_insn)(cx_array_name* a, size_t i, size_t n);
+cx_array_api_ void cx_array_name_(_ins)(cx_array_name* a, size_t i, cx_array_type v);
+cx_array_api_ void cx_array_name_(_deln)(cx_array_name* a, size_t i, size_t n);
+cx_array_api_ void cx_array_name_(_del)(cx_array_name* a, size_t i);
+cx_array_api_ void cx_array_name_(_delswap)(cx_array_name* a, size_t i);
+cx_array_api_ void cx_array_name_(_sort)(cx_array_name* a, int (*f)(const cx_array_type*, const cx_array_type*));
 
 //
 // Implementations
@@ -151,7 +98,7 @@ cx_array_api_ void cx_array_name_(name_sort)(cx_array_name* a, int (*f)(const cx
 #ifdef cx_array_implement
 void cxArrayGrowFn(void* ag, size_t elemsize, size_t addlen, size_t min_cap);
 
-cx_array_api_ cx_array_name cx_array_name_(name_init)(void) {
+cx_array_api_ cx_array_name cx_array_name_(_init)(void) {
     return (cx_array_name) {
         .alloc = cxDefaultAllocator(),
         .len = 0,
@@ -160,7 +107,7 @@ cx_array_api_ cx_array_name cx_array_name_(name_init)(void) {
     };
 }
 
-cx_array_api_ cx_array_name cx_array_name_(name_init2)(const CxAllocator* alloc) {
+cx_array_api_ cx_array_name cx_array_name_(_init2)(const CxAllocator* alloc) {
     return (cx_array_name) {
         .alloc = alloc,
         .len = 0,
@@ -169,18 +116,18 @@ cx_array_api_ cx_array_name cx_array_name_(name_init2)(const CxAllocator* alloc)
     };
 }
 
-cx_array_api_ void cx_array_name_(name_free)(cx_array_name* a) {
+cx_array_api_ void cx_array_name_(_free)(cx_array_name* a) {
     a->alloc->free(a->alloc->ctx, a->data, a->cap * sizeof(*(a->data)));
     a->len = 0;
     a->cap = 0;
     a->data = NULL;
 }
 
-cx_array_api_ void cx_array_name_(name_clear)(cx_array_name* a) {
+cx_array_api_ void cx_array_name_(_clear)(cx_array_name* a) {
     a->len = 0;
 }
 
-cx_array_api_ cx_array_name cx_array_name_(name_clone)(cx_array_name* a) {
+cx_array_api_ cx_array_name cx_array_name_(_clone)(cx_array_name* a) {
     const size_t alloc_size = a->len * sizeof(*(a->data));
     cx_array_name cloned = {
         .alloc = a->alloc,
@@ -192,42 +139,42 @@ cx_array_api_ cx_array_name cx_array_name_(name_clone)(cx_array_name* a) {
     return cloned;
 }
 
-cx_array_api_ ptrdiff_t cx_array_name_(name_cap)(cx_array_name* a) {
+cx_array_api_ ptrdiff_t cx_array_name_(_cap)(cx_array_name* a) {
     return a->cap;
 }
 
-cx_array_api_ ptrdiff_t cx_array_name_(name_len)(cx_array_name* a) {
+cx_array_api_ ptrdiff_t cx_array_name_(_len)(cx_array_name* a) {
     return a->len;
 }
 
-cx_array_api_ bool cx_array_name_(name_empty)(cx_array_name* a) {
+cx_array_api_ bool cx_array_name_(_empty)(cx_array_name* a) {
     return a->len == 0;
 } 
 
-cx_array_api_ void cx_array_name_(name_setcap)(cx_array_name* a, size_t cap) {
+cx_array_api_ void cx_array_name_(_setcap)(cx_array_name* a, size_t cap) {
     cxArrayGrowFn(a, sizeof(*(a->data)), 0, cap);
 }
 
-cx_array_api_ void cx_array_name_(name_setlen)(cx_array_name* a, size_t len) {
+cx_array_api_ void cx_array_name_(_setlen)(cx_array_name* a, size_t len) {
     if (a->cap < len) {
         cxArrayGrowFn(a, sizeof(*(a->data)), len, 0);
     }
     a->len = len;
 }
 
-cx_array_api_ void cx_array_name_(name_push)(cx_array_name* a, cx_array_type v) {
+cx_array_api_ void cx_array_name_(_push)(cx_array_name* a, cx_array_type v) {
     if (a->len >= a->cap) {
         cxArrayGrowFn(a, sizeof(*(a->data)), 1, 0);
     }
     a->data[a->len++] = v;
 }
  
-cx_array_api_ cx_array_type cx_array_name_(name_pop)(cx_array_name* a) {
+cx_array_api_ cx_array_type cx_array_name_(_pop)(cx_array_name* a) {
     a->len--;
     return a->data[a->len];
 }
 
-cx_array_api_ void cx_array_name_(name_append)(cx_array_name* a, cx_array_type* p, size_t n) {
+cx_array_api_ void cx_array_name_(_append)(cx_array_name* a, cx_array_type* p, size_t n) {
     if (a->len + n > a->cap) {
         cxArrayGrowFn(a, sizeof(*(a->data)), n, 0);
     }
@@ -235,28 +182,28 @@ cx_array_api_ void cx_array_name_(name_append)(cx_array_name* a, cx_array_type* 
     a->len += n;
 }
 
-cx_array_api_ void cx_array_name_(name_append_array)(cx_array_name* a, const cx_array_name* src) {
-    cx_array_name_(name_append)(a, src->data, src->len);
+cx_array_api_ void cx_array_name_(_append_array)(cx_array_name* a, const cx_array_name* src) {
+    cx_array_name_(_append)(a, src->data, src->len);
 }
 
-cx_array_api_ cx_array_type* cx_array_name_(name_at)(cx_array_name* a, size_t idx) {
+cx_array_api_ cx_array_type* cx_array_name_(_at)(cx_array_name* a, size_t idx) {
     if (idx > a->len) {
         abort();
     }
     return &a->data[idx];
 }
 
-cx_array_api_ cx_array_type cx_array_name_(name_last)(const cx_array_name* a) {
+cx_array_api_ cx_array_type cx_array_name_(_last)(const cx_array_name* a) {
     return a->data[a->len-1];
 }
 
-cx_array_api_ void cx_array_name_(name_reserve)(cx_array_name* a, size_t n) {
+cx_array_api_ void cx_array_name_(_reserve)(cx_array_name* a, size_t n) {
     if (a->cap < a->len + n) {
         cxArrayGrowFn(a, sizeof(*(a->data)), 0, a->len+n);
     }
 }
 
-cx_array_api_ void cx_array_name_(name_insn)(cx_array_name* a, size_t i, size_t n) {
+cx_array_api_ void cx_array_name_(_insn)(cx_array_name* a, size_t i, size_t n) {
     if (a->len + n > a->cap) {
         cxArrayGrowFn(a, sizeof(*(a->data)),n,0);
     }
@@ -264,26 +211,26 @@ cx_array_api_ void cx_array_name_(name_insn)(cx_array_name* a, size_t i, size_t 
     memmove(&a->data[i+n], &a->data[i], sizeof(*(a->data)) * (a->len-n-i));
 }
 
-cx_array_api_ void cx_array_name_(name_ins)(cx_array_name* a, size_t i, cx_array_type v) {
-    cx_array_name_(name_insn)(a, i, 1);
+cx_array_api_ void cx_array_name_(_ins)(cx_array_name* a, size_t i, cx_array_type v) {
+    cx_array_name_(_insn)(a, i, 1);
     a->data[i] = v;
 }
 
-cx_array_api_ void cx_array_name_(name_deln)(cx_array_name* a, size_t i, size_t n) {
+cx_array_api_ void cx_array_name_(_deln)(cx_array_name* a, size_t i, size_t n) {
     memmove(&a->data[i], &a->data[i+n], sizeof(*(a->data)) * (a->len-n-i));
     a->len -= n;
 }
 
-cx_array_api_ void cx_array_name_(name_del)(cx_array_name* a, size_t i) {
-    cx_array_name_(name_deln)(a, i, 1);
+cx_array_api_ void cx_array_name_(_del)(cx_array_name* a, size_t i) {
+    cx_array_name_(_deln)(a, i, 1);
 }
 
-cx_array_api_ void cx_array_name_(name_delswap)(cx_array_name* a, size_t i) {
-    a->data[i] = cx_array_name_(name_last)(a);
+cx_array_api_ void cx_array_name_(_delswap)(cx_array_name* a, size_t i) {
+    a->data[i] = cx_array_name_(_last)(a);
     a->len--;
 }
 
-cx_array_api_ void cx_array_name_(name_sort)(cx_array_name* a, int (*f)(const cx_array_type*, const cx_array_type*)) {
+cx_array_api_ void cx_array_name_(_sort)(cx_array_name* a, int (*f)(const cx_array_type*, const cx_array_type*)) {
     qsort(a->data,a->len,sizeof(*(a->data)),(int (*)(const void*,const void*))f);
 }
 
