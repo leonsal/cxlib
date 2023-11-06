@@ -5,9 +5,6 @@ LIBS=
 INCS=
 .RECIPEPREFIX = >
 
-# Default target
-.PHONY: all
-all: $(TARGET)
 
 # Target object Files
 OBJS=run_tests.o\
@@ -18,9 +15,6 @@ OBJS=run_tests.o\
  	cx_str.o\
  	cx_tests.o
 
-# Include options and dependency rules
-include make_deps
-include make_options
 
 # Uses clang instead of gcc
 ifdef clang
@@ -68,10 +62,19 @@ endif
 # Optional custom rule
 # .c.o:
 # 	$(CC) -c $(CFLAGS) $(INCS) -c $<
+#
+# Default target
+.PHONY: all
+all: $(TARGET)
 
 # Link executable
 $(TARGET): $(OBJS) Makefile
 > $(CC) $(CFLAGS) $(OBJS) -o $(TARGET) $(LIBS)
+
+# Include options and dependency rules
+# Must be put after default target rule
+include make_deps
+include make_options
 
 # Generate dependencies rules file
 make_deps:
