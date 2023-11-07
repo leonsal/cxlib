@@ -204,16 +204,21 @@ void cxArrayTest(size_t size, const CxAllocator* alloc) {
     arri32_reserve(&a1, 2);
     assert(arri32_cap(&a1) == cap);
 
-    // Inserts space for data
+    // insn
+    int buf[] = {1,2,3,4,5,6,7,8,9};
+    size_t insCount = 5;
     arri32_free(&a1);
     arri32_push(&a1, 100);
-    arri32_insn(&a1, 0, 5);
-    assert(arri32_len(&a1) == 1+5);
-    assert(a1.data[5] == 100);
+    arri32_insn(&a1, buf, insCount, 0);
+    assert(arri32_len(&a1) == 1+insCount);
+    for (size_t i = 0; i < insCount; i++) {
+        assert(*arri32_at(&a1, i) == buf[i]);
+        assert(a1.data[i] == buf[i]);
+    }
+    assert(a1.data[insCount] == 100);
     arri32_free(&a1);
 
-    // Appends data
-    int buf[] = {1,2,3,4,5,6,7,8,9};
+    // pushn
     size_t buf_size = sizeof(buf)/sizeof(int);
     arri32_push(&a1, 0);
     arri32_pushn(&a1, buf, buf_size);
