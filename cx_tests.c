@@ -272,6 +272,15 @@ void cxArrayTest(size_t size, const CxAllocator* alloc) {
     arri32_free(&a1);
     arri32_free(&a2);
 
+    // deln
+    arri32_free(&a1);
+    const size_t bufSize = sizeof(buf)/sizeof(buf[0]);
+    arri32_pushn(&a1, buf, bufSize);
+    arri32_deln(&a1, 1, 7);
+    assert(a1.data[0] == 1);
+    assert(a1.data[1] == 9);
+    assert(arri32_len(&a1) == 2);
+    
 }
 
 void cxHmapTests(void) {

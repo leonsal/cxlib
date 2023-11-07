@@ -115,6 +115,14 @@ Inserts specified value into the array at index 'idx'
 Error handler is called if defined and index is invalid,
     void cxarray_ins(cxarray* a, cxtype v, size_t idx);
 
+Inserts array 'src' into this array at index 'idx'
+Error handler is called if defined and index is invalid,
+    void cxarray_insa(cxarray* a, const cxarray* src, size_t idx);
+
+Deletes 'n' elements from this array starting at index 'idx'
+Error handler is called if defined and index is invalid,
+    void cxarray_deln(cxarray* a, size_t idx, size_t n);
+
 */ 
 #include <stdint.h>
 #include <stdbool.h>
@@ -232,8 +240,8 @@ cx_array_api_ void cx_array_name_(_reserve)(cx_array_name* a, size_t n);
 cx_array_api_ void cx_array_name_(_insn)(cx_array_name* a, const cx_array_type* src, size_t n, size_t idx);
 cx_array_api_ void cx_array_name_(_ins)(cx_array_name* a, cx_array_type v, size_t idx);
 cx_array_api_ void cx_array_name_(_insa)(cx_array_name* a, const cx_array_name* src, size_t idx);
-cx_array_api_ void cx_array_name_(_deln)(cx_array_name* a, size_t i, size_t n);
-cx_array_api_ void cx_array_name_(_del)(cx_array_name* a, size_t i);
+cx_array_api_ void cx_array_name_(_deln)(cx_array_name* a, size_t idx, size_t n);
+cx_array_api_ void cx_array_name_(_del)(cx_array_name* a, size_t idx);
 cx_array_api_ void cx_array_name_(_delswap)(cx_array_name* a, size_t i);
 cx_array_api_ void cx_array_name_(_sort)(cx_array_name* a, int (*f)(const cx_array_type*, const cx_array_type*));
 
@@ -428,8 +436,15 @@ cx_array_api_ void cx_array_name_(_insa)(cx_array_name* a, const cx_array_name* 
     cx_array_name_(_insn)(a, src->data, src->len_, idx);
 }
 
-cx_array_api_ void cx_array_name_(_deln)(cx_array_name* a, size_t i, size_t n) {
-    memmove(&a->data[i], &a->data[i+n], sizeof(*(a->data)) * (a->len_-n-i));
+cx_array_api_ void cx_array_name_(_deln)(cx_array_name* a, size_t idx, size_t n) {
+#ifdef cx_array_error_handler
+    if (idx > a->len_) {
+        cx_array_error_handler("invalid index");
+        return;
+    }
+#endif
+    n = n > a->len_ - idx ? a->len_ - idx : n;
+    memmove(a->data + idx, a->data + idx + n, sizeof(*(a->data)) * (a->len_- n - idx));
     a->len_ -= n;
 }
 
