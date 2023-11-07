@@ -161,7 +161,6 @@ greater than 0 if first element greater than the second or less than zero otherw
 #define cx_array_cap8_     8
 #define cx_array_cap16_    16
 #define cx_array_cap32_    32
-#define cx_array_cap64_    64
 
 // Default capacity
 #ifndef cx_array_cap
@@ -176,9 +175,6 @@ greater than 0 if first element greater than the second or less than zero otherw
 #elif cx_array_cap == cx_array_cap32_
     #define cx_array_cap_type_ uint32_t
     #define cx_array_max_cap_  (UINT32_MAX)
-#elif cx_array_cap == cx_array_cap64_
-    #define cx_array_cap_type_ uint64_t
-    #define cx_array_max_cap_  (UINT64_MAX)
 #else
     #error "invalid cx array capacity bits"
 #endif
@@ -277,6 +273,13 @@ static void cx_array_name_(_grow_)(cx_array_name* a, size_t addLen, size_t minCa
     else if (minCap < 4) {
         minCap = 4;
     }
+
+#ifdef cx_array_error_handler
+    if (minCap > cx_array_max_cap_) {
+        cx_array_error_handler("capacity exceeded", __func__);
+        return;
+    }
+#endif
 
     // Allocates new capacity
     const size_t elemSize = sizeof(*(a->data));
@@ -385,7 +388,7 @@ cx_array_api_ cx_array_type cx_array_name_(_pop)(cx_array_name* a) {
 #ifdef cx_array_error_handler
     if (a->len_ == 0) {
         cx_array_type el = {0};
-        cx_array_error_handler("array empty");
+        cx_array_error_handler("array empty",__func__);
         return el;
     }
 #endif
@@ -396,7 +399,7 @@ cx_array_api_ cx_array_type cx_array_name_(_pop)(cx_array_name* a) {
 cx_array_api_ cx_array_type* cx_array_name_(_at)(cx_array_name* a, size_t idx) {
 #ifdef cx_array_error_handler
     if (idx > a->len_) {
-        cx_array_error_handler("invalid index");
+        cx_array_error_handler("invalid index",__func__);
         return NULL;
     }
 #endif
@@ -407,7 +410,7 @@ cx_array_api_ cx_array_type cx_array_name_(_last)(const cx_array_name* a) {
 #ifdef cx_array_error_handler
     if (!a->len_) {
         cx_array_type el = {0};
-        cx_array_error_handler("array empty");
+        cx_array_error_handler("array empty",__func__);
         return el;
     }
 #endif
@@ -423,7 +426,7 @@ cx_array_api_ void cx_array_name_(_reserve)(cx_array_name* a, size_t n) {
 cx_array_api_ void cx_array_name_(_insn)(cx_array_name* a, const cx_array_type* src, size_t n, size_t idx) {
 #ifdef cx_array_error_handler
     if (idx > a->len_) {
-        cx_array_error_handler("invalid index");
+        cx_array_error_handler("invalid index",__func__);
         return;
     }
 #endif
@@ -446,7 +449,7 @@ cx_array_api_ void cx_array_name_(_insa)(cx_array_name* a, const cx_array_name* 
 cx_array_api_ void cx_array_name_(_deln)(cx_array_name* a, size_t idx, size_t n) {
 #ifdef cx_array_error_handler
     if (idx > a->len_) {
-        cx_array_error_handler("invalid index");
+        cx_array_error_handler("invalid index",__func__);
         return;
     }
 #endif
@@ -462,7 +465,7 @@ cx_array_api_ void cx_array_name_(_del)(cx_array_name* a, size_t idx) {
 cx_array_api_ void cx_array_name_(_delswap)(cx_array_name* a, size_t idx) {
 #ifdef cx_array_error_handler
     if (idx >= a->len_) {
-        cx_array_error_handler("invalid index");
+        cx_array_error_handler("invalid index",__func__);
         return;
     }
 #endif

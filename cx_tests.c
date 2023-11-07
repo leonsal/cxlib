@@ -10,8 +10,9 @@ static const char* cxstr_error = NULL;
 #define cx_array_type int
 #define cx_array_implement
 #define cx_array_static
-#define cx_array_error_handler(msg)\
-    printf("CXARRAY ERROR:%s\n", msg);abort()
+#define cx_array_cap 32
+#define cx_array_error_handler(msg,func)\
+    printf("CXARRAY ERROR:%s at %s\n", msg, func);abort()
 #define CX_ARRAY_ALLOCATOR
 #ifdef CX_ARRAY_ALLOCATOR
     #define cx_array_allocator
