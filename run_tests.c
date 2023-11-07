@@ -1,9 +1,10 @@
 #include "cx_tests.h"
-// #define cx_array_name ai32
+// #define cx_array_name cxarray
 // #define cx_array_type int
 // #define cx_array_static
 // #define cx_array_inline
 // #define cx_array_implement
+// #define cx_array_allocator
 // #include "cx_array.h"
 
 // typedef struct Vec2 {float x; float y;} Vec2;
