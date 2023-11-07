@@ -39,7 +39,7 @@ Define the type of the array elements (mandatory):
 Define the array maximum capacity (optional, default = 32):
     #define cx_array_cap <8|16|32|64>
 
-Define error handler function (optional):
+Define optional error handler function: void (*handler)(const char* emsg)
     #define cx_array_error_handler <func>
 
 Sets if array uses custom allocator per instance
@@ -54,11 +54,6 @@ Sets if all array functions are prefixed with 'inline'
 Sets to implement functions in this translation unit:
     #define cx_array_implement
 
-Returns current array capacity in number of elements
-    size_t cxarray_cap(const cxarray* s);
-
-Returns current array length in number of elements
-    size_t cxarray_len(const cxarray* s);
 
 API
 ---
@@ -87,14 +82,30 @@ Sets the capacity of the array at least 'cap'
 Sets the length of the array to 'len'
     void cxarray_setlen(cxarray* a, size_t len);
 
-Pushes one element at the back of the array
-    void cxarray_push(cxarray* a, cxtype v);
-
 Pushes 'n' elements from 'src' at the back of the array
     void cxarray_pushn(cxarray* a, const cxtype* src, size_t n);
 
+Pushes one element at the back of the array
+    void cxarray_push(cxarray* a, cxtype v);
+
 Pushes all elements from 'src' array at the back of this array
     void cxarray_pusha(cxarray* a, const cxarray* src);
+
+Pops and returns the last element of the array.
+Error handler is called if defined and array is empty.
+    cxtype cxarray_pop(cxarray* a);
+
+Returns pointer to array the element at the specified index 'idx'.
+Error handler is called if defined and index is invalid,
+otherwise NULL is returned.
+    cxtype* cxarray_at(const cxarray* a, size_t idx);
+
+Returns the last element of the array without removing it.
+Error handler is called if defined and array is empty.
+    cxtype cxrray_last(const cxarray* a);
+
+Reserve capacity for at least new 'n' elements in the array.
+    void cxarray_reserve(cxarray* a, size_t n);
 
 */ 
 #include <stdint.h>
@@ -205,9 +216,8 @@ cx_array_api_ void cx_array_name_(_setcap)(cx_array_name* a, size_t cap);
 cx_array_api_ void cx_array_name_(_setlen)(cx_array_name* a, size_t len);
 cx_array_api_ void cx_array_name_(_pushn)(cx_array_name* a, const cx_array_type* v, size_t n);
 cx_array_api_ void cx_array_name_(_push)(cx_array_name* a, cx_array_type v);
+cx_array_api_ void cx_array_name_(_pusha)(cx_array_name* a, const cx_array_name* src);
 cx_array_api_ cx_array_type cx_array_name_(_pop)(cx_array_name* a);
-cx_array_api_ void cx_array_name_(_append)(cx_array_name* a, cx_array_type* p, size_t n);
-cx_array_api_ void cx_array_name_(_append_array)(cx_array_name* a, const cx_array_name* src);
 cx_array_api_ cx_array_type* cx_array_name_(_at)(cx_array_name* a, size_t idx);
 cx_array_api_ cx_array_type cx_array_name_(_last)(const cx_array_name* a);
 cx_array_api_ void cx_array_name_(_reserve)(cx_array_name* a, size_t n);
@@ -342,38 +352,47 @@ cx_array_api_ void cx_array_name_(_push)(cx_array_name* a, cx_array_type v) {
     }
     a->data[a->len_++] = v;
 }
+
+cx_array_api_ void cx_array_name_(_pusha)(cx_array_name* a, const cx_array_name* src) {
+    cx_array_name_(_pushn)(a, src->data, src->len_);
+}
  
 cx_array_api_ cx_array_type cx_array_name_(_pop)(cx_array_name* a) {
+#ifdef cx_array_error_handler
+    if (a->len_ == 0) {
+        cx_array_type el = {0};
+        cx_array_error_handler("array empty");
+        return el;
+    }
+#endif
     a->len_--;
     return a->data[a->len_];
 }
 
-cx_array_api_ void cx_array_name_(_append)(cx_array_name* a, cx_array_type* p, size_t n) {
-    if (a->len_ + n > a->cap_) {
-        cx_array_name_(_grow_)(a, n, 0);
-    }
-    memcpy(&a->data[a->len_], p, n * sizeof(*(a->data)));
-    a->len_ += n;
-}
-
-cx_array_api_ void cx_array_name_(_append_array)(cx_array_name* a, const cx_array_name* src) {
-    cx_array_name_(_append)(a, src->data, src->len_);
-}
-
 cx_array_api_ cx_array_type* cx_array_name_(_at)(cx_array_name* a, size_t idx) {
+#ifdef cx_array_error_handler
     if (idx > a->len_) {
-        abort();
+        cx_array_error_handler("invalid index");
+        return NULL;
     }
+#endif
     return &a->data[idx];
 }
 
 cx_array_api_ cx_array_type cx_array_name_(_last)(const cx_array_name* a) {
+#ifdef cx_array_error_handler
+    if (!a->len_) {
+        cx_array_type el = {0};
+        cx_array_error_handler("array empty");
+        return el;
+    }
+#endif
     return a->data[a->len_-1];
 }
 
 cx_array_api_ void cx_array_name_(_reserve)(cx_array_name* a, size_t n) {
-    if (a->cap_ < a->len_ + n) {
-        cx_array_name_(_grow_)(a, 0, a->len_+n);
+    if (a->len_ + n > a->cap_ ) {
+        cx_array_name_(_grow_)(a, n, 0);
     }
 }
 

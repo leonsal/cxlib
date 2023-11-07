@@ -127,22 +127,11 @@ void cxArrayTests(void) {
 
 void cxArrayTest(size_t size, const CxAllocator* alloc) {
 
-    // pushn
+    // push
     arri32 a1 = arri32_init();
     assert(arri32_len(&a1) == 0);
     assert(arri32_cap(&a1) == 0);
     assert(arri32_empty(&a1));
-    int pushData[] = {0,1,2,3,4,5};
-    size_t pushCount = sizeof(pushData)/sizeof(pushData[0]); 
-    arri32_pushn(&a1, pushData, pushCount);
-    assert(arri32_len(&a1) == pushCount);
-    // Check
-    for (size_t i = 0; i < pushCount; i++) {
-        assert(*arri32_at(&a1, i) == pushData[i]);
-        assert(a1.data[i] == i);
-    }
-
-    // push
     arri32_free(&a1);
     for (size_t i = 0; i < size; i++) {
         arri32_push(&a1, i);
@@ -209,7 +198,14 @@ void cxArrayTest(size_t size, const CxAllocator* alloc) {
     arri32_free(&a1);
     assert(arri32_cap(&a1) == 0);
 
+    // reserve
+    arri32_push(&a1, 1);
+    size_t cap = arri32_cap(&a1);
+    arri32_reserve(&a1, 2);
+    assert(arri32_cap(&a1) == cap);
+
     // Inserts space for data
+    arri32_free(&a1);
     arri32_push(&a1, 100);
     arri32_insn(&a1, 0, 5);
     assert(arri32_len(&a1) == 1+5);
@@ -220,7 +216,7 @@ void cxArrayTest(size_t size, const CxAllocator* alloc) {
     int buf[] = {1,2,3,4,5,6,7,8,9};
     size_t buf_size = sizeof(buf)/sizeof(int);
     arri32_push(&a1, 0);
-    arri32_append(&a1, buf, buf_size);
+    arri32_pushn(&a1, buf, buf_size);
     assert(arri32_len(&a1) == buf_size+1);
     for (size_t i = 0; i < buf_size+1; i++) {
         assert(*arri32_at(&a1, i) == i);
@@ -238,7 +234,7 @@ void cxArrayTest(size_t size, const CxAllocator* alloc) {
     arri32_push(&a1, 100);
     arri32_push(&a2, 0);
     arri32_push(&a2, 1);
-    arri32_append_array(&a1, &a2);
+    arri32_pusha(&a1, &a2);
     assert(arri32_len(&a1) == 3);
     assert(a1.data[0] == 100 && a1.data[1] == 0 && a1.data[2] == 1);
     arri32_free(&a1);
