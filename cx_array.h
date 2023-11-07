@@ -132,8 +132,8 @@ Error handler is called if defined and index is invalid,
     void cxarray_delswap(cxarray* a, size_t idx);
 
 Sorts the array using the specified sort function.
-For ascending order the function should return 0 if the elements are equal,
-1 if first element greater the second or -1 otherwise.
+For ascending order the function should return zero if the elements are equal,
+greater than 0 if first element greater than the second or less than zero otherwise.
     void cxarray_sort(cxarray* a, int (*f)(const cxtype*, const cxtype*));
 
 */ 
@@ -184,10 +184,10 @@ For ascending order the function should return 0 if the elements are equal,
 #endif
 
 // Error handler
-#ifndef cx_array_error_handler
-    #define cx_array_error_handler(msg)\
-        printf("CXLIB ARRAY ERROR:%s\n",msg);abort()
-#endif
+// #ifndef cx_array_error_handler
+//     #define cx_array_error_handler(msg)\
+//         printf("CXLIB ARRAY ERROR:%s\n",msg);abort()
+// #endif
 
 // API attributes
 #if defined(cx_array_static) && defined(cx_array_inline)

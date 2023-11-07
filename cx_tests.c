@@ -6,10 +6,14 @@
 // For cxstr error handler
 static const char* cxstr_error = NULL;
 
+//#define CX_ARRAY_ALLOCATOR
 #define cx_array_name arri32
 #define cx_array_type int
 #define cx_array_implement
 #define cx_array_static
+#ifdef CX_ARRAY_ALLOCATOR
+    #define cx_array_allocator
+#endif
 #include "cx_array.h"
 
 #define cx_hmap_name mapt1
@@ -115,7 +119,7 @@ void cxAllocBlockTest(size_t allocs, size_t blockSize) {
 
 void cxArrayTests(void) {
 
-    // Used default allocator
+    // Use default allocator
     const size_t size = 100000;
     cxArrayTest(size, cxDefaultAllocator());
 
@@ -127,7 +131,14 @@ void cxArrayTests(void) {
 
 void cxArrayTest(size_t size, const CxAllocator* alloc) {
 
+#ifdef CX_ARRAY_ALLOCATOR
+    arri32 a1 = arri32_init(alloc);
+    arri32 a2 = arri32_init(alloc);
+#else
+    arri32_allocator = alloc;
     arri32 a1 = arri32_init();
+    arri32 a2 = arri32_init();
+#endif
 
     // push
     assert(arri32_len(&a1) == 0);
@@ -166,7 +177,7 @@ void cxArrayTest(size_t size, const CxAllocator* alloc) {
         assert(a1.data[i] == i*2);
     }
     // Clone and check
-    arri32 a2 = arri32_clone(&a1);
+    a2 = arri32_clone(&a1);
     assert(arri32_len(&a2) == arri32_len(&a1));
     for (size_t i = 0; i < size; i++) {
         assert(*arri32_at(&a2, i) == *arri32_at(&a1, i));
@@ -283,6 +294,7 @@ void cxArrayTest(size_t size, const CxAllocator* alloc) {
         assert(*arri32_at(&a1, i) == bufSize-i);
         assert(a1.data[i] == bufSize-i);
     }
+    arri32_free(&a1);
 }
 
 void cxHmapTests(void) {
