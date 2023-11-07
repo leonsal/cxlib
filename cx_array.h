@@ -1,5 +1,5 @@
 /* Dynamic Array Implementation
- *
+ 
 Example
 -------
 
@@ -23,12 +23,15 @@ Example
 int main() {
 
     ai32 a1 = ai32_init();
-    
+    ai32_push(&a1, 1);
+    ai32_push(&a2, 2);
+    assert(ai32_len(&a1) = 2);
+    assert(*ai32_at(&a1, 1) = 1);
     return 0;
 }
  
-Configuration before including header file
-------------------------------------------
+Array configuration defines
+---------------------------
 
 Define the name of the array type (mandatory):
     #define cx_array_name <name>
@@ -36,10 +39,12 @@ Define the name of the array type (mandatory):
 Define the type of the array elements (mandatory):
     #define cx_array_type <name>
 
-Define the array maximum capacity (optional, default = 32):
-    #define cx_array_cap <8|16|32|64>
+Define optional array maximum capacity (default = 32):
+    #define cx_array_cap <8|16|32>
 
-Define optional error handler function: void (*handler)(const char* emsg)
+Define optional error handler function with type:
+void (*handler)(const char* err_msg, const char* func_name)
+which will be called if error is detected  (default = no handler):
     #define cx_array_error_handler <func>
 
 Sets if array uses custom allocator per instance
@@ -55,8 +60,9 @@ Sets to implement functions in this translation unit:
     #define cx_array_implement
 
 
-API
----
+Array API
+---------
+
 Assuming:
 #define cx_array_name cxarray   // Array type
 #define cx_array_type cxtype    // Type of elements of the array
@@ -307,7 +313,6 @@ static void cx_array_name_(_grow_)(cx_array_name* a, size_t addLen, size_t minCa
             .data = NULL,
         };
     }
-
 #else
 
     cx_array_api_ cx_array_name cx_array_name_(_init)(void) {
@@ -320,7 +325,6 @@ static void cx_array_name_(_grow_)(cx_array_name* a, size_t addLen, size_t minCa
             .data = NULL,
         };
     }
-
 #endif
 
 cx_array_api_ void cx_array_name_(_free)(cx_array_name* a) {
