@@ -253,12 +253,6 @@ void cxArrayTest(size_t size, const CxAllocator* alloc) {
         assert(*arri32_at(&a1, i) == i);
         assert(a1.data[i] == i);
     }
-    // Sorts data in descending order
-    arri32_sort(&a1, sort_int_desc);
-    for (size_t i = 0; i < buf_size+1; i++) {
-        assert(*arri32_at(&a1, i) == buf_size-i);
-        assert(a1.data[i] == buf_size-i);
-    }
 
     // pusha
     arri32_free(&a1);
@@ -281,6 +275,14 @@ void cxArrayTest(size_t size, const CxAllocator* alloc) {
     assert(a1.data[1] == 9);
     assert(arri32_len(&a1) == 2);
     
+    // Sorts data in descending order
+    arri32_free(&a1);
+    arri32_pushn(&a1, buf, bufSize);
+    arri32_sort(&a1, sort_int_desc);
+    for (size_t i = 0; i < bufSize; i++) {
+        assert(*arri32_at(&a1, i) == bufSize-i);
+        assert(a1.data[i] == bufSize-i);
+    }
 }
 
 void cxHmapTests(void) {

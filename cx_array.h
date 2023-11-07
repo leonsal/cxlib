@@ -123,6 +123,21 @@ Deletes 'n' elements from this array starting at index 'idx'
 Error handler is called if defined and index is invalid,
     void cxarray_deln(cxarray* a, size_t idx, size_t n);
 
+Deletes element at index 'idx'
+Error handler is called if defined and index is invalid,
+    void cxarray_del(cxarray* a, size_t idx);
+
+Deletes element at index 'idx' swaping with last element of the array.
+Error handler is called if defined and index is invalid,
+    void cxarray_delswap(cxarray* a, size_t idx);
+
+Sorts the array using the specified sort function
+For ascending order the function should return:
+0 if the elements are equal
+1 if first element greater the second
+-1 otherwise
+    void cxarray_sort)(cxarray* a, int (*f)(const cxtype*, const cxtype*));
+
 */ 
 #include <stdint.h>
 #include <stdbool.h>
@@ -448,12 +463,18 @@ cx_array_api_ void cx_array_name_(_deln)(cx_array_name* a, size_t idx, size_t n)
     a->len_ -= n;
 }
 
-cx_array_api_ void cx_array_name_(_del)(cx_array_name* a, size_t i) {
-    cx_array_name_(_deln)(a, i, 1);
+cx_array_api_ void cx_array_name_(_del)(cx_array_name* a, size_t idx) {
+    cx_array_name_(_deln)(a, idx, 1);
 }
 
-cx_array_api_ void cx_array_name_(_delswap)(cx_array_name* a, size_t i) {
-    a->data[i] = cx_array_name_(_last)(a);
+cx_array_api_ void cx_array_name_(_delswap)(cx_array_name* a, size_t idx) {
+#ifdef cx_array_error_handler
+    if (idx >= a->len_) {
+        cx_array_error_handler("invalid index");
+        return;
+    }
+#endif
+    a->data[idx] = cx_array_name_(_last)(a);
     a->len_--;
 }
 
