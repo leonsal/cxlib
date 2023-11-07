@@ -20,6 +20,11 @@ ifdef clang
 	CC=clang
 endif
 
+# Uses mingw to compile for windows
+ifdef mingw
+	CC=x86_64-w64-mingw32-gcc
+endif
+
 # Sets release
 ifdef release
 	CFLAGS+=-O2 -DNDEBUG
