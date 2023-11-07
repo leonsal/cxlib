@@ -10,7 +10,6 @@ INCS=
 OBJS=run_tests.o\
 	cx_alloc.o\
  	cx_alloc_block.o\
- 	cx_array.o\
  	cx_hmap.o\
  	cx_str.o\
  	cx_tests.o
