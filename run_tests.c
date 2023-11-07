@@ -1,10 +1,10 @@
-//#include "cx_tests.h"
-#define cx_array_name ai32
-#define cx_array_type int
-#define cx_array_static
-#define cx_array_inline
-#define cx_array_implement
-#include "cx_array.h"
+#include "cx_tests.h"
+// #define cx_array_name ai32
+// #define cx_array_type int
+// #define cx_array_static
+// #define cx_array_inline
+// #define cx_array_implement
+// #include "cx_array.h"
 
 // typedef struct Vec2 {float x; float y;} Vec2;
 // #define cx_array_name arrv2
@@ -16,8 +16,7 @@
 
 int main() {
 
-    ai32 a1 = ai32_init();
-    //cxArrayTests();
+    cxArrayTests();
     //cxarr a1 = cxarr_init();
     // cxstr s1 = cxstr_init();
     // cxstr_cpy(&s1, "x");

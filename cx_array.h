@@ -9,7 +9,7 @@ Example
 #define cx_array_static
 #define cx_array_inline
 #define cx_array_implement
-#include "cx_str.h"
+#include "cx_array.h"
 
 // Defines array of 'doubles' using instance allocator
 #define cx_array_name af64
@@ -18,7 +18,7 @@ Example
 #define cx_array_inline
 #define cx_array_allocator
 #define cx_array_implement
-#include "cx_str.h"
+#include "cx_array.h"
 
 int main() {
 
@@ -69,7 +69,7 @@ Assuming:
 Initialize array defined with custom allocator
     cxarray cxarray_init(const CxAllocator* a);
 
-Initialize string NOT defined with custom allocator
+Initialize array NOT defined with custom allocator
     cxarray cxarray_init();
 
 Free array allocated memory
@@ -190,7 +190,7 @@ typedef struct cx_array_name {
     cx_array_type*      data;
 } cx_array_name;
 
-#ifdef cx_str_allocator
+#ifdef cx_array_allocator
     cx_array_api_ cx_array_name cx_array_name_(_init)(const CxAllocator*);
 #else
     cx_array_api_ cx_array_name cx_array_name_(_init)(void);
@@ -222,7 +222,42 @@ cx_array_api_ void cx_array_name_(_sort)(cx_array_name* a, int (*f)(const cx_arr
 //
 #ifdef cx_array_implement
     cx_array_alloc_global_;
-    void cxArrayGrowFn(void* ag, size_t elemsize, size_t addlen, size_t min_cap);
+
+    // Internal array reallocation function
+static void cx_array_name_(_grow_)(cx_array_name* a, size_t addLen, size_t minCap) {
+
+    // Compute the minimum capacity needed
+    size_t minLen = a->len_ + addLen;
+    if (minLen > minCap) {
+        minCap = minLen;
+    }
+    if (minCap <= a->cap_) {
+        return;
+    }
+
+    // Increase needed capacity to guarantee O(1) amortized
+    if (minCap < 2 * a->cap_) {
+        minCap = 2 * a->cap_;
+    }
+    else if (minCap < 4) {
+        minCap = 4;
+    }
+
+    // Allocates new capacity
+    const size_t elemSize = sizeof(*(a->data));
+    const size_t allocSize = elemSize * minCap;
+    void* new = cx_array_alloc_(a, allocSize);
+    if (new == NULL) {
+        return;
+    }
+
+    // Copy current data to new area and free previous
+    memcpy(new, a->data, a->len_ * elemSize);
+    cx_array_free_(a, a->data, a->len_ * elemSize);
+    a->data = new;
+    a->cap_ = minCap;
+}
+
 
 #ifdef cx_array_allocator
 
@@ -238,6 +273,9 @@ cx_array_api_ void cx_array_name_(_sort)(cx_array_name* a, int (*f)(const cx_arr
 #else
 
     cx_array_api_ cx_array_name cx_array_name_(_init)(void) {
+        if (cx_array_name_(_allocator) == NULL) {
+            cx_array_name_(_allocator) = cxDefaultAllocator();
+        }
         return (cx_array_name) {
             .len_ = 0,
             .cap_ = 0,
@@ -279,19 +317,19 @@ cx_array_api_ bool cx_array_name_(_empty)(cx_array_name* a) {
 } 
 
 cx_array_api_ void cx_array_name_(_setcap)(cx_array_name* a, size_t cap) {
-    cxArrayGrowFn(a, sizeof(*(a->data)), 0, cap);
+    cx_array_name_(_grow_)(a, 0, cap);
 }
 
 cx_array_api_ void cx_array_name_(_setlen)(cx_array_name* a, size_t len) {
     if (a->cap_ < len) {
-        cxArrayGrowFn(a, sizeof(*(a->data)), len, 0);
+        cx_array_name_(_grow_)(a, len, 0);
     }
     a->len_ = len;
 }
 
 cx_array_api_ void cx_array_name_(_push)(cx_array_name* a, cx_array_type v) {
     if (a->len_ >= a->cap_) {
-        cxArrayGrowFn(a, sizeof(*(a->data)), 1, 0);
+        cx_array_name_(_grow_)(a, 1, 0);
     }
     a->data[a->len_++] = v;
 }
@@ -303,7 +341,7 @@ cx_array_api_ cx_array_type cx_array_name_(_pop)(cx_array_name* a) {
 
 cx_array_api_ void cx_array_name_(_append)(cx_array_name* a, cx_array_type* p, size_t n) {
     if (a->len_ + n > a->cap_) {
-        cxArrayGrowFn(a, sizeof(*(a->data)), n, 0);
+        cx_array_name_(_grow_)(a, n, 0);
     }
     memcpy(&a->data[a->len_], p, n * sizeof(*(a->data)));
     a->len_ += n;
@@ -326,13 +364,13 @@ cx_array_api_ cx_array_type cx_array_name_(_last)(const cx_array_name* a) {
 
 cx_array_api_ void cx_array_name_(_reserve)(cx_array_name* a, size_t n) {
     if (a->cap_ < a->len_ + n) {
-        cxArrayGrowFn(a, sizeof(*(a->data)), 0, a->len_+n);
+        cx_array_name_(_grow_)(a, 0, a->len_+n);
     }
 }
 
 cx_array_api_ void cx_array_name_(_insn)(cx_array_name* a, size_t i, size_t n) {
     if (a->len_ + n > a->cap_) {
-        cxArrayGrowFn(a, sizeof(*(a->data)),n,0);
+        cx_array_name_(_grow_)(a, n, 0);
     }
     a->len_ += n;
     memmove(&a->data[i+n], &a->data[i], sizeof(*(a->data)) * (a->len_-n-i));
