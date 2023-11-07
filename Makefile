@@ -1,6 +1,6 @@
 # Configuration
 TARGET=run_tests
-CFLAGS=-g -Wall -Wno-unused-function
+CFLAGS=-std=c11 -g -Wall -Wno-unused-function
 LIBS=
 INCS=
 .RECIPEPREFIX = >
