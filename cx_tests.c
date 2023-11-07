@@ -127,11 +127,23 @@ void cxArrayTests(void) {
 
 void cxArrayTest(size_t size, const CxAllocator* alloc) {
 
-    // Fill array with push
+    // pushn
     arri32 a1 = arri32_init();
     assert(arri32_len(&a1) == 0);
     assert(arri32_cap(&a1) == 0);
     assert(arri32_empty(&a1));
+    int pushData[] = {0,1,2,3,4,5};
+    size_t pushCount = sizeof(pushData)/sizeof(pushData[0]); 
+    arri32_pushn(&a1, pushData, pushCount);
+    assert(arri32_len(&a1) == pushCount);
+    // Check
+    for (size_t i = 0; i < pushCount; i++) {
+        assert(*arri32_at(&a1, i) == pushData[i]);
+        assert(a1.data[i] == i);
+    }
+
+    // push
+    arri32_free(&a1);
     for (size_t i = 0; i < size; i++) {
         arri32_push(&a1, i);
     }

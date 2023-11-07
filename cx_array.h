@@ -203,6 +203,7 @@ cx_array_api_ ptrdiff_t cx_array_name_(_len)(cx_array_name* a);
 cx_array_api_ bool cx_array_name_(_empty)(cx_array_name* a);
 cx_array_api_ void cx_array_name_(_setcap)(cx_array_name* a, size_t cap);
 cx_array_api_ void cx_array_name_(_setlen)(cx_array_name* a, size_t len);
+cx_array_api_ void cx_array_name_(_pushn)(cx_array_name* a, const cx_array_type* v, size_t n);
 cx_array_api_ void cx_array_name_(_push)(cx_array_name* a, cx_array_type v);
 cx_array_api_ cx_array_type cx_array_name_(_pop)(cx_array_name* a);
 cx_array_api_ void cx_array_name_(_append)(cx_array_name* a, cx_array_type* p, size_t n);
@@ -325,6 +326,14 @@ cx_array_api_ void cx_array_name_(_setlen)(cx_array_name* a, size_t len) {
         cx_array_name_(_grow_)(a, len, 0);
     }
     a->len_ = len;
+}
+
+cx_array_api_ void cx_array_name_(_pushn)(cx_array_name* a, const cx_array_type* v, size_t n) {
+    if (a->len_ + n > a->cap_) {
+        cx_array_name_(_grow_)(a, n, 0);
+    }
+    memcpy(a->data + a->len_, v, n * sizeof(*(a->data)));
+    a->len_ += n;
 }
 
 cx_array_api_ void cx_array_name_(_push)(cx_array_name* a, cx_array_type v) {
