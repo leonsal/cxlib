@@ -109,7 +109,11 @@ Reserve capacity for at least new 'n' elements in the array.
 
 Inserts 'n' elements from 'src' into the array at index 'idx'.
 Error handler is called if defined and index is invalid,
-    void cxarray_insn(cx_array_name* a, const cxtype* src, size_t n, size_t idx);
+    void cxarray_insn(cxarray* a, const cxtype* src, size_t n, size_t idx);
+
+Inserts specified value into the array at index 'idx'
+Error handler is called if defined and index is invalid,
+    void cxarray_ins(cxarray* a, cxtype v, size_t idx);
 
 */ 
 #include <stdint.h>
@@ -226,7 +230,7 @@ cx_array_api_ cx_array_type* cx_array_name_(_at)(cx_array_name* a, size_t idx);
 cx_array_api_ cx_array_type cx_array_name_(_last)(const cx_array_name* a);
 cx_array_api_ void cx_array_name_(_reserve)(cx_array_name* a, size_t n);
 cx_array_api_ void cx_array_name_(_insn)(cx_array_name* a, const cx_array_type* src, size_t n, size_t idx);
-cx_array_api_ void cx_array_name_(_ins)(cx_array_name* a, size_t i, cx_array_type v);
+cx_array_api_ void cx_array_name_(_ins)(cx_array_name* a, cx_array_type v, size_t idx);
 cx_array_api_ void cx_array_name_(_deln)(cx_array_name* a, size_t i, size_t n);
 cx_array_api_ void cx_array_name_(_del)(cx_array_name* a, size_t i);
 cx_array_api_ void cx_array_name_(_delswap)(cx_array_name* a, size_t i);
@@ -409,8 +413,8 @@ cx_array_api_ void cx_array_name_(_insn)(cx_array_name* a, const cx_array_type* 
     memcpy(a->data + idx, src, n * sizeof(*(a->data)));
 }
 
-cx_array_api_ void cx_array_name_(_ins)(cx_array_name* a, size_t i, cx_array_type v) {
-    cx_array_name_(_insn)(a, &v, 1, i);
+cx_array_api_ void cx_array_name_(_ins)(cx_array_name* a, cx_array_type v, size_t idx) {
+    cx_array_name_(_insn)(a, &v, 1, idx);
 }
 
 cx_array_api_ void cx_array_name_(_deln)(cx_array_name* a, size_t i, size_t n) {
