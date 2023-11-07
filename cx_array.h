@@ -131,12 +131,10 @@ Deletes element at index 'idx' swaping with last element of the array.
 Error handler is called if defined and index is invalid,
     void cxarray_delswap(cxarray* a, size_t idx);
 
-Sorts the array using the specified sort function
-For ascending order the function should return:
-0 if the elements are equal
-1 if first element greater the second
--1 otherwise
-    void cxarray_sort)(cxarray* a, int (*f)(const cxtype*, const cxtype*));
+Sorts the array using the specified sort function.
+For ascending order the function should return 0 if the elements are equal,
+1 if first element greater the second or -1 otherwise.
+    void cxarray_sort(cxarray* a, int (*f)(const cxtype*, const cxtype*));
 
 */ 
 #include <stdint.h>
@@ -487,12 +485,27 @@ cx_array_api_ void cx_array_name_(_sort)(cx_array_name* a, int (*f)(const cx_arr
 // Undefine config  macros
 #undef cx_array_name
 #undef cx_array_type
+#undef cx_array_cap
+#undef cx_array_error_handler
+#undef cx_array_allocator
 #undef cx_array_static
 #undef cx_array_inline
+#undef cx_array_implement
 
 // Undefine internal macros
 #undef cx_array_concat2_
 #undef cx_array_concat1_
 #undef cx_array_name_
+#undef cx_array_cap8_
+#undef cx_array_cap16_
+#undef cx_array_cap32_
+#undef cx_array_cap64_
+#undef cx_array_cap_type_
+#undef cx_array_max_cap_
 #undef cx_array_api_
+#undef cx_array_alloc_field_
+#undef cx_array_alloc_global_
+#undef cx_array_alloc_
+#undef cx_array_freec_
+
 
