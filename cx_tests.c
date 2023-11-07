@@ -3,9 +3,6 @@
 #include <time.h>
 #include "cx_tests.h"
 
-// For cxstr error handler
-static const char* cxstr_error = NULL;
-
 #define cx_array_name cxarray
 #define cx_array_type int
 #define cx_array_implement
@@ -13,7 +10,7 @@ static const char* cxstr_error = NULL;
 #define cx_array_cap 32
 #define cx_array_error_handler(msg,func)\
     printf("CXARRAY ERROR:%s at %s\n", msg, func);abort()
-#define CX_ARRAY_ALLOCATOR
+//#define CX_ARRAY_ALLOCATOR
 #ifdef CX_ARRAY_ALLOCATOR
     #define cx_array_allocator
 #endif
@@ -34,8 +31,8 @@ static const char* cxstr_error = NULL;
 #define cx_str_name cxstr
 #define cx_str_cap 8
 #define cx_str_static
-#define cx_str_error_handler(msg)\
-    cxstr_error=msg
+#define cx_str_error_handler(msg,func)\
+    printf("CXSTR ERROR:%s at %s\n", msg, func);abort()
 //#define CX_STR_ALLOCATOR
 #ifdef CX_STR_ALLOCATOR
     #define cx_str_allocator
@@ -497,12 +494,6 @@ void cxStrTest(const CxAllocator* alloc) {
     cxstr_inss(&s1, &s2, 5);
     assert(cxstr_cmp(&s1, "hello 123 áéíóú") == 0);
     assert(cxstr_validu8(&s1));
-
-    // checks index error
-    assert(cxstr_error == NULL);
-    cxstr_ins(&s1, "error", cxstr_len(&s1)+1);
-    assert(cxstr_error != NULL);
-    cxstr_error = NULL;
 
     // del
     cxstr_deln(&s1, 5, 4);

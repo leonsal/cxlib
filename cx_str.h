@@ -24,8 +24,8 @@ int main() {
     return 0;
 }
 
-Configuration before including header file
-------------------------------------------
+String configuration defines
+----------------------------
 
 Define the name of the string type (mandatory):
     #define cx_str_name <name>
@@ -33,7 +33,9 @@ Define the name of the string type (mandatory):
 Define the string maximum capacity (optional, default = 32):
     #define cx_str_cap <8|16|32>
 
-Define error handler function (optional):
+Define optional error handler function with type:
+void (*handler)(const char* err_msg, const char* func_name)
+which will be called if error is detected (default = no handler):
     #define cx_str_error_handler <func>
 
 Sets if string uses custom allocator per instance
@@ -49,8 +51,8 @@ Sets to implement functions in this translation unit:
     #define cx_str_implement
 
 
-API
----
+String API
+----------
 Assuming: #define cx_str_name cxstr
 
 Initialize string with custom allocator
@@ -190,12 +192,6 @@ Return 0 if equal, -1 or 1 (as memcmp())
     #error "invalid cx string capacity bits"
 #endif
 
-// Error handler
-#ifndef cx_str_error_handler
-    #define cx_str_error_handler(msg)\
-        printf("CXLIB STR ERROR:%s\n",msg);abort()
-#endif
-
 // API attributes
 #if defined(cx_str_static) && defined(cx_str_inline)
     #define cx_str_api_ static inline
@@ -327,7 +323,7 @@ static void cx_str_name_(_grow_)(cx_str_name* s, size_t addLen, size_t minCap) {
         minCap = 4;
     }
     if (minCap + 1 > cx_str_max_cap_) {
-        cx_str_error_handler("capacity exceeded");
+        cx_str_error_handler("capacity exceeded",__func__);
         return;
     }
 
@@ -522,7 +518,7 @@ cx_str_api_ void cx_str_name_(_catcp)(cx_str_name* s, int32_t cp) {
 cx_str_api_ void cx_str_name_(_insn)(cx_str_name* s, const char* src, size_t n, size_t idx) {
 
     if (idx > s->len_) {
-        cx_str_error_handler("invalid index");
+        cx_str_error_handler("invalid index", __func__);
         return;
     }
     if (s->len_ + n > s->cap_) {
@@ -547,7 +543,7 @@ cx_str_api_ void cx_str_name_(_inss)(cx_str_name* s, const cx_str_name* src, siz
 cx_str_api_ void cx_str_name_(_deln)(cx_str_name* s, size_t idx, size_t n) {
 
     if (idx >= s->len_) {
-        cx_str_error_handler("invalid index");
+        cx_str_error_handler("invalid index", __func__);
         return;
     }
     const size_t maxDel = s->len_ - idx;

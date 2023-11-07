@@ -18,6 +18,7 @@
 int main() {
 
     cxArrayTests();
+    cxStrTests();
     //cxarr a1 = cxarr_init();
     // cxstr s1 = cxstr_init();
     // cxstr_cpy(&s1, "x");
