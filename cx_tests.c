@@ -6,11 +6,13 @@
 // For cxstr error handler
 static const char* cxstr_error = NULL;
 
-#define CX_ARRAY_ALLOCATOR
 #define cx_array_name cxarray
 #define cx_array_type int
 #define cx_array_implement
 #define cx_array_static
+#define cx_array_error_handler(msg)\
+    printf("CXARRAY ERROR:%s\n", msg);abort()
+#define CX_ARRAY_ALLOCATOR
 #ifdef CX_ARRAY_ALLOCATOR
     #define cx_array_allocator
 #endif
@@ -28,12 +30,12 @@ static const char* cxstr_error = NULL;
 #define cx_hmap_implement
 #include "cx_hmap.h"
 
-//#define CX_STR_ALLOCATOR
 #define cx_str_name cxstr
 #define cx_str_cap 8
 #define cx_str_static
 #define cx_str_error_handler(msg)\
     cxstr_error=msg
+//#define CX_STR_ALLOCATOR
 #ifdef CX_STR_ALLOCATOR
     #define cx_str_allocator
 #endif

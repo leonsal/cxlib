@@ -183,12 +183,6 @@ greater than 0 if first element greater than the second or less than zero otherw
     #error "invalid cx array capacity bits"
 #endif
 
-// Error handler
-// #ifndef cx_array_error_handler
-//     #define cx_array_error_handler(msg)\
-//         printf("CXLIB ARRAY ERROR:%s\n",msg);abort()
-// #endif
-
 // API attributes
 #if defined(cx_array_static) && defined(cx_array_inline)
     #define cx_array_api_ static inline
