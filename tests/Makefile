@@ -34,7 +34,7 @@ endif
 
 # Sets address sanitizer option
 ifdef asan 
-	ASAN=-DCMAKE_C_FLAGS="-fsanitize=address"
+	ASAN=-DCMAKE_C_FLAGS="-fsanitize=address,leak"
 endif
 
 # Sets memory sanitizer options
@@ -56,6 +56,8 @@ endif
 ifdef xray
 	ifndef clang
 		$(error xray is supported only by clang)
+*.o
+*.o
 	endif
 	XRAY=-DCMAKE_C_FLAGS="-fxray-instrument"
 endif
@@ -124,20 +126,20 @@ clean:
 #
 .PHONY: pp
 pp:
-> clang -P -E main.c | clang-format
+> clang -P -E -I ../include main.c | clang-format
 
 #
 # Debug target
 #
 .PHONY: d
-d:
+d: all
 > gdb tests
 
 #
 # Run target
 #
 .PHONY: r
-r:
+r: all
 > ./tests
 
 #
