@@ -5,12 +5,14 @@
 #define cx_hmap_name mapt1
 #define cx_hmap_key int
 #define cx_hmap_val double
+#define cx_hmap_allocator
 #define cx_hmap_implement
 #include "cx_hmap.h"
 
 #define cx_hmap_name mapt2
 #define cx_hmap_key const char*
 #define cx_hmap_val double
+#define cx_hmap_allocator
 #define cx_hmap_implement
 #include "cx_hmap.h"
 
@@ -28,7 +30,7 @@ void cxHmapTest(size_t size, size_t nbuckets, const CxAllocator* alloc) {
     //
     {
         // Initializes map type 1 and sets entries
-        mapt1 m1 = mapt1_init2(nbuckets, alloc);
+        mapt1 m1 = mapt1_init(alloc, nbuckets);
         for (size_t  i = 0; i < size; i++) {
             mapt1_set(&m1, i, i*2.0);
         }
@@ -87,7 +89,7 @@ void cxHmapTest(size_t size, size_t nbuckets, const CxAllocator* alloc) {
             "30","31","32","33","34","35","36","37","38","39",
         };
         const size_t keyCount = sizeof(keys)/sizeof(const char*);
-        mapt2 m1 = mapt2_init2(nbuckets, alloc);
+        mapt2 m1 = mapt2_init(alloc, nbuckets);
         for (size_t  i = 0; i < keyCount; i++) {
             mapt2_set(&m1, keys[i], atof(keys[i]) * 2);
         }

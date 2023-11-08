@@ -87,11 +87,15 @@ typedef struct cx_hmap_name_(_iter) {
     cx_hmap_name_(_entry)*  next_;
 } cx_hmap_name_(_iter);
 
+// This is declared only once
+#ifndef CX_HMAP_H
+#define CX_HMAP_H
 typedef enum {
     cx_hmap_op_set,
     cx_hmap_op_get,
     cx_hmap_op_del,
 } cx_hmap_op;
+#endif
 
 #ifdef cx_hmap_allocator
     cx_hmap_api_ cx_hmap_name cx_hmap_name_(_init)(const CxAllocator* alloc, size_t nbuckets);
@@ -163,7 +167,7 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
         }
 
         // This bucket is used, checks its key
-        if (cx_hmap_cmp_key(&e->key, &key, sizeof(cx_hmap_key)) == 0) {
+        if (cx_hmap_cmp_key(&e->key, key, sizeof(cx_hmap_key)) == 0) {
             // For "Get" or "Set" just returns the pointer to this entry.
             if (op == cx_hmap_op_get || op == cx_hmap_op_set) {
                 return e;
