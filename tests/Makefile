@@ -9,6 +9,7 @@
 CLEANFILES=tests
 
 # Sets compiler option
+CC=-DCMAKE_C_COMPILER=gcc
 ifdef gcc
 	CC=-DCMAKE_C_COMPILER=gcc 
 endif
@@ -17,8 +18,6 @@ ifdef clang
 endif
 ifdef msvc
 	CC=-DCMAKE_C_COMPILER=cl 
-else
-	CC=-DCMAKE_C_COMPILER=gcc
 endif
 
 # Sets the build type option
@@ -57,15 +56,13 @@ endif
 ifdef xray
 	ifndef clang
 		$(error xray is supported only by clang)
-*.o
-*.o
 	endif
 	XRAY=-DCMAKE_C_FLAGS="-fxray-instrument"
 endif
 
 # Build system generator
-#GEN=-G "Unix Makefiles"
-GEN=-G "Ninja"
+GEN=-G "Unix Makefiles"
+#GEN=-G "Ninja"
 ifeq ($(OS),Windows_NT)
 	GEN=-G "MinGW Makefiles"
 endif
@@ -117,8 +114,9 @@ xray-evt:
 #
 .PHONY: clean
 clean:
-> cmake -E remove xray-log*
 > cmake -E remove $(CLEANFILES)
+> cmake -E remove gmon.out
+> cmake -E remove xray-log*
 > cmake -E remove_directory -f build
 > cmake -E remove -f build_options
 
