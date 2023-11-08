@@ -47,20 +47,20 @@
 // Use custom instance allocator
 #ifdef cx_hmap_allocator
     #define cx_hmap_alloc_field_\
-        const CxAllocator* alloc;
+        const CxAllocator* alloc_;
     #define cx_hmap_alloc_global_
     #define cx_hmap_alloc_(s,n)\
-        cx_alloc_alloc(s->alloc, n)
+        cx_alloc_alloc(s->alloc_, n)
     #define cx_hmap_free_(s,p,n)\
-        cx_alloc_free(s->alloc, p, n)
+        cx_alloc_free(s->alloc_, p, n)
 // Use global type allocator
 #else
     #define cx_hmap_alloc_field_
     #define cx_hmap_alloc_global_\
         static const CxAllocator* cx_hmap_name_(_allocator) = NULL;
-    #define cx_hmap_alloc_(s,n)\
+    #define cx_hmap_alloc_(m,n)\
         cx_alloc_alloc(cx_hmap_name_(_allocator),n)
-    #define cx_hmap_free_(s,p,n)\
+    #define cx_hmap_free_(m,p,n)\
         cx_alloc_free(cx_hmap_name_(_allocator),p,n)
 #endif
 
@@ -238,7 +238,7 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
 
     cx_hmap_api_ cx_hmap_name cx_hmap_name_(_init)(const CxAllocator* alloc, size_t nbuckets) {
         return (cx_hmap_name){
-            .alloc = alloc == NULL ? cxDefaultAllocator() : alloc,
+            .alloc_ = alloc == NULL ? cxDefaultAllocator() : alloc,
             .bucketCount_ = nbuckets == 0 ? cx_hmap_def_nbuckets : nbuckets,
             .entryCount_ = 0,
             .buckets_ = NULL,
@@ -247,7 +247,7 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
 
     cx_hmap_api_ cx_hmap_name cx_hmap_name_(_clone)(cx_hmap_name* src, size_t nbuckets, const CxAllocator* alloc) {
 
-        cx_hmap_name dst = cx_hmap_name_(_init)(alloc == NULL ? src->alloc : alloc, nbuckets);
+        cx_hmap_name dst = cx_hmap_name_(_init)(alloc == NULL ? src->alloc_ : alloc, nbuckets);
         cx_hmap_name_(_iter) iter = {0};
         while (true) {
             cx_hmap_name_(_entry)* e = cx_hmap_name_(_next)(src, &iter);
