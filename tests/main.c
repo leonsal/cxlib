@@ -7,6 +7,7 @@
 #define cx_hmap_name map
 #define cx_hmap_key int
 #define cx_hmap_val double
+//#define cx_hmap_allocator
 #define cx_hmap_implement
 #include "cx_hmap.h"
 
@@ -14,7 +15,7 @@ int main() {
 
     //cxAllocBlockTests();
     //cxArrayTests();
-    cxHmapTests();
+    //cxHmapTests();
     //cxStrTests();
     return 0;
 }

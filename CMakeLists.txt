@@ -9,8 +9,8 @@ set(SOURCES
     include/cx_hmap.h
     src/cx_alloc.c
     src/cx_alloc_block.c
-    src/cx_hmap.c
     src/cx_str.c
+    src/cx_hmap.c
 )
 
 add_library(cxlib ${SOURCES})

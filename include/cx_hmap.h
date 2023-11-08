@@ -67,24 +67,27 @@
 #endif
 
 //
-// Declarations (only generated once)
+// Declarations
 //
-#ifndef CX_HMAP_H 
-#define CX_HMAP_H
 
-typedef struct CxHmapState {
-    const       CxAllocator* alloc;
+typedef struct cx_hmap_name_(_entry) {
+    struct cx_hmap_name_(_entry)* next_;
+    cx_hmap_key key;
+    cx_hmap_val val;
+} cx_hmap_name_(_entry);
+
+typedef struct cx_hmap_name {
+    cx_hmap_alloc_field_
     void*       userdata;
-    size_t      entrySize;
-    size_t      keySize;
     size_t      entryCount;
     size_t      bucketCount;
-} CxHmapState;
+    cx_hmap_name_(_entry)* buckets;
+} cx_hmap_name;
 
-typedef struct CxHmapIter {
+typedef struct cx_hmap_name_(_iter) {
     size_t bucket;
-    void*  next;
-} CxHmapIter;
+    cx_hmap_name_(_entry)*  next_;
+} cx_hmap_name_(_iter);
 
 typedef enum {
     cx_hmap_op_set,
@@ -92,104 +95,280 @@ typedef enum {
     cx_hmap_op_del,
 } cx_hmap_op;
 
-// Declaration of generic implementation functions
-int cxHmapCmpKey(void* k1, void* k2, size_t size);
-size_t cxHmapHashKey(char* key, size_t keySize);
-void cxHmapFreeFn(CxHmapState *ms);
-void* cxHmapOperFn(CxHmapState* ms, cx_hmap_op op, void *key);
-void* cxHmapNext(const CxHmapState* ms, CxHmapIter* iter);
-
+#ifdef cx_array_allocator
+    cx_hmap_api_ cx_hmap_name cx_hmap_name_(_init)(const CxAllocator* alloc, size_t nbuckets);
+    cx_hmap_api_ cx_hmap_name cx_hmap_name_(_clone)(cx_hmap_name* src, size_t nbuckets, const CxAllocator* alloc);
+#else
+    cx_hmap_api_ cx_hmap_name cx_hmap_name_(_init)(size_t nbuckets);
+    cx_hmap_api_ cx_hmap_name cx_hmap_name_(_clone)(cx_hmap_name* src, size_t nbuckets);
 #endif
-
-//
-// Internal declarations used only by cx_hmap.c
-//
-#ifndef cx_hmap_internal
-
-typedef struct cx_hmap_name_(_entry) {
-    struct cx_hmap_name_(_entry)* n;
-    cx_hmap_key key;
-    cx_hmap_val val;
-} cx_hmap_name_(_entry);
-
-typedef struct cx_hmap_name {
-    CxHmapState s;
-    cx_hmap_name_(_entry)* buckets;
-} cx_hmap_name;
-
-// Declare hmap iter type
-typedef CxHmapIter cx_hmap_name_(_iter);
-
-cx_hmap_api_ cx_hmap_name cx_hmap_name_(_init)(void);
-cx_hmap_api_ cx_hmap_name cx_hmap_name_(_init2)(size_t nbuckets, const CxAllocator* alloc);
 cx_hmap_api_ void cx_hmap_name_(_free)(cx_hmap_name* m);
 cx_hmap_api_ void cx_hmap_name_(_set)(cx_hmap_name* m, cx_hmap_key k, cx_hmap_val v);
 cx_hmap_api_ cx_hmap_val* cx_hmap_name_(_get)(cx_hmap_name* m, cx_hmap_key k);
 cx_hmap_api_ bool cx_hmap_name_(_del)(cx_hmap_name* m, cx_hmap_key k);
 cx_hmap_api_ size_t cx_hmap_name_(_count)(cx_hmap_name* m);
 cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hmap_name_(_iter)* iter);
-cx_hmap_api_ cx_hmap_name cx_hmap_name_(_clone)(cx_hmap_name* src, size_t nbuckets, const CxAllocator* alloc);
 
-#endif
+// Declaration of generic implementation functions
+// int cxHmapCmpKey(void* k1, void* k2, size_t size);
+// size_t cxHmapHashKey(char* key, size_t keySize);
+// void cxHmapFreeFn(CxHmapState *ms);
+// void* cxHmapOperFn(CxHmapState* ms, cx_hmap_op op, void *key);
+// void* cxHmapNext(const CxHmapState* ms, CxHmapIter* iter);
 
 //
 // Implementations
 //
 #ifdef cx_hmap_implement
+    cx_hmap_alloc_global_;
 
-cx_hmap_api_ cx_hmap_name cx_hmap_name_(_init)(void) {
-    return cx_hmap_name_(_init2)(cx_hmap_def_nbuckets, cxDefaultAllocator());
-}
+    // Default key hash functions
+    size_t cxHmapHashKey(char* key, size_t keySize);
+    int cxHmapCmpKey(void* k1, void* k2, size_t size);
 
-cx_hmap_api_ cx_hmap_name cx_hmap_name_(_init2)(size_t nbuckets, const CxAllocator* alloc) {
-    return (cx_hmap_name){
-        .s.alloc = alloc == NULL ? cxDefaultAllocator() : alloc,
-        .s.bucketCount = nbuckets == 0 ? cx_hmap_def_nbuckets : nbuckets,
-        .s.entrySize = sizeof(cx_hmap_name_(_entry)),
-        .s.keySize = sizeof(((cx_hmap_name_(_entry)*)0)->key),
-        .s.entryCount = 0,
-        .buckets = NULL,
-    };
-}
+    // Creates a new entry and inserts it after specified parent
+    cx_hmap_name_(_entry)* cx_hmap_name_(_add_entry_)(cx_hmap_name* m, cx_hmap_name_(_entry)* par, cx_hmap_key* key) {
+
+        cx_hmap_name_(_entry)* new = cx_hmap_alloc_(m, sizeof(cx_hmap_name_(_entry)));
+        memcpy(&new->key, key, sizeof(cx_hmap_key));
+        new->next_ = NULL;
+        par->next_ = new;
+        m->entryCount++;
+        return new;
+    }
+
+    cx_hmap_name_(_entry)* cx_hmap_name_(_oper_)(cx_hmap_name* m, cx_hmap_op op, cx_hmap_key* key) {
+
+        if (m->buckets == NULL) {
+            if (op == cx_hmap_op_get) {
+                return NULL;
+            }
+            if (op == cx_hmap_op_del) {
+                return NULL;
+            }
+            if (op == cx_hmap_op_set) {
+                const size_t allocSize = m->bucketCount * sizeof(*m->buckets);
+                m->buckets = cx_hmap_alloc_(m, allocSize);
+                memset(m->buckets, 0, allocSize);
+            }
+        }
+        // Hash the key, calculates the bucket index and get its pointer
+        const size_t hash = cx_hmap_hash_key((char*)key, sizeof(cx_hmap_key));
+        const size_t idx = hash % m->bucketCount;
+        cx_hmap_name_(_entry)* e = m->buckets + idx * sizeof(*m->buckets);
+
+        // If bucket next pointer is NULL, the bucket is empty
+        if (e->next_ == NULL) {
+            // For "Get" or "Del" returns NULL pointer indicating entry not found
+            if (op == cx_hmap_op_get || op == cx_hmap_op_del) {
+                return NULL;
+            }
+            memcpy(&e->key, key, sizeof(cx_hmap_key));
+            e->next_ = e;
+            m->entryCount++;
+            return e;
+        }
+
+        // This bucket is used, checks its key
+        if (cx_hmap_cmp_key(&e->key, &key, sizeof(cx_hmap_key)) == 0) {
+            // For "Get" or "Set" just returns the pointer to this entry.
+            if (op == cx_hmap_op_get || op == cx_hmap_op_set) {
+                return e;
+            }
+            // For "Del" sets this bucket as empty
+            // For string keys, free allocated key
+            m->entryCount--;
+            if (e == e->next_) {
+                e->next_ = NULL;
+                return e;
+            }
+            // Moves the first linked entry to the bucket area and
+            // frees allocated link entry.
+            cx_hmap_name_(_entry)* next = e->next_;
+            memcpy(e, next, sizeof(cx_hmap_name_(_entry)));
+            if (e->next_ == NULL) {
+                e->next_ = e;
+            }
+            cx_hmap_free_(m, next, sizeof(cx_hmap_name_(_entry)));
+            return e;
+        }
+
+        // If bucket next pointer is equal to itself, it contains single entry, returns NULL
+        if (e == e->next_) {
+            // For "Get" or "Del" just returns NULL pointer indicating entry not found.
+            if (op == cx_hmap_op_get || op == cx_hmap_op_del) {
+                return NULL;
+            }
+            // For "Set" adds first link to this bucket, returning its pointer
+            return cx_hmap_name_(_add_entry_)(m, e, key);
+        }
+
+        // Checks the linked list of entries starting at this bucket.
+        cx_hmap_name_(_entry)* prev = e;
+        cx_hmap_name_(_entry)* curr = e->next_;
+        size_t maxSearch = 1;
+        while (curr != NULL) {
+            maxSearch++;
+            if (cx_hmap_cmp_key(&curr->key, key, sizeof(cx_hmap_key)) == 0) {
+                // For "Get" or "Set" just returns the pointer
+                if (op == cx_hmap_op_get) {
+                    return curr;
+                }
+                if (op == cx_hmap_op_set) {
+                    // if (maxSearch > m->maxSearch) {
+                    //     m->maxSearch = maxSearch;
+                    // }
+                    return curr;
+                }
+                // For "Del" removes this entry from the linked list
+                prev->next_ = curr->next_;
+                if (prev == e && prev->next_ == NULL) {
+                    e->next_ = e;
+                }
+                cx_hmap_free_(m, curr, sizeof(cx_hmap_name_(_entry)));
+                m->entryCount--;
+                return curr;
+            }
+            prev = curr;
+            curr = curr->next_;
+        }
+        // Entry not found
+        if (op == cx_hmap_op_get || op == cx_hmap_op_del) {
+            return NULL;
+        }
+        // Adds new entry to this bucket at the end of the linked list and returns its pointer
+        cx_hmap_name_(_entry)* new = cx_hmap_name_(_add_entry_)(m, prev, key);
+        return new;
+    }
+
+#ifdef cx_hmap_allocator
+
+    cx_hmap_api_ cx_hmap_name cx_hmap_name_(_init)(const CxAllocator* alloc, size_t nbuckets) {
+        return (cx_hmap_name){
+            .alloc = alloc == NULL ? cxDefaultAllocator() : alloc,
+            .bucketCount = nbuckets == 0 ? cx_hmap_def_nbuckets : nbuckets,
+            .entryCount = 0,
+            .buckets = NULL,
+        };
+    }
+
+    cx_hmap_api_ cx_hmap_name cx_hmap_name_(_clone)(cx_hmap_name* src, size_t nbuckets, const CxAllocator* alloc) {
+
+        cx_hmap_name dst = cx_hmap_name_(_init)(alloc == NULL ? src->s.alloc : alloc, nbuckets);
+        cx_hmap_name_(_iter) iter = {0};
+        while (true) {
+            cx_hmap_name_(_entry)* e = cx_hmap_name_(_next)(src, &iter);
+            if (e == NULL) {
+                return dst;
+            }
+            cx_hmap_name_(_set)(&dst, e->key, e->val);
+        }
+        return dst;
+    }
+#else
+
+    cx_hmap_api_ cx_hmap_name cx_hmap_name_(_init)(size_t nbuckets) {
+        if (cx_hmap_name_(_allocator) == NULL) {
+            cx_hmap_name_(_allocator) = cxDefaultAllocator();
+        }
+        return (cx_hmap_name){
+            .bucketCount = nbuckets == 0 ? cx_hmap_def_nbuckets : nbuckets,
+            .entryCount = 0,
+            .buckets = NULL,
+        };
+    }
+
+    cx_hmap_api_ cx_hmap_name cx_hmap_name_(_clone)(cx_hmap_name* src, size_t nbuckets) {
+
+        cx_hmap_name dst = cx_hmap_name_(_init)(nbuckets);
+        cx_hmap_name_(_iter) iter = {0};
+        while (true) {
+            cx_hmap_name_(_entry)* e = cx_hmap_name_(_next)(src, &iter);
+            if (e == NULL) {
+                return dst;
+            }
+            cx_hmap_name_(_set)(&dst, e->key, e->val);
+        }
+        return dst;
+    }
+
+#endif
 
 cx_hmap_api_ void cx_hmap_name_(_free)(cx_hmap_name* m) {
-    cxHmapFreeFn(&m->s);
+
+    if (m == NULL) {
+         return;
+    }
+    for (size_t i = 0; i < m->bucketCount; i++) {
+        cx_hmap_name_(_entry)* e = m->buckets + (i * sizeof(cx_hmap_name_(_entry)));
+        // If bucket is empty or is a single entry, continue
+        if (e->next_ == NULL) {
+            continue;
+        }
+        // Free this bucket
+        if (e->next_ == e) {
+            e->next_ = NULL;
+            continue;
+        }
+        // Free the linked list of entries
+        cx_hmap_name_(_entry)* curr = e->next_;
+        while (curr != NULL) {
+            cx_hmap_name_(_entry)* prev = curr;
+            curr = curr->next_;
+            cx_hmap_free_(m, prev, sizeof(cx_hmap_name_(_entry)));
+        }
+        e->next_ = NULL;
+    }
+    cx_hmap_free_(m, m->buckets, m->bucketCount * sizeof(cx_hmap_name_(_entry)));
+    m->entryCount = 0;
+    m->buckets = NULL;
 }
 
 cx_hmap_api_ void cx_hmap_name_(_set)(cx_hmap_name* m, cx_hmap_key k, cx_hmap_val v) {
-    cx_hmap_name_(_entry)* e = cxHmapOperFn(&m->s, cx_hmap_op_set, &k);
+
+    cx_hmap_name_(_entry)* e = cx_hmap_name_(_oper_)(m, cx_hmap_op_set, &k);
     e->val = v;
 }
 
 cx_hmap_api_ cx_hmap_val* cx_hmap_name_(_get)(cx_hmap_name* m, cx_hmap_key k) {
-    cx_hmap_name_(_entry)* e = cxHmapOperFn(&m->s, cx_hmap_op_get, &k);
+    cx_hmap_name_(_entry)* e = cx_hmap_name_(_oper_)(m, cx_hmap_op_get, &k);
     return e == NULL ? NULL : &e->val;
 }
 
 cx_hmap_api_ bool cx_hmap_name_(_del)(cx_hmap_name* m, cx_hmap_key k) {
-    cx_hmap_name_(_entry)* e = cxHmapOperFn(&m->s, cx_hmap_op_del, &k);
+    cx_hmap_name_(_entry)* e = cx_hmap_name_(_oper_)(m, cx_hmap_op_del, &k);
     return e == NULL ? false : true;
 }
 
 cx_hmap_api_ size_t cx_hmap_name_(_count)(cx_hmap_name* m) {
-    return m->s.entryCount;
+    return m->entryCount;
 }
 
 cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hmap_name_(_iter)* iter) {
-    return cxHmapNext(&m->s, iter);
-}
 
-cx_hmap_api_ cx_hmap_name cx_hmap_name_(_clone)(cx_hmap_name* src, size_t nbuckets, const CxAllocator* alloc) {
-    cx_hmap_name dst = cx_hmap_name_(_init2)(nbuckets, alloc == NULL ? src->s.alloc : alloc);
-    cx_hmap_name_(_iter) iter = {0};
-    while (true) {
-        cx_hmap_name_(_entry)* e = cx_hmap_name_(_next)(src, &iter);
-        if (e == NULL) {
-            return dst;
+    for (size_t i = iter->bucket; i < m->bucketCount; i++) {
+        if (iter->next_ != NULL) {
+            cx_hmap_name_(_entry)* e = iter->next_;
+            iter->next_ = e->next_;
+            if (iter->next_ == NULL) {
+                iter->bucket++;
+            }
+            return e;
         }
-        cx_hmap_name_(_set)(&dst, e->key, e->val);
+        cx_hmap_name_(_entry)* e = m->buckets + (i * sizeof(*e));
+        if (e->next_ == NULL) {
+            iter->bucket++;
+            continue;
+        }
+        if (e->next_ == e) {
+            iter->bucket++;
+            iter->next_ = NULL;
+            return e;
+        }
+        iter->next_ = e->next_;
+        return e;
     }
-    return dst;
+    return NULL;
 }
 
 #endif
