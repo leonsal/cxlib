@@ -14,7 +14,7 @@ int main() {
 
     //cxAllocBlockTests();
     //cxArrayTests();
-    //cxHmapTests();
+    cxHmapTests();
     //cxStrTests();
     return 0;
 }
