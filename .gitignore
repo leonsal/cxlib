@@ -1,5 +1,2 @@
-*.o
 .cache
-make_deps
-make_options
-run_tests
+build

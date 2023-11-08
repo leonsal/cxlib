@@ -322,10 +322,13 @@ static void cx_str_name_(_grow_)(cx_str_name* s, size_t addLen, size_t minCap) {
     else if (minCap < 4) {
         minCap = 4;
     }
+
+#ifdef cx_str_error_handler
     if (minCap + 1 > cx_str_max_cap_) {
         cx_str_error_handler("capacity exceeded",__func__);
         return;
     }
+#endif
 
     // Allocates new capacity
     const size_t elemSize = sizeof(*(s->data));
@@ -517,10 +520,13 @@ cx_str_api_ void cx_str_name_(_catcp)(cx_str_name* s, int32_t cp) {
 
 cx_str_api_ void cx_str_name_(_insn)(cx_str_name* s, const char* src, size_t n, size_t idx) {
 
+#ifdef cx_str_error_handler
     if (idx > s->len_) {
         cx_str_error_handler("invalid index", __func__);
         return;
     }
+#endif
+
     if (s->len_ + n > s->cap_) {
         cx_str_name_(_grow_)(s, n, 0);
     }
@@ -542,10 +548,13 @@ cx_str_api_ void cx_str_name_(_inss)(cx_str_name* s, const cx_str_name* src, siz
 
 cx_str_api_ void cx_str_name_(_deln)(cx_str_name* s, size_t idx, size_t n) {
 
+#ifdef cx_str_error_handler
     if (idx >= s->len_) {
         cx_str_error_handler("invalid index", __func__);
         return;
     }
+#endif
+
     const size_t maxDel = s->len_ - idx;
     n = n > maxDel ? maxDel : n;
     memmove(s->data + idx, s->data + idx + n, s->len_ - idx - n);
