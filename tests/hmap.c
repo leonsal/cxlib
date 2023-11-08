@@ -21,10 +21,13 @@
 
 void cxHmapTests(void) {
 
-    cxHmapTest(1000, 1000/4, NULL);
+    cxHmapTest(10000, 1000/4, NULL);
 }
 
 void cxHmapTest(size_t size, size_t nbuckets, const CxAllocator* alloc) {
+
+    // Size must be greater than this value for tests
+    assert(size >= 100);
 
     //
     // map type 1: int -> double
@@ -55,6 +58,41 @@ void cxHmapTest(size_t size, size_t nbuckets, const CxAllocator* alloc) {
             //fprintf(stderr, "k:%u v:%f\n", e->key, e->val);
         }
         assert(m1Count == size);
+
+        // Deletes first 10 keys
+        size_t delCount = 10;
+        for (size_t i = 0; i < delCount; i++) {
+            mapt1_del(&m1, i);
+        }
+        assert(mapt1_count(&m1) == size - delCount);
+        // Checks keys
+        for (size_t  i = 0; i < size; i++) {
+            if (i < delCount) {
+                assert(mapt1_get(&m1, i) == NULL);
+            } else {
+                assert(*mapt1_get(&m1, i) == i * 2.0);
+            }
+        }
+
+        // Deletes last 10 keys
+        size_t currCount = mapt1_count(&m1);
+        size_t delStart = size > 10 ? size - 10 : 0;
+        for (size_t i = delStart; i < size; i++) {
+            mapt1_del(&m1, i);
+        }
+        assert(mapt1_count(&m1) == currCount - delCount);
+        // Checks keys
+        for (size_t  i = 0; i < size; i++) {
+            if (i < delCount) {
+                assert(mapt1_get(&m1, i) == NULL);
+                continue;
+            }
+            if (i >= delStart) {
+                assert(mapt1_get(&m1, i) == NULL);
+                continue;
+            }
+            assert(*mapt1_get(&m1, i) == i * 2.0);
+        }
 
         // Clones map and checks entries of cloned map
         mapt1 m2 = mapt1_clone(&m1, nbuckets*2, NULL);
