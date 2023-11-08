@@ -46,6 +46,26 @@
     #define cx_hmap_api_
 #endif
 
+// Use custom instance allocator
+#ifdef cx_hmap_allocator
+    #define cx_hmap_alloc_field_\
+        const CxAllocator* alloc;
+    #define cx_hmap_alloc_global_
+    #define cx_hmap_alloc_(s,n)\
+        cx_alloc_alloc(s->alloc, n)
+    #define cx_hmap_free_(s,p,n)\
+        cx_alloc_free(s->alloc, p, n)
+// Use global type allocator
+#else
+    #define cx_hmap_alloc_field_
+    #define cx_hmap_alloc_global_\
+        static const CxAllocator* cx_hmap_name_(_allocator) = NULL;
+    #define cx_hmap_alloc_(s,n)\
+        cx_alloc_alloc(cx_hmap_name_(_allocator),n)
+    #define cx_hmap_free_(s,p,n)\
+        cx_alloc_free(cx_hmap_name_(_allocator),p,n)
+#endif
+
 //
 // Declarations (only generated once)
 //
