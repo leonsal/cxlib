@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <assert.h>
+#include <stdio.h>
 
 #define cx_hmap_name mapt1
 #define cx_hmap_key int
@@ -20,7 +21,7 @@
 
 void cxHmapTests(void) {
 
-    cxHmapTest(50, 50/2, NULL);
+    cxHmapTest(1000, 1000/4, NULL);
 }
 
 void cxHmapTest(size_t size, size_t nbuckets, const CxAllocator* alloc) {
@@ -51,7 +52,7 @@ void cxHmapTest(size_t size, size_t nbuckets, const CxAllocator* alloc) {
             }
             m1Count++;
             assert(e->val == e->key * 2.0);
-            //printf("k:%u v:%f\n", e->key, e->val);
+            //fprintf(stderr, "k:%u v:%f\n", e->key, e->val);
         }
         assert(m1Count == size);
 

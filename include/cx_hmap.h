@@ -152,7 +152,7 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
         // Hash the key, calculates the bucket index and get its pointer
         const size_t hash = cx_hmap_hash_key((char*)key, sizeof(cx_hmap_key));
         const size_t idx = hash % m->bucketCount_;
-        cx_hmap_name_(_entry)* e = m->buckets_ + (idx * sizeof(*e));
+        cx_hmap_name_(_entry)* e = m->buckets_ + idx;
 
         // If bucket next pointer is NULL, the bucket is empty
         if (e->next_ == NULL) {
@@ -297,7 +297,7 @@ cx_hmap_api_ void cx_hmap_name_(_free)(cx_hmap_name* m) {
          return;
     }
     for (size_t i = 0; i < m->bucketCount_; i++) {
-        cx_hmap_name_(_entry)* e = m->buckets_ + (i * sizeof(cx_hmap_name_(_entry)));
+        cx_hmap_name_(_entry)* e = m->buckets_ + i;
         // If bucket is empty or is a single entry, continue
         if (e->next_ == NULL) {
             continue;
@@ -352,7 +352,7 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
             }
             return e;
         }
-        cx_hmap_name_(_entry)* e = m->buckets_ + (i * sizeof(*e));
+        cx_hmap_name_(_entry)* e = m->buckets_ + i;
         if (e->next_ == NULL) {
             iter->bucket_++;
             continue;
