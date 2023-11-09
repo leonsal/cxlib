@@ -39,12 +39,10 @@ void cxHmapTest(size_t size, size_t nbuckets, const CxAllocator* alloc) {
             mapt1_set(&m1, i, i*2.0);
         }
         assert(mapt1_count(&m1) == size);
-
         // Checks entries directly
         for (size_t  i = 0; i < size; i++) {
             assert(*mapt1_get(&m1, i) == i * 2.0);
         }
-
         // Checks entries using iterator
         mapt1_iter iter1 = {};
         size_t m1Count = 0;
@@ -59,39 +57,63 @@ void cxHmapTest(size_t size, size_t nbuckets, const CxAllocator* alloc) {
         }
         assert(m1Count == size);
 
-        // Deletes first 10 keys
-        size_t delCount = 10;
-        for (size_t i = 0; i < delCount; i++) {
-            mapt1_del(&m1, i);
+        // Overwrites all keys
+        for (size_t i = 0; i < size; i++) {
+            mapt1_set(&m1, i, i*3.0);
         }
-        assert(mapt1_count(&m1) == size - delCount);
-        // Checks keys
+        // Checks entries directly
         for (size_t  i = 0; i < size; i++) {
-            if (i < delCount) {
+            assert(*mapt1_get(&m1, i) == i * 3.0);
+        }
+
+        // Delete even keys
+        for (size_t i = 0; i < size; i++) {
+            if (i % 2 == 0) {
+                mapt1_del(&m1, i);
+            }
+        }
+        // Checks entries
+        for (size_t  i = 0; i < size; i++) {
+            if (i % 2 == 0) {
                 assert(mapt1_get(&m1, i) == NULL);
-            } else {
-                assert(*mapt1_get(&m1, i) == i * 2.0);
+            }
+            else {
+                assert(*mapt1_get(&m1, i) == i * 3.0);
             }
         }
 
-        // Deletes last 10 keys
-        size_t currCount = mapt1_count(&m1);
-        size_t delStart = size > 10 ? size - 10 : 0;
-        for (size_t i = delStart; i < size; i++) {
-            mapt1_del(&m1, i);
+        // Overwrites all keys
+        for (size_t i = 0; i < size; i++) {
+            mapt1_set(&m1, i, i*4.0);
         }
-        assert(mapt1_count(&m1) == currCount - delCount);
-        // Checks keys
+        // Checks entries directly
         for (size_t  i = 0; i < size; i++) {
-            if (i < delCount) {
-                assert(mapt1_get(&m1, i) == NULL);
-                continue;
+            assert(*mapt1_get(&m1, i) == i * 4.0);
+        }
+
+        // Delete odd keys
+        for (size_t i = 0; i < size; i++) {
+            if (i % 2) {
+                mapt1_del(&m1, i);
             }
-            if (i >= delStart) {
+        }
+        // Checks entries
+        for (size_t  i = 0; i < size; i++) {
+            if (i % 2) {
                 assert(mapt1_get(&m1, i) == NULL);
-                continue;
             }
-            assert(*mapt1_get(&m1, i) == i * 2.0);
+            else {
+                assert(*mapt1_get(&m1, i) == i * 4.0);
+            }
+        }
+
+        // Overwrites all keys
+        for (size_t i = 0; i < size; i++) {
+            mapt1_set(&m1, i, i*5.0);
+        }
+        // Checks entries directly
+        for (size_t  i = 0; i < size; i++) {
+            assert(*mapt1_get(&m1, i) == i * 5.0);
         }
 
         // Clones map and checks entries of cloned map
