@@ -20,12 +20,13 @@
 
 // Default key comparison function
 #ifndef cx_hmap_cmp_key
-    #define cx_hmap_cmp_key cxHmapCmpKey
+    #define cx_hmap_cmp_key memcmp
 #endif
 
 // Default key hash function
 #ifndef cx_hmap_hash_key
-    #define cx_hmap_hash_key cxHmapHashKey
+    #define cx_hmap_hash_key cxHashFNV1a32
+
 #endif
 
 // Auxiliary internal macros
@@ -77,6 +78,7 @@ typedef struct cx_hmap_name_(_entry) {
 typedef struct cx_hmap_name {
     cx_hmap_alloc_field_
     void*       userdata;
+    size_t      maxChain;
     size_t      entryCount_;
     size_t      bucketCount_;
     cx_hmap_name_(_entry)* buckets_;
@@ -119,7 +121,7 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
     cx_hmap_alloc_global_;
 
     // External functions defined in 'cx_hmap.c'
-    size_t cxHmapHashKey(char* key, size_t keySize);
+    size_t cxHashFNV1a32(void* key, size_t keySize);
     int cxHmapCmpKey(void* k1, void* k2, size_t size);
 
     // Creates a new entry and inserts it after specified parent
@@ -203,18 +205,15 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
         // Checks the linked list of entries starting at this bucket.
         cx_hmap_name_(_entry)* prev = e;
         cx_hmap_name_(_entry)* curr = e->next_;
-        size_t maxSearch = 1;
+        size_t maxChain = 0;
         while (curr != NULL) {
-            maxSearch++;
+            maxChain++;
             if (cx_hmap_cmp_key(&curr->key, key, sizeof(cx_hmap_key)) == 0) {
                 // For "Get" or "Set" just returns the pointer
                 if (op == cx_hmap_op_get) {
                     return curr;
                 }
                 if (op == cx_hmap_op_set) {
-                    // if (maxSearch > m->maxSearch) {
-                    //     m->maxSearch = maxSearch;
-                    // }
                     return curr;
                 }
                 // For "Del" removes this entry from the linked list
@@ -228,6 +227,9 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
             }
             prev = curr;
             curr = curr->next_;
+        }
+        if (maxChain > m->maxChain) {
+            m->maxChain = maxChain;
         }
         // Entry not found
         if (op == cx_hmap_op_get || op == cx_hmap_op_del) {
@@ -243,6 +245,7 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
     cx_hmap_api_ cx_hmap_name cx_hmap_name_(_init)(const CxAllocator* alloc, size_t nbuckets) {
         return (cx_hmap_name){
             .alloc_ = alloc == NULL ? cxDefaultAllocator() : alloc,
+            .maxChain = 0,
             .bucketCount_ = nbuckets == 0 ? cx_hmap_def_nbuckets : nbuckets,
             .entryCount_ = 0,
             .buckets_ = NULL,
@@ -269,6 +272,7 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
             cx_hmap_name_(_allocator) = cxDefaultAllocator();
         }
         return (cx_hmap_name){
+            .maxChain = 0,
             .bucketCount_ = nbuckets == 0 ? cx_hmap_def_nbuckets : nbuckets,
             .entryCount_ = 0,
             .buckets_ = NULL,

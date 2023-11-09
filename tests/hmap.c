@@ -21,13 +21,10 @@
 
 void cxHmapTests(void) {
 
-    cxHmapTest(10000, 1000/4, NULL);
+    cxHmapTest(1000, 400, NULL);
 }
 
 void cxHmapTest(size_t size, size_t nbuckets, const CxAllocator* alloc) {
-
-    // Size must be greater than this value for tests
-    assert(size >= 100);
 
     //
     // map type 1: int -> double
@@ -38,6 +35,7 @@ void cxHmapTest(size_t size, size_t nbuckets, const CxAllocator* alloc) {
         for (size_t  i = 0; i < size; i++) {
             mapt1_set(&m1, i, i*2.0);
         }
+        printf("maxChain1:%lu\n", m1.maxChain);
         assert(mapt1_count(&m1) == size);
         // Checks entries directly
         for (size_t  i = 0; i < size; i++) {

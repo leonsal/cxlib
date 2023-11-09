@@ -1,4 +1,3 @@
-hmap maxChain 
 auto clone if maxChain > X
 userdata config (for all data structs ?)
 map bucket capacity ? 16|32
