@@ -24,27 +24,12 @@ int main() {
 
     cxHmapTests();
 
-    // map1 m1 = map1_init(NULL, 4);
-    // map1_set(&m1, 0, 1);
-    // map1_del(&m1, 0);
-    // map1_set(&m1, 0, 1);
-    //map1_set(&m1, 1, 2);
-    // map1_set(&m1, 2, 3);
-    // map1_set(&m1, 3, 4);
-    // map1_set(&m1, 4, 5);
-    // map1_del(&m1, 2);
-
-    // for (size_t i = 0; i < size; i++) {
+    // map1 m1 = map1_init(NULL, 0);
+    // for (size_t i = 0; i < 13000; i++) {
     //     map1_set(&m1, i, i*2);
     // }
-    // map1_stats stats;
-    // map1_get_stats(&m1, &stats);
-    // printf("entryCount:%lu emptyCount:%lu chainCount:%lu maxChain:%lu minChain:%lu avgChain:%.1f loadFactor:%f\n",
-    //     stats.entryCount, stats.emptyCount, stats.chainCount, stats.maxChain, stats.minChain, stats.avgChain, stats.loadFactor);
-    
-    // assert(*map1_get(&m1, 1) == 2.0);
-    // assert(*map1_get(&m1, 2) == 4.0);
-    // map1_free(&m1);
+    // map1_stats s = map1_get_stats(&m1);
+    // map1_print_stats(&s);
     //cxAllocBlockTests();
     //cxArrayTests();
     //cxHmapTests();

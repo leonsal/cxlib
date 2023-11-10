@@ -21,7 +21,7 @@
 #endif
 
 #ifndef cx_hmap_resize_load
-    #define cx_hmap_resize_load (0.75)
+    #define cx_hmap_resize_load (0.8)
 #endif
 
 // Default key comparison function
@@ -125,7 +125,6 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
 //
 // Implementation
 //
-//#define cx_hmap_implement
 #ifdef cx_hmap_implement
     cx_hmap_alloc_global_;
 
@@ -138,13 +137,13 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
         if (m->count_ + m->deleted_ + 1 < (float)(m->nbuckets_) * cx_hmap_resize_load) {
             return;
         }
-        cx_hmap_name resized = cx_hmap_name_(_clone)(m, m->nbuckets_ * 2);
+        cx_hmap_name resized = cx_hmap_name_(_clone)(m, (m->nbuckets_ * 2) + 0);
         cx_hmap_name_(_free)(m);
         *m = resized;
     }
 
     // Map operations
-    cx_hmap_name_(_entry)* cx_hmap_name_(_oper_)(cx_hmap_name* m, cx_hmap_op op, cx_hmap_key* key) {
+    cx_hmap_name_(_entry)* cx_hmap_name_(_oper_)(cx_hmap_name* m, cx_hmap_op op, cx_hmap_key* key, size_t* nprobes) {
 
         if (m->buckets_ == NULL) {
             if (op == cx_hmap_op_get) {
@@ -170,6 +169,9 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
         const size_t hash = cx_hmap_hash_key((char*)key, sizeof(cx_hmap_key));
         size_t idx = hash % m->nbuckets_;
 
+        if (nprobes) {
+            *nprobes = 0;
+        }
         size_t startIdx = idx;
         while (true) {
             cx_hmap_name_(_entry)* e = m->buckets_ + idx;
@@ -213,6 +215,9 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
             // Linear probing
             idx++;
             idx %= m->nbuckets_;
+            if (nprobes) {
+                (*nprobes)++;
+            }
             // This should never happen if cx_hmap_resize_load < 1.0
             if (idx == startIdx) {
                 fprintf(stderr, "CX_HMAP OVERFLOW\n");
@@ -278,21 +283,21 @@ cx_hmap_api_ void cx_hmap_name_(_free)(cx_hmap_name* m) {
 cx_hmap_api_ void cx_hmap_name_(_set)(cx_hmap_name* m, cx_hmap_key k, cx_hmap_val v) {
 
     assert(m);
-    cx_hmap_name_(_entry)* e = cx_hmap_name_(_oper_)(m, cx_hmap_op_set, &k);
+    cx_hmap_name_(_entry)* e = cx_hmap_name_(_oper_)(m, cx_hmap_op_set, &k, NULL);
     e->val = v;
 }
 
 cx_hmap_api_ cx_hmap_val* cx_hmap_name_(_get)(const cx_hmap_name* m, cx_hmap_key k) {
 
     assert(m);
-    cx_hmap_name_(_entry)* e = cx_hmap_name_(_oper_)((cx_hmap_name*)m, cx_hmap_op_get, &k);
+    cx_hmap_name_(_entry)* e = cx_hmap_name_(_oper_)((cx_hmap_name*)m, cx_hmap_op_get, &k, NULL);
     return e == NULL ? NULL : &e->val;
 }
 
 cx_hmap_api_ bool cx_hmap_name_(_del)(cx_hmap_name* m, cx_hmap_key k) {
 
     assert(m);
-    cx_hmap_name_(_entry)* e = cx_hmap_name_(_oper_)(m, cx_hmap_op_del, &k);
+    cx_hmap_name_(_entry)* e = cx_hmap_name_(_oper_)(m, cx_hmap_op_del, &k, NULL);
     return e == NULL ? false : true;
 }
 
@@ -318,58 +323,79 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
 
 #ifdef cx_hmap_stats
 
-    // typedef struct cx_hmap_name_(_stats) {
-    //     size_t count;           // Number of entries found
-    //     size_t deleted;         // Number of deleted buckets
-    //     size_t maxProbe;        // Number of links of the longest chain
-    //     size_t minProbe;        // Number of links of the shortest chain
-    //     double avgProbe;        // Average number of probes
-    //     double loadFactor;
-    // } cx_hmap_name_(_stats);
-    //
-    // cx_hmap_api_ void cx_hmap_name_(_get_stats)(const cx_hmap_name* m, cx_hmap_name_(_stats)* ps) {
-    //
-    //     assert(m);
-    //     assert(ps);
-    //     cx_hmap_name_(_stats) s = {0};
-    //     s.minChain = UINT64_MAX;
-    //     for (size_t i = 0; i < m->nbuckets_; i++) {
-    //         if (m->status_[i] == cx_hmap_status_k                 
-    //         cx_hmap_name_(_entry)* e = &m->buckets_[i];
-    //         if (e->next_ == NULL) {
-    //             s.minChain = 0;
-    //             s.emptyCount++;
-    //             continue;
-    //         }
-    //         s.entryCount++;    
-    //         if (e->next_ == e) {
-    //             s.minChain = 0;
-    //             continue;
-    //         }
-    //         size_t chains = 0;
-    //         cx_hmap_name_(_entry)* curr = e->next_;
-    //         while (curr) {
-    //             s.chainCount++;
-    //             chains++;
-    //             s.entryCount++;    
-    //             curr = curr->next_;
-    //         }
-    //         if (chains > s.maxChain) {
-    //             s.maxChain = chains;
-    //         }
-    //         if (chains < s.minChain) {
-    //             s.minChain = chains;
-    //         }
-    //     }
-    //     s.avgChain = (double)(s.maxChain + s.minChain)/2.0;
-    //     s.loadFactor = (double)m->nbuckets_ / (double)s.entryCount;
-    //     *ps = s;
-    // }
+    typedef struct cx_hmap_name_(_stats) {
+        size_t nbuckets;        // Number of buckets
+        size_t count;           // Number of used buckets
+        size_t deleted;         // Number of deleted buckets
+        size_t empty;           // Number of empty buckets
+        size_t probes;          // Total number of probes
+        size_t max_probe;       // Maximum number of probes
+        size_t min_probe;       // Minimum number of probes
+        double avg_probe;       // Average number of probes
+        double load_factor;     // Current load factor
+    } cx_hmap_name_(_stats);
 
-#endif
+    cx_hmap_api_ cx_hmap_name_(_stats) cx_hmap_name_(_get_stats)(const cx_hmap_name* m) {
 
+        assert(m);
+        cx_hmap_name_(_stats) s = {0};
+        s.nbuckets = m->nbuckets_;
+        s.min_probe = UINT64_MAX;
+        for (size_t i = 0; i < m->nbuckets_; i++) {
+            if (m->status_[i] == cx_hmap_status_empty) {
+                s.empty++;
+                continue;
+            }
+            if (m->status_[i] == cx_hmap_status_full) {
+                cx_hmap_name_(_entry)* e = m->buckets_ + i;
+                size_t nprobes = 89;
+                cx_hmap_name_(_oper_)((cx_hmap_name*)m, cx_hmap_op_get, &e->key, &nprobes);
+                s.probes += nprobes;
+                if (nprobes > s.max_probe) {
+                    s.max_probe = nprobes;
+                }
+                if (nprobes < s.min_probe) {
+                    s.min_probe = nprobes;
+                }
+                s.count++;
+                continue;
+            }
+            if (m->status_[i] == cx_hmap_status_del) {
+                s.deleted++;
+                continue;
+            }
+            assert(0);
+        }
+        //s.avg_probe = (double)(s.max_probe + s.min_probe)/2.0;
+        s.avg_probe = (double)s.probes/(double)s.count;
+        s.load_factor = (double)s.count / (double)s.nbuckets ;
+        return s;
+    }
 
-#endif
+    cx_hmap_api_ void cx_hmap_name_(_print_stats)(const cx_hmap_name_(_stats)* ps) {
+
+        printf( "nbuckets...: %lu\n"
+                "count......: %lu\n"
+                "deleted....: %lu\n"
+                "empty......: %lu\n"
+                "probes.....: %lu\n"
+                "max_probe..: %lu\n"
+                "min_probe..: %lu\n"
+                "avg_probe..: %.2f\n"
+                "load_factor: %.2f\n",
+                ps->nbuckets,
+                ps->count,
+                ps->deleted,
+                ps->empty,
+                ps->probes,
+                ps->max_probe,
+                ps->min_probe,
+                ps->avg_probe,
+                ps->load_factor);
+    }
+
+#endif // cx_hmap_stats
+#endif // cx_hmap_implement
 
 // Undefine config  macros
 #undef cx_hmap_name
