@@ -116,9 +116,9 @@ typedef struct cx_hmap_name_(_iter) {
 cx_hmap_api_ cx_hmap_name cx_hmap_name_(_clone)(const cx_hmap_name* src, size_t nbuckets);
 cx_hmap_api_ void cx_hmap_name_(_free)(cx_hmap_name* m);
 cx_hmap_api_ void cx_hmap_name_(_set)(cx_hmap_name* m, cx_hmap_key k, cx_hmap_val v);
-cx_hmap_api_ cx_hmap_val* cx_hmap_name_(_get)(cx_hmap_name* m, cx_hmap_key k);
+cx_hmap_api_ cx_hmap_val* cx_hmap_name_(_get)(const cx_hmap_name* m, cx_hmap_key k);
 cx_hmap_api_ bool cx_hmap_name_(_del)(cx_hmap_name* m, cx_hmap_key k);
-cx_hmap_api_ size_t cx_hmap_name_(_count)(cx_hmap_name* m);
+cx_hmap_api_ size_t cx_hmap_name_(_count)(const cx_hmap_name* m);
 cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hmap_name_(_iter)* iter);
 
 
@@ -166,7 +166,7 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
             cx_hmap_name_(_check_resize_)(m);
         }
 
-        // Hash the key, calculates the bucket index and get its pointer
+        // Hash the key and calculates the bucket index
         const size_t hash = cx_hmap_hash_key((char*)key, sizeof(cx_hmap_key));
         size_t idx = hash % m->nbuckets_;
 
@@ -282,10 +282,10 @@ cx_hmap_api_ void cx_hmap_name_(_set)(cx_hmap_name* m, cx_hmap_key k, cx_hmap_va
     e->val = v;
 }
 
-cx_hmap_api_ cx_hmap_val* cx_hmap_name_(_get)(cx_hmap_name* m, cx_hmap_key k) {
+cx_hmap_api_ cx_hmap_val* cx_hmap_name_(_get)(const cx_hmap_name* m, cx_hmap_key k) {
 
     assert(m);
-    cx_hmap_name_(_entry)* e = cx_hmap_name_(_oper_)(m, cx_hmap_op_get, &k);
+    cx_hmap_name_(_entry)* e = cx_hmap_name_(_oper_)((cx_hmap_name*)m, cx_hmap_op_get, &k);
     return e == NULL ? NULL : &e->val;
 }
 
@@ -296,7 +296,7 @@ cx_hmap_api_ bool cx_hmap_name_(_del)(cx_hmap_name* m, cx_hmap_key k) {
     return e == NULL ? false : true;
 }
 
-cx_hmap_api_ size_t cx_hmap_name_(_count)(cx_hmap_name* m) {
+cx_hmap_api_ size_t cx_hmap_name_(_count)(const cx_hmap_name* m) {
 
     assert(m);
     return m->count_;
@@ -319,18 +319,22 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
 #ifdef cx_hmap_stats
 
     // typedef struct cx_hmap_name_(_stats) {
-    //     size_t entryCount;      // Number of entries found
+    //     size_t count;           // Number of entries found
     //     size_t deleted;         // Number of deleted buckets
     //     size_t maxProbe;        // Number of links of the longest chain
     //     size_t minProbe;        // Number of links of the shortest chain
-    //     double avgProbe;        // Averaget chain length
+    //     double avgProbe;        // Average number of probes
     //     double loadFactor;
     // } cx_hmap_name_(_stats);
     //
     // cx_hmap_api_ void cx_hmap_name_(_get_stats)(const cx_hmap_name* m, cx_hmap_name_(_stats)* ps) {
+    //
+    //     assert(m);
+    //     assert(ps);
     //     cx_hmap_name_(_stats) s = {0};
     //     s.minChain = UINT64_MAX;
     //     for (size_t i = 0; i < m->nbuckets_; i++) {
+    //         if (m->status_[i] == cx_hmap_status_k                 
     //         cx_hmap_name_(_entry)* e = &m->buckets_[i];
     //         if (e->next_ == NULL) {
     //             s.minChain = 0;
