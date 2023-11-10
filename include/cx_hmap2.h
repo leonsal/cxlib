@@ -18,6 +18,10 @@
     #define cx_hmap_def_nbuckets (17)
 #endif
 
+#ifndef cx_hmap_resize_load
+    #define cx_hmap_resize_load (0.75)
+#endif
+
 // Default key comparison function
 #ifndef cx_hmap_cmp_key
     #define cx_hmap_cmp_key memcmp
@@ -75,15 +79,15 @@ typedef struct cx_hmap_name_(_entry) {
 
 typedef struct cx_hmap_name {
     cx_hmap_alloc_field_
-    size_t      count_;
     size_t      nbuckets_;
+    size_t      count_;
+    size_t      deleted_;
     uint8_t*    status_;
     cx_hmap_name_(_entry)* buckets_;
 } cx_hmap_name;
 
 typedef struct cx_hmap_name_(_iter) {
     size_t bucket_;
-    cx_hmap_name_(_entry)*  next_;
 } cx_hmap_name_(_iter);
 
 // This is declared only once
@@ -127,7 +131,7 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
 
     void cx_hmap_name_(_check_resize_)(cx_hmap_name* m) {
 
-        if (m->count_ + 1 < (float)(m->nbuckets_) * 0.75) {
+        if (m->count_ + m->deleted_ + 1 < (float)(m->nbuckets_) * cx_hmap_resize_load) {
             return;
         }
         *m = cx_hmap_name_(_clone)(m, m->nbuckets_ * 2);
@@ -159,16 +163,18 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
         // Hash the key, calculates the bucket index and get its pointer
         const size_t hash = cx_hmap_hash_key((char*)key, sizeof(cx_hmap_key));
         size_t idx = hash % m->nbuckets_;
-        cx_hmap_name_(_entry)* e = m->buckets_ + idx;
 
         size_t startIdx = idx;
         while (true) {
+            //printf("start:%lu  idx:%lu\n", startIdx, idx);
+            cx_hmap_name_(_entry)* e = m->buckets_ + idx;
             // Bucket is empty
             if (m->status_[idx] == cx_hmap_status_empty) {
                 // For "Get" or "Del" returns NULL pointer indicating entry not found
                 if (op == cx_hmap_op_get || op == cx_hmap_op_del) {
                     return NULL;
                 }
+                // Sets the bucket key and value
                 memcpy(&e->key, key, sizeof(cx_hmap_key));
                 m->count_++;
                 m->status_[idx] = cx_hmap_status_full;
@@ -178,26 +184,26 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
             if (m->status_[idx] == cx_hmap_status_full) {
                 // Checks current bucket key
                 if (cx_hmap_cmp_key(&e->key, key, sizeof(cx_hmap_key)) == 0) {
-                    if (cx_hmap_cmp_key(&e->key, key, sizeof(cx_hmap_key)) == 0) {
-                        // For "Get" or "Set" just returns the pointer to this entry.
-                        if (op == cx_hmap_op_get || op == cx_hmap_op_set) {
-                            return e;
-                        }
-                        // For "Del" sets this bucket as deleted
-                        m->count_--;
-                        m->status_[idx] = cx_hmap_status_del;
+                    // For "Get" or "Set" just returns the pointer to this entry.
+                    if (op == cx_hmap_op_get || op == cx_hmap_op_set) {
                         return e;
                     }
+                    // For "Del" sets this bucket as deleted
+                    m->count_--;
+                    m->deleted_++;
+                    m->status_[idx] = cx_hmap_status_del;
+                    return e;
                 }
             }
             // Linear probing
-            idx = idx++ % m->nbuckets_;
+            idx++;
+            idx %= m->nbuckets_;
+            // This should never happen if cx_hmap_resize_load < 1.0
             if (idx == startIdx) {
-                break;
+                printf("CX_HMAP OVERFLOW\n");
+                abort();
             }
         }
-        printf("OVERFLOW\n");
-        abort();
     }
 
 #ifdef cx_hmap_allocator
@@ -206,9 +212,6 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
         return (cx_hmap_name){
             .alloc_ = alloc == NULL ? cxDefaultAllocator() : alloc,
             .nbuckets_ = nbuckets == 0 ? cx_hmap_def_nbuckets : nbuckets,
-            .count_ = 0,
-            .buckets_ = NULL,
-            .status_ = NULL,
         };
     }
 
@@ -220,9 +223,6 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
         }
         return (cx_hmap_name){
             .nbuckets_ = nbuckets == 0 ? cx_hmap_def_nbuckets : nbuckets,
-            .count_ = 0,
-            .buckets_ = NULL,
-            .status_ = NULL,
         };
     }
 
@@ -233,6 +233,7 @@ cx_hmap_api_ cx_hmap_name cx_hmap_name_(_clone)(const cx_hmap_name* m, size_t nb
     cx_hmap_name r = *m; // copy possible allocator
     r.nbuckets_ = nbuckets;
     r.count_ = 0;
+    r.deleted_ = 0;
     r.buckets_ = cx_hmap_alloc_(&r, r.nbuckets_ * sizeof(*r.buckets_));
     const size_t allocSize = r.nbuckets_ * sizeof(*r.status_);
     r.status_ = cx_hmap_alloc_(&r, allocSize);
@@ -254,6 +255,7 @@ cx_hmap_api_ void cx_hmap_name_(_free)(cx_hmap_name* m) {
     m->buckets_ = NULL;
     m->status_ = NULL;
     m->count_ = 0;
+    m->deleted_ = 0;
 }
 
 cx_hmap_api_ void cx_hmap_name_(_set)(cx_hmap_name* m, cx_hmap_key k, cx_hmap_val v) {
@@ -278,28 +280,13 @@ cx_hmap_api_ size_t cx_hmap_name_(_count)(cx_hmap_name* m) {
 
 cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hmap_name_(_iter)* iter) {
 
-    // for (size_t i = iter->bucket_; i < m->nbuckets_; i++) {
-    //     if (iter->next_ != NULL) {
-    //         cx_hmap_name_(_entry)* e = iter->next_;
-    //         iter->next_ = e->next_;
-    //         if (iter->next_ == NULL) {
-    //             iter->bucket_++;
-    //         }
-    //         return e;
-    //     }
-    //     cx_hmap_name_(_entry)* e = m->buckets_ + i;
-    //     if (e->next_ == NULL) {
-    //         iter->bucket_++;
-    //         continue;
-    //     }
-    //     if (e->next_ == e) {
-    //         iter->bucket_++;
-    //         iter->next_ = NULL;
-    //         return e;
-    //     }
-    //     iter->next_ = e->next_;
-    //     return e;
-    // }
+    for (size_t i = iter->bucket_; i < m->nbuckets_; i++) {
+        if (m->status_[i] == cx_hmap_status_full) {
+            iter->bucket_ = i + 1;
+            return &m->buckets_[i];
+        }
+    }
+    iter->bucket_ = m->nbuckets_;
     return NULL;
 }
 

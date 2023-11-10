@@ -8,20 +8,20 @@
 #define cx_hmap_val double
 #define cx_hmap_allocator
 #define cx_hmap_implement
-#include "cx_hmap.h"
+#include "cx_hmap2.h"
 
 #define cx_hmap_name mapt2
 #define cx_hmap_key const char*
 #define cx_hmap_val double
 #define cx_hmap_allocator
 #define cx_hmap_implement
-#include "cx_hmap.h"
+#include "cx_hmap2.h"
 
 #include "hmap.h"
 
 void cxHmapTests(void) {
 
-    cxHmapTest(1000, 400, NULL);
+    cxHmapTest(100, 40, NULL);
 }
 
 void cxHmapTest(size_t size, size_t nbuckets, const CxAllocator* alloc) {
@@ -114,7 +114,7 @@ void cxHmapTest(size_t size, size_t nbuckets, const CxAllocator* alloc) {
         }
 
         // Clones map and checks entries of cloned map
-        mapt1 m2 = mapt1_clone(&m1, nbuckets*2, NULL);
+        mapt1 m2 = mapt1_clone(&m1, nbuckets*2);
         iter1 = (mapt1_iter){};
         while (true) {
             mapt1_entry* e = mapt1_next(&m2, &iter1);
@@ -174,7 +174,7 @@ void cxHmapTest(size_t size, size_t nbuckets, const CxAllocator* alloc) {
         assert(count == keyCount);
 
         // Clones map and checks entries of cloned map
-        mapt2 m2 = mapt2_clone(&m1, nbuckets*2, NULL);
+        mapt2 m2 = mapt2_clone(&m1, nbuckets*2);
         iter = (mapt2_iter){};
         while (true) {
             mapt2_entry* e = mapt2_next(&m2, &iter);

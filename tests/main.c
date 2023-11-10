@@ -22,13 +22,16 @@
 
 int main() {
 
-    //size_t size = 10;
-    map1 m1 = map1_init(NULL, 4);
-    map1_set(&m1, 0, 1);
-    map1_set(&m1, 1, 2);
-    map1_set(&m1, 2, 3);
-    map1_set(&m1, 3, 4);
-    map1_set(&m1, 4, 5);
+    cxHmapTests();
+
+    // map1 m1 = map1_init(NULL, 4);
+    // map1_set(&m1, 0, 1);
+    // map1_set(&m1, 1, 2);
+    // map1_set(&m1, 2, 3);
+    // map1_set(&m1, 3, 4);
+    // map1_set(&m1, 4, 5);
+    // map1_del(&m1, 2);
+
     // for (size_t i = 0; i < size; i++) {
     //     map1_set(&m1, i, i*2);
     // }
