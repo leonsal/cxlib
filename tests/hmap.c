@@ -35,7 +35,6 @@ void cxHmapTest(size_t size, size_t nbuckets, const CxAllocator* alloc) {
         for (size_t  i = 0; i < size; i++) {
             mapt1_set(&m1, i, i*2.0);
         }
-        printf("maxChain1:%lu\n", m1.maxChain);
         assert(mapt1_count(&m1) == size);
         // Checks entries directly
         for (size_t  i = 0; i < size; i++) {

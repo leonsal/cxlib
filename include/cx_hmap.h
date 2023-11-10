@@ -77,7 +77,6 @@ typedef struct cx_hmap_name_(_entry) {
 typedef struct cx_hmap_name {
     cx_hmap_alloc_field_
     void*       userdata;
-    size_t      maxChain;
     size_t      entryCount_;
     size_t      bucketCount_;
     cx_hmap_name_(_entry)* buckets_;
@@ -204,9 +203,7 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
         // Checks the linked list of entries starting at this bucket.
         cx_hmap_name_(_entry)* prev = e;
         cx_hmap_name_(_entry)* curr = e->next_;
-        size_t maxChain = 0;
         while (curr != NULL) {
-            maxChain++;
             if (cx_hmap_cmp_key(&curr->key, key, sizeof(cx_hmap_key)) == 0) {
                 // For "Get" or "Set" just returns the pointer
                 if (op == cx_hmap_op_get) {
@@ -227,9 +224,6 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
             prev = curr;
             curr = curr->next_;
         }
-        if (maxChain > m->maxChain) {
-            m->maxChain = maxChain;
-        }
         // Entry not found
         if (op == cx_hmap_op_get || op == cx_hmap_op_del) {
             return NULL;
@@ -244,7 +238,6 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
     cx_hmap_api_ cx_hmap_name cx_hmap_name_(_init)(const CxAllocator* alloc, size_t nbuckets) {
         return (cx_hmap_name){
             .alloc_ = alloc == NULL ? cxDefaultAllocator() : alloc,
-            .maxChain = 0,
             .bucketCount_ = nbuckets == 0 ? cx_hmap_def_nbuckets : nbuckets,
             .entryCount_ = 0,
             .buckets_ = NULL,
@@ -271,7 +264,6 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
             cx_hmap_name_(_allocator) = cxDefaultAllocator();
         }
         return (cx_hmap_name){
-            .maxChain = 0,
             .bucketCount_ = nbuckets == 0 ? cx_hmap_def_nbuckets : nbuckets,
             .entryCount_ = 0,
             .buckets_ = NULL,
