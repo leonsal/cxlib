@@ -26,7 +26,6 @@
 // Default key hash function
 #ifndef cx_hmap_hash_key
     #define cx_hmap_hash_key cxHashFNV1a32
-
 #endif
 
 // Auxiliary internal macros
@@ -371,6 +370,56 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
     }
     return NULL;
 }
+
+#ifdef cx_hmap_stats
+
+    typedef struct cx_hmap_name_(_stats) {
+        size_t entryCount;      // Number of entries found
+        size_t emptyCount;      // Number of empty buckets
+        size_t chainCount;      // Total number of links
+        size_t maxChain;        // Number of links of the longest chain
+        size_t minChain;        // Number of links of the shortest chain
+        double avgChain;        // Averaget chain length
+        double loadFactor;
+    } cx_hmap_name_(_stats);
+
+    cx_hmap_api_ void cx_hmap_name_(_get_stats)(const cx_hmap_name* m, cx_hmap_name_(_stats)* ps) {
+        cx_hmap_name_(_stats) s = {0};
+        s.minChain = UINT64_MAX;
+        for (size_t i = 0; i < m->bucketCount_; i++) {
+            cx_hmap_name_(_entry)* e = &m->buckets_[i];
+            if (e->next_ == NULL) {
+                s.minChain = 0;
+                s.emptyCount++;
+                continue;
+            }
+            s.entryCount++;    
+            if (e->next_ == e) {
+                s.minChain = 0;
+                continue;
+            }
+            size_t chains = 0;
+            cx_hmap_name_(_entry)* curr = e->next_;
+            while (curr) {
+                s.chainCount++;
+                chains++;
+                s.entryCount++;    
+                curr = curr->next_;
+            }
+            if (chains > s.maxChain) {
+                s.maxChain = chains;
+            }
+            if (chains < s.minChain) {
+                s.minChain = chains;
+            }
+        }
+        s.avgChain = (double)(s.maxChain + s.minChain)/2.0;
+        s.loadFactor = (double)m->bucketCount_ / (double)s.entryCount;
+        *ps = s;
+    }
+
+#endif
+
 
 #endif
 
