@@ -128,8 +128,6 @@ void cxHmapTest(size_t size, size_t nbuckets, const CxAllocator* alloc) {
     for (size_t  i = 0; i < size; i++) {
         assert(*map_get(&m2, i) == i * 6.0);
     }
-
-
     map_free(&m2);
 }
 

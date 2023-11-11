@@ -93,8 +93,8 @@ typedef struct cx_hmap_name_(_iter) {
 } cx_hmap_name_(_iter);
 
 // These are declared only once
-#ifndef CX_HMAP_H
-#define CX_HMAP_H
+#ifndef CX_HMAP2_H
+#define CX_HMAP2_H
     typedef enum {
         cx_hmap_status_empty,
         cx_hmap_status_full,
