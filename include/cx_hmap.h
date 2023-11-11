@@ -237,16 +237,6 @@ typedef struct cx_hmap_name_(_iter) {
     cx_hmap_name_(_entry)*  next_;
 } cx_hmap_name_(_iter);
 
-// This is declared only once
-#ifndef CX_HMAP_H
-#define CX_HMAP_H
-typedef enum {
-    cx_hmap_op_set,
-    cx_hmap_op_get,
-    cx_hmap_op_del,
-} cx_hmap_op;
-#endif
-
 #ifdef cx_hmap_allocator
     cx_hmap_api_ cx_hmap_name cx_hmap_name_(_init)(const CxAllocator* alloc, size_t nbuckets);
 #else
@@ -264,6 +254,10 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
 // Implementation
 //
 #ifdef cx_hmap_implement
+    #define cx_hmap_op_set_ (0)
+    #define cx_hmap_op_get_ (1)
+    #define cx_hmap_op_del_ (2)
+
     cx_hmap_alloc_global_;
 
     // External functions defined in 'cx_hmap.c'
@@ -293,23 +287,23 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
     }
 
     // Map operations
-    cx_hmap_name_(_entry)* cx_hmap_name_(_oper_)(cx_hmap_name* m, cx_hmap_op op, cx_hmap_key* key) {
+    cx_hmap_name_(_entry)* cx_hmap_name_(_oper_)(cx_hmap_name* m, int op, cx_hmap_key* key) {
 
         if (m->buckets_ == NULL) {
-            if (op == cx_hmap_op_get) {
+            if (op == cx_hmap_op_get_) {
                 return NULL;
             }
-            if (op == cx_hmap_op_del) {
+            if (op == cx_hmap_op_del_) {
                 return NULL;
             }
-            if (op == cx_hmap_op_set) {
+            if (op == cx_hmap_op_set_) {
                 const size_t allocSize = m->nbuckets_ * sizeof(*m->buckets_);
                 m->buckets_ = cx_hmap_alloc_(m, allocSize);
                 memset(m->buckets_, 0, allocSize);
             }
         }
 
-        if (op == cx_hmap_op_set) {
+        if (op == cx_hmap_op_set_) {
             cx_hmap_name_(_check_resize_)(m);
         }
 
@@ -321,7 +315,7 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
         // If bucket next pointer is NULL, the bucket is empty
         if (e->next_ == NULL) {
             // For "Get" or "Del" returns NULL pointer indicating entry not found
-            if (op == cx_hmap_op_get || op == cx_hmap_op_del) {
+            if (op == cx_hmap_op_get_ || op == cx_hmap_op_del_) {
                 return NULL;
             }
             memcpy(&e->key, key, sizeof(cx_hmap_key));
@@ -333,7 +327,7 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
         // This bucket is used, checks its key
         if (cx_hmap_cmp_key(&e->key, key, sizeof(cx_hmap_key)) == 0) {
             // For "Get" or "Set" just returns the pointer to this entry.
-            if (op == cx_hmap_op_get || op == cx_hmap_op_set) {
+            if (op == cx_hmap_op_get_ || op == cx_hmap_op_set_) {
                 return e;
             }
             // For "Del" sets this bucket as empty
@@ -357,7 +351,7 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
         // If bucket next pointer is equal to itself, it contains single entry, returns NULL
         if (e == e->next_) {
             // For "Get" or "Del" just returns NULL pointer indicating entry not found.
-            if (op == cx_hmap_op_get || op == cx_hmap_op_del) {
+            if (op == cx_hmap_op_get_ || op == cx_hmap_op_del_) {
                 return NULL;
             }
             // For "Set" adds first link to this bucket, returning its pointer
@@ -370,10 +364,10 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
         while (curr != NULL) {
             if (cx_hmap_cmp_key(&curr->key, key, sizeof(cx_hmap_key)) == 0) {
                 // For "Get" or "Set" just returns the pointer
-                if (op == cx_hmap_op_get) {
+                if (op == cx_hmap_op_get_) {
                     return curr;
                 }
-                if (op == cx_hmap_op_set) {
+                if (op == cx_hmap_op_set_) {
                     return curr;
                 }
                 // For "Del" removes this entry from the linked list
@@ -389,7 +383,7 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
             curr = curr->next_;
         }
         // Entry not found
-        if (op == cx_hmap_op_get || op == cx_hmap_op_del) {
+        if (op == cx_hmap_op_get_ || op == cx_hmap_op_del_) {
             return NULL;
         }
         // Adds new entry to this bucket at the end of the linked list and returns its pointer
@@ -472,17 +466,17 @@ cx_hmap_api_ void cx_hmap_name_(_free)(cx_hmap_name* m) {
 
 cx_hmap_api_ void cx_hmap_name_(_set)(cx_hmap_name* m, cx_hmap_key k, cx_hmap_val v) {
 
-    cx_hmap_name_(_entry)* e = cx_hmap_name_(_oper_)(m, cx_hmap_op_set, &k);
+    cx_hmap_name_(_entry)* e = cx_hmap_name_(_oper_)(m, cx_hmap_op_set_, &k);
     e->val = v;
 }
 
 cx_hmap_api_ cx_hmap_val* cx_hmap_name_(_get)(cx_hmap_name* m, cx_hmap_key k) {
-    cx_hmap_name_(_entry)* e = cx_hmap_name_(_oper_)(m, cx_hmap_op_get, &k);
+    cx_hmap_name_(_entry)* e = cx_hmap_name_(_oper_)(m, cx_hmap_op_get_, &k);
     return e == NULL ? NULL : &e->val;
 }
 
 cx_hmap_api_ bool cx_hmap_name_(_del)(cx_hmap_name* m, cx_hmap_key k) {
-    cx_hmap_name_(_entry)* e = cx_hmap_name_(_oper_)(m, cx_hmap_op_del, &k);
+    cx_hmap_name_(_entry)* e = cx_hmap_name_(_oper_)(m, cx_hmap_op_del_, &k);
     return e == NULL ? false : true;
 }
 
@@ -610,6 +604,9 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
 #undef cx_hmap_alloc_global
 #undef cx_hmap_alloc_
 #undef cx_hmap_free_
+#undef cx_hmap_op_set_
+#undef cx_hmap_op_get_
+#undef cx_hmap_op_del_
 
 
 
