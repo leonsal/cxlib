@@ -126,13 +126,14 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
 // Implementation
 //
 #ifdef cx_hmap_implement
+    // Optional type global pointer to allocator
     cx_hmap_alloc_global_;
 
     // External functions defined in 'cx_hmap.c'
     size_t cxHashFNV1a32(void* key, size_t keySize);
 
     // Resize hash map if load exceeded
-    void cx_hmap_name_(_check_resize_)(cx_hmap_name* m) {
+    cx_hmap_api_ void cx_hmap_name_(_check_resize_)(cx_hmap_name* m) {
 
         if (m->count_ + m->deleted_ + 1 < (float)(m->nbuckets_) * cx_hmap_resize_load) {
             return;
@@ -143,7 +144,7 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
     }
 
     // Map operations
-    cx_hmap_name_(_entry)* cx_hmap_name_(_oper_)(cx_hmap_name* m, cx_hmap_op op, cx_hmap_key* key, size_t* nprobes) {
+    cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_oper_)(cx_hmap_name* m, cx_hmap_op op, cx_hmap_key* key, size_t* nprobes) {
 
         if (m->buckets_ == NULL) {
             if (op == cx_hmap_op_get) {
