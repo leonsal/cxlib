@@ -1,8 +1,10 @@
 /*
 Hashmap Implementation
 ----------------------
-- Uses chaining
- 
+- Uses chaining.
+- Uses global type allocator initialized with default allocator.
+- Can be configured to use custom allocator per instance.
+
 Example
 -------
 
@@ -15,6 +17,9 @@ Example
 #include "cx_hmap.h"
 
 int main() {
+
+    // Optionally sets this map type allocator:
+    //map_allocator = cxDefaultAllocator();
 
     // Initialize map with default number of buckets
     map m1 = map_init(0);
@@ -49,8 +54,8 @@ int main() {
 }
 
 
-Configuration defines
----------------------
+Configuration
+-------------
 
 Define the name of the map type (mandatory):
     #define cx_hmap_name <name>
@@ -61,8 +66,14 @@ Define the type of the map key (mandatory):
 Define the type of the map value (mandatory):
     #define cx_hmap_val <type>
 
-Define the default initial number of buckets
+Define the default initial number of buckets,
+when map is initialized with nbuckets = 0
     #define cx_hmap_def_nbuckets <n>
+
+Define the load factor (number of entries/number of buckets)
+which, if exceeded, will imply in the rehash of the hash map
+(expensive operation)
+    #define cx_hmap_load_factor <lf>
 
 Define the key comparison function with type:
 void (*cmp)(const void* k1, const void* k2, size_t size);
@@ -90,8 +101,8 @@ Used mainly for development and benchmarking
     #define cx_hmap_stats
 
 
-Hmap API
---------
+API
+---
 
 Assuming:
 #define cx_hmap_name hmap       // Map type name
@@ -130,6 +141,9 @@ Returns the next hashmap entry from the specified iterator.
 Returns NULL after the last entry.
     hmap_entry* hmap_next(const hmap* m, hmap_iter* iter);
 
+Returns statistics for the specified map (if enabled)
+    hmap_stats hmap_get_stats(const cx_hmap_name* m);
+
 */
 #include <stdint.h>
 #include <stdbool.h>
@@ -149,6 +163,10 @@ Returns NULL after the last entry.
 
 #ifndef cx_hmap_def_nbuckets
     #define cx_hmap_def_nbuckets (17)
+#endif
+
+#ifndef cx_hmap_load_factor
+    #define cx_hmap_load_factor (2.0)
 #endif
 
 // Default key comparison function
@@ -251,6 +269,18 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
     // External functions defined in 'cx_hmap.c'
     size_t cxHashFNV1a32(void* key, size_t keySize);
 
+    // Resize hash map if load exceeded
+    cx_hmap_api_ void cx_hmap_name_(_check_resize_)(cx_hmap_name* m) {
+
+        if (m->count_ + 1 < (float)(m->nbuckets_) * cx_hmap_load_factor) {
+            return;
+        }
+        cx_hmap_name resized = cx_hmap_name_(_clone)(m, (m->nbuckets_ * 2));
+        cx_hmap_name_(_free)(m);
+        *m = resized;
+        printf("RESIZED:%lu\n", m->nbuckets_);
+    }
+
     // Creates a new entry and inserts it after specified parent
     cx_hmap_name_(_entry)* cx_hmap_name_(_add_entry_)(cx_hmap_name* m, cx_hmap_name_(_entry)* par, cx_hmap_key* key) {
 
@@ -278,6 +308,11 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
                 memset(m->buckets_, 0, allocSize);
             }
         }
+
+        if (op == cx_hmap_op_set) {
+            cx_hmap_name_(_check_resize_)(m);
+        }
+
         // Hash the key, calculates the bucket index and get its pointer
         const size_t hash = cx_hmap_hash_key((char*)key, sizeof(cx_hmap_key));
         const size_t idx = hash % m->nbuckets_;
@@ -485,48 +520,71 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
 #ifdef cx_hmap_stats
 
     typedef struct cx_hmap_name_(_stats) {
-        size_t entryCount;      // Number of entries found
-        size_t emptyCount;      // Number of empty buckets
-        size_t chainCount;      // Total number of links
-        size_t maxChain;        // Number of links of the longest chain
-        size_t minChain;        // Number of links of the shortest chain
-        double avgChain;        // Averaget chain length
-        double loadFactor;
+        size_t nbuckets;        // Number of buckets
+        size_t count;           // Number of entries found
+        size_t empty;           // Number of empty buckets
+        size_t links;           // Total number of links
+        size_t max_chain;       // Number of links of the longest chain
+        size_t min_chain;       // Number of links of the shortest chain
+        float  avg_chain;       // Average chain length
+        float  load_factor;     // Load factor: count / nbuckets
     } cx_hmap_name_(_stats);
 
-    cx_hmap_api_ void cx_hmap_name_(_get_stats)(const cx_hmap_name* m, cx_hmap_name_(_stats)* ps) {
+    cx_hmap_api_ cx_hmap_name_(_stats) cx_hmap_name_(_get_stats)(const cx_hmap_name* m) {
         cx_hmap_name_(_stats) s = {0};
-        s.minChain = UINT64_MAX;
+        s.nbuckets = m->nbuckets_;
+        s.min_chain = UINT64_MAX;
         for (size_t i = 0; i < m->nbuckets_; i++) {
             cx_hmap_name_(_entry)* e = &m->buckets_[i];
             if (e->next_ == NULL) {
-                s.minChain = 0;
-                s.emptyCount++;
+                s.min_chain = 0;
+                s.empty++;
                 continue;
             }
-            s.entryCount++;    
+            s.count++;    
             if (e->next_ == e) {
-                s.minChain = 0;
+                s.min_chain = 0;
                 continue;
             }
             size_t chains = 0;
             cx_hmap_name_(_entry)* curr = e->next_;
             while (curr) {
-                s.chainCount++;
+                s.links++;
                 chains++;
-                s.entryCount++;    
+                s.count++;    
                 curr = curr->next_;
             }
-            if (chains > s.maxChain) {
-                s.maxChain = chains;
+            if (chains > s.max_chain) {
+                s.max_chain = chains;
             }
-            if (chains < s.minChain) {
-                s.minChain = chains;
+            if (chains < s.min_chain) {
+                s.min_chain = chains;
             }
         }
-        s.avgChain = (double)(s.maxChain + s.minChain)/2.0;
-        s.loadFactor = (double)m->nbuckets_ / (double)s.entryCount;
-        *ps = s;
+        //s.avg_chain = (float)(s.max_chain + s.min_chain)/2.0;
+        s.avg_chain = (float)s.links / (float)s.count;
+        s.load_factor = (float)s.count / (float)m->nbuckets_;
+        return s;
+    }
+
+    cx_hmap_api_ void cx_hmap_name_(_print_stats)(const cx_hmap_name_(_stats)* ps) {
+
+        printf( "nbuckets...: %lu\n"
+                "count......: %lu\n"
+                "empty......: %lu\n"
+                "links......: %lu\n"
+                "max_chain..: %lu\n"
+                "min_chain..: %lu\n"
+                "avg_chain..: %.2f\n"
+                "load_factor: %.2f\n",
+                ps->nbuckets,
+                ps->count,
+                ps->empty,
+                ps->links,
+                ps->max_chain,
+                ps->min_chain,
+                ps->avg_chain,
+                ps->load_factor);
     }
 
 #endif // cx_hmap_stats

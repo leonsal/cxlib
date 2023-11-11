@@ -4,19 +4,25 @@
 #define cx_hmap_key int
 #define cx_hmap_val double
 #define cx_hmap_implement
+#define cx_hmap_stats
 #include "cx_hmap.h"
 
 int main() {
+
+    // Optionally sets this map type allocator:
+    map_allocator = cxDefaultAllocator();
 
     // Initialize map with default number of buckets
     map m1 = map_init(0);
 
     // Set keys and values
-    size_t size = 100;
+    size_t size = 10000;
     for (size_t i = 0; i < size; i++) {
         map_set(&m1, i, i * 2.0);
     }
     assert(map_count(&m1) == size);
+    map_stats s = map_get_stats(&m1);
+    map_print_stats(&s);
 
     // Get keys and values
     for (size_t i = 0; i < size; i++) {
@@ -27,7 +33,7 @@ int main() {
     map_iter iter = {0};
     map_entry* e = NULL;
     while ((e = map_next(&m1, &iter)) != NULL) {
-        printf("key:%d val:%f\n", e->key, e->val);
+        //printf("key:%d val:%f\n", e->key, e->val);
     }
 
     // Delete even keys
