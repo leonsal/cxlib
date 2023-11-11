@@ -3,36 +3,48 @@
 #include <assert.h>
 #include <stdio.h>
 
-#define cx_hmap_name map
+#define cx_hmap_name mapt1
 #define cx_hmap_key int
 #define cx_hmap_val double
 #define cx_hmap_allocator
+#define cx_hmap_stats
 #define cx_hmap_implement
 #include "cx_hmap.h"
+
+#define cx_hmap_name mapt2
+#define cx_hmap_key int
+#define cx_hmap_val double
+#define cx_hmap_allocator
+#define cx_hmap_stats
+#define cx_hmap_implement
+#include "cx_hmap2.h"
 #include "hmap.h"
 
 void cxHmapTests(void) {
 
-    cxHmapTest(100, 40, NULL);
+    cxHmapTest1(100, 40, NULL);
+    cxHmapTest2(100, 40, NULL);
 }
 
-void cxHmapTest(size_t size, size_t nbuckets, const CxAllocator* alloc) {
+void cxHmapTest1(size_t size, size_t nbuckets, const CxAllocator* alloc) {
 
     // Initializes map type 1 and sets entries
-    map m1 = map_init(alloc, nbuckets);
+    mapt1 m1 = mapt1_init(alloc, nbuckets);
     for (size_t  i = 0; i < size; i++) {
-        map_set(&m1, i, i*2.0);
+        mapt1_set(&m1, i, i*2.0);
     }
-    assert(map_count(&m1) == size);
+    mapt1_stats s = mapt1_get_stats(&m1);
+    //mapt1_print_stats(&s);
+    assert(mapt1_count(&m1) == size);
     // Checks entries directly
     for (size_t  i = 0; i < size; i++) {
-        assert(*map_get(&m1, i) == i * 2.0);
+        assert(*mapt1_get(&m1, i) == i * 2.0);
     }
     // Checks entries using iterator
-    map_iter iter1 = {};
+    mapt1_iter iter1 = {};
     size_t m1Count = 0;
     while (true) {
-        map_entry* e = map_next(&m1, &iter1);
+        mapt1_entry* e = mapt1_next(&m1, &iter1);
         if (e == NULL) {
             break;
         }
@@ -44,90 +56,208 @@ void cxHmapTest(size_t size, size_t nbuckets, const CxAllocator* alloc) {
 
     // Overwrites all keys
     for (size_t i = 0; i < size; i++) {
-        map_set(&m1, i, i*3.0);
+        mapt1_set(&m1, i, i*3.0);
     }
     // Checks entries directly
     for (size_t  i = 0; i < size; i++) {
-        assert(*map_get(&m1, i) == i * 3.0);
+        assert(*mapt1_get(&m1, i) == i * 3.0);
     }
 
     // Delete even keys
     for (size_t i = 0; i < size; i++) {
         if (i % 2 == 0) {
-            map_del(&m1, i);
+            mapt1_del(&m1, i);
         }
     }
     // Checks entries
     for (size_t  i = 0; i < size; i++) {
         if (i % 2 == 0) {
-            assert(map_get(&m1, i) == NULL);
+            assert(mapt1_get(&m1, i) == NULL);
         }
         else {
-            assert(*map_get(&m1, i) == i * 3.0);
+            assert(*mapt1_get(&m1, i) == i * 3.0);
         }
     }
 
     // Overwrites all keys
     for (size_t i = 0; i < size; i++) {
-        map_set(&m1, i, i*4.0);
+        mapt1_set(&m1, i, i*4.0);
     }
     // Checks entries directly
     for (size_t  i = 0; i < size; i++) {
-        assert(*map_get(&m1, i) == i * 4.0);
+        assert(*mapt1_get(&m1, i) == i * 4.0);
     }
 
     // Delete odd keys
     for (size_t i = 0; i < size; i++) {
         if (i % 2) {
-            map_del(&m1, i);
+            mapt1_del(&m1, i);
         }
     }
     // Checks entries
     for (size_t  i = 0; i < size; i++) {
         if (i % 2) {
-            assert(map_get(&m1, i) == NULL);
+            assert(mapt1_get(&m1, i) == NULL);
         }
         else {
-            assert(*map_get(&m1, i) == i * 4.0);
+            assert(*mapt1_get(&m1, i) == i * 4.0);
         }
     }
 
     // Overwrites all keys
     for (size_t i = 0; i < size; i++) {
-        map_set(&m1, i, i*5.0);
+        mapt1_set(&m1, i, i*5.0);
     }
     // Checks entries directly
     for (size_t  i = 0; i < size; i++) {
-        assert(*map_get(&m1, i) == i * 5.0);
+        assert(*mapt1_get(&m1, i) == i * 5.0);
     }
 
     // Clones map and checks entries of cloned map
-    map m2 = map_clone(&m1, nbuckets*2);
-    iter1 = (map_iter){};
+    mapt1 m2 = mapt1_clone(&m1, nbuckets*2);
+    iter1 = (mapt1_iter){};
     while (true) {
-        map_entry* e = map_next(&m2, &iter1);
+        mapt1_entry* e = mapt1_next(&m2, &iter1);
         if (e == NULL) {
             break;
         }
-        assert(*map_get(&m2, e->key) == *map_get(&m1, e->key));
+        assert(*mapt1_get(&m2, e->key) == *mapt1_get(&m1, e->key));
     }
-    // Frees map 1
-    map_free(&m1);
-    assert(map_count(&m1) == 0);
+    // Frees mapt1 1
+    mapt1_free(&m1);
+    assert(mapt1_count(&m1) == 0);
 
     // Removes all the keys from map 2
     for (size_t  i = 0; i < size; i++) {
-        map_del(&m2, i);
+        mapt1_del(&m2, i);
     }
-    assert(map_count(&m2) == 0);
+    assert(mapt1_count(&m2) == 0);
     // Fill again
     for (size_t i = 0; i < size; i++) {
-        map_set(&m2, i, i*6.0);
+        mapt1_set(&m2, i, i*6.0);
     }
     // Checks entries directly
     for (size_t  i = 0; i < size; i++) {
-        assert(*map_get(&m2, i) == i * 6.0);
+        assert(*mapt1_get(&m2, i) == i * 6.0);
     }
-    map_free(&m2);
+    mapt1_free(&m2);
 }
+
+void cxHmapTest2(size_t size, size_t nbuckets, const CxAllocator* alloc) {
+
+    // Initializes map type 1 and sets entries
+    mapt2 m1 = mapt2_init(alloc, nbuckets);
+    for (size_t  i = 0; i < size; i++) {
+        mapt2_set(&m1, i, i*2.0);
+    }
+    mapt2_stats s = mapt2_get_stats(&m1);
+    //mapt2_print_stats(&s);
+    assert(mapt2_count(&m1) == size);
+    // Checks entries directly
+    for (size_t  i = 0; i < size; i++) {
+        assert(*mapt2_get(&m1, i) == i * 2.0);
+    }
+    // Checks entries using iterator
+    mapt2_iter iter1 = {};
+    size_t m1Count = 0;
+    while (true) {
+        mapt2_entry* e = mapt2_next(&m1, &iter1);
+        if (e == NULL) {
+            break;
+        }
+        m1Count++;
+        assert(e->val == e->key * 2.0);
+        //fprintf(stderr, "k:%u v:%f\n", e->key, e->val);
+    }
+    assert(m1Count == size);
+
+    // Overwrites all keys
+    for (size_t i = 0; i < size; i++) {
+        mapt2_set(&m1, i, i*3.0);
+    }
+    // Checks entries directly
+    for (size_t  i = 0; i < size; i++) {
+        assert(*mapt2_get(&m1, i) == i * 3.0);
+    }
+
+    // Delete even keys
+    for (size_t i = 0; i < size; i++) {
+        if (i % 2 == 0) {
+            mapt2_del(&m1, i);
+        }
+    }
+    // Checks entries
+    for (size_t  i = 0; i < size; i++) {
+        if (i % 2 == 0) {
+            assert(mapt2_get(&m1, i) == NULL);
+        }
+        else {
+            assert(*mapt2_get(&m1, i) == i * 3.0);
+        }
+    }
+
+    // Overwrites all keys
+    for (size_t i = 0; i < size; i++) {
+        mapt2_set(&m1, i, i*4.0);
+    }
+    // Checks entries directly
+    for (size_t  i = 0; i < size; i++) {
+        assert(*mapt2_get(&m1, i) == i * 4.0);
+    }
+
+    // Delete odd keys
+    for (size_t i = 0; i < size; i++) {
+        if (i % 2) {
+            mapt2_del(&m1, i);
+        }
+    }
+    // Checks entries
+    for (size_t  i = 0; i < size; i++) {
+        if (i % 2) {
+            assert(mapt2_get(&m1, i) == NULL);
+        }
+        else {
+            assert(*mapt2_get(&m1, i) == i * 4.0);
+        }
+    }
+
+    // Overwrites all keys
+    for (size_t i = 0; i < size; i++) {
+        mapt2_set(&m1, i, i*5.0);
+    }
+    // Checks entries directly
+    for (size_t  i = 0; i < size; i++) {
+        assert(*mapt2_get(&m1, i) == i * 5.0);
+    }
+
+    // Clones map and checks entries of cloned map
+    mapt2 m2 = mapt2_clone(&m1, nbuckets*2);
+    iter1 = (mapt2_iter){};
+    while (true) {
+        mapt2_entry* e = mapt2_next(&m2, &iter1);
+        if (e == NULL) {
+            break;
+        }
+        assert(*mapt2_get(&m2, e->key) == *mapt2_get(&m1, e->key));
+    }
+    // Frees mapt2 1
+    mapt2_free(&m1);
+    assert(mapt2_count(&m1) == 0);
+
+    // Removes all the keys from map 2
+    for (size_t  i = 0; i < size; i++) {
+        mapt2_del(&m2, i);
+    }
+    assert(mapt2_count(&m2) == 0);
+    // Fill again
+    for (size_t i = 0; i < size; i++) {
+        mapt2_set(&m2, i, i*6.0);
+    }
+    // Checks entries directly
+    for (size_t  i = 0; i < size; i++) {
+        assert(*mapt2_get(&m2, i) == i * 6.0);
+    }
+    mapt2_free(&m2);
+}
+
 
