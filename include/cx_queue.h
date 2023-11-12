@@ -96,11 +96,11 @@ cx_queue_api_ bool cx_queue_name_(_empty)(cx_queue_name* q);
 cx_queue_api_ void cx_queue_name_(_setcap)(cx_queue_name* q, size_t cap);
 cx_queue_api_ void cx_queue_name_(_pushbn)(cx_queue_name* q, const cx_queue_type* v, size_t n);
 cx_queue_api_ void cx_queue_name_(_pushb)(cx_queue_name* q, cx_queue_type v);
-cx_queue_api_ void cx_queue_name_(_pushba)(cx_queue_name* q, const cx_queue_name* src);
+cx_queue_api_ size_t cx_queue_name_(_popfn)(cx_queue_name* q, cx_queue_type* v, size_t n);
 cx_queue_api_ cx_queue_type cx_queue_name_(_popf)(cx_queue_name* q);
 cx_queue_api_ cx_queue_type* cx_queue_name_(_at)(cx_queue_name* q, size_t idx);
-cx_queue_api_ cx_queue_type cx_queue_name_(_first)(const cx_queue_name* q);
-cx_queue_api_ cx_queue_type cx_queue_name_(_last)(const cx_queue_name* q);
+cx_queue_api_ cx_queue_type* cx_queue_name_(_back)(const cx_queue_name* q);
+cx_queue_api_ cx_queue_type* cx_queue_name_(_front)(const cx_queue_name* q);
 cx_queue_api_ void cx_queue_name_(_reserve)(cx_queue_name* q, size_t n);
 
 //
@@ -220,15 +220,15 @@ cx_queue_api_ void cx_queue_name_(_setcap)(cx_queue_name* q, size_t cap) {
     cx_queue_name_(_grow_)(q, 0, cap);
 }
 
-cx_queue_api_ void cx_queue_name_(_pushn)(cx_queue_name* q, const cx_queue_type* v, size_t n) {
+cx_queue_api_ void cx_queue_name_(_pushbn)(cx_queue_name* q, const cx_queue_type* v, size_t n) {
 
     const size_t len = cx_queue_name_(_len)(q);
     if (len + n + 1 > q->cap_) {
         cx_queue_name_(_grow_)(q, n, 0);
     }
     if (q->in_ >= q->out_) {
-        size_t free = q->cap_ - q->in_;
-        size_t cpy = n > free ? free : n;
+        const size_t free = q->cap_ - q->in_;
+        const size_t cpy = n > free ? free : n;
         memcpy(q->data_ + q->in_, v, cpy * sizeof(*(q->data_)));
         if (n > cpy) {
             memcpy(q->data_, v + cpy, (n - cpy) * sizeof(*(q->data_)));
@@ -240,50 +240,66 @@ cx_queue_api_ void cx_queue_name_(_pushn)(cx_queue_name* q, const cx_queue_type*
     q->in_ %= q->cap_;
 }
 
-cx_queue_api_ void cx_queue_name_(_push)(cx_queue_name* q, cx_queue_type v) {
+cx_queue_api_ void cx_queue_name_(_pushb)(cx_queue_name* q, cx_queue_type v) {
 
-    cx_queue_name_(_pushn)(q, &v, 1);
+    cx_queue_name_(_pushbn)(q, &v, 1);
 }
 
-cx_queue_api_ void cx_queue_name_(_pusha)(cx_queue_name* q, const cx_queue_name* src) {
-    //cx_queue_name_(_pushn)(a, src->data, src->len_);
+cx_queue_api_ size_t cx_queue_name_(_popfn)(cx_queue_name* q, cx_queue_type* v, size_t n) {
+
+    const size_t len = cx_queue_name_(_len)(q);
+    n <= len ? n : len;
+    if (q->in_ >= q->out_) {
+        memcpy(v, q->data_ + q->out_,  n);
+    } else {
+        const size_t cpy = q->cap_ - q->out_;
+        memcpy(v, q->data_ + q->out_,  cpy);
+        if (n > cpy) {
+            memcpy(v + cpy, q->data_,  n - cpy);
+        }
+    }
+    q->out_ += n;
+    q->out_ %= q->cap_;
+    return n;
 }
  
-cx_queue_api_ cx_queue_type cx_queue_name_(_pop)(cx_queue_name* a) {
+cx_queue_api_ cx_queue_type cx_queue_name_(_popf)(cx_queue_name* q) {
 
-// #ifdef cx_queue_error_handler
-//     if (a->len_ == 0) {
-//         cx_queue_type el = {0};
-//         cx_queue_error_handler("queue empty",__func__);
-//         return el;
-//     }
-// #endif
-//     a->len_--;
-//     return a->data[a->len_];
+#ifdef cx_queue_error_handler
+    if (q->in_ == q->out_ {
+        cx_queue_type el = {0};
+        cx_queue_error_handler("queue empty",__func__);
+        return el;
+    }
+#endif
+    cx_queue_type el = q->data_[q->out_++];
+    q->out_ %= q->cap_;
+    return el;
 }
 
 cx_queue_api_ cx_queue_type* cx_queue_name_(_at)(cx_queue_name* q, size_t idx) {
 
-    const size_t len = cx_queue_name_(_len)(q);
-// #ifdef cx_queue_error_handler
-//     if (idx > q->len_) {
-//         cx_queue_error_handler("invalid index",__func__);
-//         return NULL;
-//     }
-// #endif
-//     return &a->data[idx];
+    if (q->in_ == q->out_) {
+        return NULL;
+    }
+    return q->data_ + q->out_ + idx;
 }
 
-cx_queue_api_ cx_queue_type cx_queue_name_(_last)(const cx_queue_name* q) {
+cx_queue_api_ cx_queue_type* cx_queue_name_(_back)(const cx_queue_name* q) {
 
-// #ifdef cx_queue_error_handler
-//     if (!a->len_) {
-//         cx_queue_type el = {0};
-//         cx_queue_error_handler("queue empty",__func__);
-//         return el;
-//     }
-// #endif
-//     return a->data[a->len_-1];
+    if (q->in_ == q->out_) {
+        return NULL;
+    }
+    const ssize_t in = (ssize_t)q->in_ - 1 < 0 ? q->cap_ - 1 : q->in_ - 1;
+    return q->data_ + in;
+}
+
+cx_queue_api_ cx_queue_type* cx_queue_name_(_front)(const cx_queue_name* q) {
+
+    if (q->in_ == q->out_) {
+        return NULL;
+    }
+    return q->data_ + q->out_;
 }
 
 cx_queue_api_ void cx_queue_name_(_reserve)(cx_queue_name* a, size_t n) {

@@ -13,10 +13,15 @@
 int main() {
 
     queue q1 = queue_init();
-    queue_push(&q1, 1);
-    queue_push(&q1, 2);
-    queue_push(&q1, 3);
-    queue_push(&q1, 4);
+    size_t size = 1000;
+    for (size_t i = 0; i < size; i++) {
+        queue_pushb(&q1, i);
+    }
+    assert(queue_len(&q1) == size);
+    for (size_t i = 0; i < size; i++) {
+        assert(queue_popf(&q1) == i);
+    }
+    queue_free(&q1);
 
     //cxHmapTests();
 
