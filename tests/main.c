@@ -3,7 +3,6 @@
 
 #include "alloc.h"
 #include "array.h"
-#include "cx_alloc.h"
 #include "hmap.h"
 #include "string.h"
 #include "queue.h"
@@ -14,7 +13,7 @@ int main() {
     cxArrayTests();
     cxHmapTests();
     cxStrTests();
-    cxQueueTest(cxDefaultAllocator());
+    cxQueueTests();
 
     return 0;
 }
