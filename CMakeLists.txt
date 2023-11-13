@@ -7,8 +7,9 @@ set(SOURCES
     include/cx_array.h
     include/cx_str.h
     include/cx_hmap.h
+    include/cx_queue.h
     src/cx_alloc.c
-    src/cx_alloc_block.c
+    src/cx_alloc_pool.c
     src/cx_str.c
     src/cx_hmap.c
 )

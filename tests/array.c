@@ -2,7 +2,7 @@
 #include <assert.h>
 #include <time.h>
 #include "cx_alloc.h"
-#include "cx_alloc_block.h"
+#include "cx_alloc_pool.h"
 #include "array.h"
 
 #define cx_array_name cxarray
@@ -29,10 +29,10 @@ void cxArrayTests(void) {
     const size_t size = 100000;
     cxArrayTest(size, cxDefaultAllocator());
 
-    // Use block allocator
-    CxAllocBlock* ba = cxAllocBlockCreate(4*1024, NULL);
-    cxArrayTest(size, cxAllocBlockGetAllocator(ba));
-    cxAllocBlockDestroy(ba);
+    // Use pool allocator
+    CxAllocPool* ba = cxAllocPoolCreate(4*1024, NULL);
+    cxArrayTest(size, cxAllocPoolGetAllocator(ba));
+    cxAllocPoolDestroy(ba);
 }
 
 void cxArrayTest(size_t size, const CxAllocator* alloc) {

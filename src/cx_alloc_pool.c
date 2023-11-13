@@ -5,7 +5,7 @@
 #include <time.h>
 
 #include "cx_alloc.h"
-#include "cx_alloc_block.h"
+#include "cx_alloc_pool.h"
 
 // Header of arena blocks
 typedef struct Block Block;
@@ -17,51 +17,51 @@ typedef struct Block {
 } Block;
 
 // Block Allocator control state
-typedef struct CxAllocBlock {
+typedef struct CxAllocPool {
     size_t              blockSize;  // Minimum block size
     Block*              curr;       // Pointer to current block
     const CxAllocator*  alloc;      // Allocator for blocks
     CxAllocator         userAlloc;  // Block allocator for users
-    CxAllocBlockInfo    info;
-} CxAllocBlock;
+    CxAllocPoolInfo    info;
+} CxAllocPool;
 
 
 // Local functions forward declarations
-static void cxAllocBlockDummyFree(void* ctx, void* p, size_t n);
-static inline void newBlock(CxAllocBlock* p, size_t size);
+static void cxAllocPoolDummyFree(void* ctx, void* p, size_t n);
+static inline void newBlock(CxAllocPool* p, size_t size);
 static inline uintptr_t alignForward(uintptr_t ptr, size_t align);
 
 
-CxAllocBlock* cxAllocBlockCreate(size_t blockSize, const CxAllocator* alloc) {
+CxAllocPool* cxAllocPoolCreate(size_t blockSize, const CxAllocator* alloc) {
 
     if (alloc == NULL) {
         alloc = cxDefaultAllocator();
     }
-    CxAllocBlock* a = alloc->alloc(alloc->ctx, sizeof(CxAllocBlock));
+    CxAllocPool* a = alloc->alloc(alloc->ctx, sizeof(CxAllocPool));
     a->curr = NULL;
     a->blockSize = blockSize;
     a->alloc = alloc;
     a->userAlloc = (CxAllocator){
         .ctx = a,
-        .alloc = (CxAllocatorAllocFn)cxAllocBlockAlloc,
-        .free = cxAllocBlockDummyFree,
+        .alloc = (CxAllocatorAllocFn)cxAllocPoolAlloc,
+        .free = cxAllocPoolDummyFree,
     };
-    a->info = (CxAllocBlockInfo){};
+    a->info = (CxAllocPoolInfo){};
     return a;
 }
 
-void cxAllocBlockDestroy(CxAllocBlock* a) {
+void cxAllocPoolDestroy(CxAllocPool* a) {
 
-    cxAllocBlockFree(a);
-    a->alloc->free(a->alloc->ctx, a, sizeof(CxAllocBlock));
+    cxAllocPoolFree(a);
+    a->alloc->free(a->alloc->ctx, a, sizeof(CxAllocPool));
 }
 
-void* cxAllocBlockAlloc(CxAllocBlock* a, size_t size) {
+void* cxAllocPoolAlloc(CxAllocPool* a, size_t size) {
 
-    return cxAllocBlockAlloc2(a, size, _Alignof(long double));
+    return cxAllocPoolAlloc2(a, size, _Alignof(long double));
 }
 
-void* cxAllocBlockAlloc2(CxAllocBlock* a, size_t size, size_t align) {
+void* cxAllocPoolAlloc2(CxAllocPool* a, size_t size, size_t align) {
 
     uintptr_t padding = 0;
     if (a->curr) {
@@ -77,13 +77,13 @@ void* cxAllocBlockAlloc2(CxAllocBlock* a, size_t size, size_t align) {
     return newp;
 }
 
-void cxAllocBlockClear(CxAllocBlock* a) {
+void cxAllocPoolClear(CxAllocPool* a) {
 
 
 
 }
 
-void cxAllocBlockFree(CxAllocBlock* a) {
+void cxAllocPoolFree(CxAllocPool* a) {
 
     Block *b = a->curr;
     while (b != NULL) {
@@ -94,21 +94,21 @@ void cxAllocBlockFree(CxAllocBlock* a) {
     a->curr = NULL;
 }
 
-static void cxAllocBlockDummyFree(void* ctx, void* p, size_t n) {}
+static void cxAllocPoolDummyFree(void* ctx, void* p, size_t n) {}
 
-const CxAllocator* cxAllocBlockGetAllocator(CxAllocBlock* a) {
+const CxAllocator* cxAllocPoolGetAllocator(CxAllocPool* a) {
 
     return &a->userAlloc;
 }
 
-CxAllocBlockInfo cxAllocBlockGetInfo(const CxAllocBlock* a) {
+CxAllocPoolInfo cxAllocPoolGetInfo(const CxAllocPool* a) {
 
     return a->info;
 }
 
 
 // Allocates a new block for the pool with the specified size.
-static inline void newBlock(CxAllocBlock* a, size_t size) {
+static inline void newBlock(CxAllocPool* a, size_t size) {
 
     if (size < a->blockSize) {
         size = a->blockSize;
@@ -125,8 +125,8 @@ static inline void newBlock(CxAllocBlock* a, size_t size) {
     a->curr = b;
     a->info.blocks++;
     a->info.nbytes += size;
-    if (size > a->info.maxBlock) {
-        a->info.maxBlock = size;
+    if (size > a->info.maxPool) {
+        a->info.maxPool = size;
     }
 }
 

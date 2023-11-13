@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#include "cx_alloc_block.h"
+#include "cx_alloc_pool.h"
 #include "alloc.h"
 
 void cxAllocBlockTests(void) {
@@ -20,9 +20,9 @@ void cxAllocBlockTest(size_t allocs, size_t blockSize) {
     } Group;
 
     Group* groups = NULL;
-    CxAllocBlock* a0 = cxAllocBlockCreate(blockSize, NULL);
-    CxAllocBlock* a1 = cxAllocBlockCreate(blockSize, NULL);
-    CxAllocBlock* a2 = cxAllocBlockCreate(blockSize, NULL);
+    CxAllocPool* a0 = cxAllocPoolCreate(blockSize, NULL);
+    CxAllocPool* a1 = cxAllocPoolCreate(blockSize, NULL);
+    CxAllocPool* a2 = cxAllocPoolCreate(blockSize, NULL);
     srand(time(NULL));
     size_t start = 0;
 
@@ -30,16 +30,16 @@ void cxAllocBlockTest(size_t allocs, size_t blockSize) {
         // Random number of ints to allocate
         size_t count = rand() % 1000;
         // Choose arena 1 or arena 2
-        CxAllocBlock* a = a2;
+        CxAllocPool* a = a2;
         if (an % 2) {
             a = a1;
         }
         // Creates group and adds to the linked list of groups
-        Group* g = cxAllocBlockAlloc(a0, sizeof(Group));
+        Group* g = cxAllocPoolAlloc(a0, sizeof(Group));
         *g = (Group){
             .start = start,
             .count = count,
-            .p = cxAllocBlockAlloc(a, count * sizeof(int)),
+            .p = cxAllocPoolAlloc(a, count * sizeof(int)),
         };
         g->next = groups;
         groups = g;
@@ -61,8 +61,8 @@ void cxAllocBlockTest(size_t allocs, size_t blockSize) {
         curr = curr->next;
     }
 
-    cxAllocBlockDestroy(a0);
-    cxAllocBlockDestroy(a1);
-    cxAllocBlockDestroy(a2);
+    cxAllocPoolDestroy(a0);
+    cxAllocPoolDestroy(a1);
+    cxAllocPoolDestroy(a2);
 }
 

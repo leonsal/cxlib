@@ -2,7 +2,7 @@
 #include <assert.h>
 #include <time.h>
 #include "cx_alloc.h"
-#include "cx_alloc_block.h"
+#include "cx_alloc_pool.h"
 
 #define cx_str_name cxstr
 #define cx_str_cap 8
@@ -23,10 +23,10 @@ void cxStrTests(void) {
     // Use default allocator
     cxStrTest(cxDefaultAllocator()); 
 
-    // Use block allocator
-    CxAllocBlock* ba = cxAllocBlockCreate(4*1024, NULL);
-    cxStrTest(cxAllocBlockGetAllocator(ba));
-    cxAllocBlockDestroy(ba);
+    // Use pool allocator
+    CxAllocPool* ba = cxAllocPoolCreate(4*1024, NULL);
+    cxStrTest(cxAllocPoolGetAllocator(ba));
+    cxAllocPoolDestroy(ba);
 }
 
 void cxStrTest(const CxAllocator* alloc) {
