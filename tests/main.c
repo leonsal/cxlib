@@ -10,6 +10,7 @@
 int main() {
 
     mychan c1 = mychan_init(0);
+    mychan_send(&c1, 1);
 
     return 0;
 }
