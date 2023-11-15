@@ -240,8 +240,7 @@ cx_chan_api_ bool cx_chan_name_(_send)(cx_chan_name* c, cx_chan_type v) {
         if (len < c->cap_ - 1 || c->closed_) {
             break;
         }
-        // Unblock readers
-        assert(cnd_wait(&c->rcnd_, &c->mut_) == thrd_success);
+        assert(cnd_wait(&c->wcnd_, &c->mut_) == thrd_success);
     }
 
     // Push data at the back of the queue
@@ -302,7 +301,7 @@ cx_chan_api_ cx_chan_type cx_chan_name_(_recv)(cx_chan_name* c) {
         data = c->queue_[c->out_];
         c->out_++;
         c->out_ %= c->cap_;
-        cnd_broadcast(&c->wcnd_);
+        cnd_broadcast(&c->wcnd_); // signal writers
     } else {
         data = (cx_chan_type){0};
     }

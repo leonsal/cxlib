@@ -70,7 +70,6 @@ static int closer2(void* d) {
     // Waits 100ms before closing
     thrd_sleep(&(struct timespec){.tv_nsec=100000000}, NULL);
     chb_close(p->c);
-    printf("closer2\n");
     return thrd_success;
 }
 
@@ -79,7 +78,7 @@ static int writer2(void* d) {
     Params2* p = d;
     //printf("writer2 before send: %d\n", p->data);
     chb_send(p->c, p->data);
-    printf("writer2 after send: %d\n", p->data);
+    //printf("writer2 after send: %d\n", p->data);
     free(p);
     return thrd_success;
 }
@@ -87,9 +86,9 @@ static int writer2(void* d) {
 static int reader2(void* d) {
 
     Params2* p = d;
-    printf("reader2 before recv\n");
+    //printf("reader2 before recv\n");
     int v = chb_recv(p->c);
-    printf("reader2 after recv:%d\n", v);
+    //printf("reader2 after recv:%d\n", v);
     p->results[v]++;
     free(p);
     return thrd_success;
@@ -211,9 +210,9 @@ void cxChanTest(const CxAllocator* alloc) {
 
     // Creates buffered channel, starts N senders and N receivers
     {
-        size_t cap = 2;
+        size_t cap = 10;
         chb c = chb_init(alloc, cap);
-        size_t const tcount = 4;
+        size_t const tcount = 100;
         thrd_t senders[tcount];
         thrd_t receivers[tcount];
         int results[tcount];
@@ -233,7 +232,6 @@ void cxChanTest(const CxAllocator* alloc) {
         // Wait for all threads
         for (size_t i = 0; i < tcount; i++) {
             thrd_join(senders[i], NULL);
-            printf("joined senders\n");
             thrd_join(receivers[i], NULL);
         }
         // Check results
