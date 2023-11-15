@@ -103,6 +103,7 @@ cx_chan_api_ cx_chan_type cx_chan_name_(_recv)(cx_chan_name* c);
 #ifdef cx_chan_implement
     cx_chan_alloc_global_;
 
+    // Internal initializer
     cx_chan_api_ cx_chan_name cx_chan_name_(_init_)(const CxAllocator* alloc, size_t size) {
 
         cx_chan_name ch = {0};
@@ -116,6 +117,14 @@ cx_chan_api_ cx_chan_type cx_chan_name_(_recv)(cx_chan_name* c);
         assert(cnd_init(&ch.rcnd_) == thrd_success);
         assert(cnd_init(&ch.wcnd_) == thrd_success);
         return ch;
+    }
+
+    // Internal queue length
+    cx_chan_api_ size_t cx_chan_name_(_len_)(cx_chan_name* c) {
+        if (c->in_ >= c->out_) {
+            return c->in_ - c->out_;
+        }
+        return c->in_ + (c->cap_ - c->out_);
     }
 
 #ifdef cx_chan_allocator
@@ -138,11 +147,7 @@ cx_chan_api_ cx_chan_type cx_chan_name_(_recv)(cx_chan_name* c);
 cx_chan_api_ size_t cx_chan_name_(_len)(cx_chan_name* c) {
 
     assert(mtx_lock(&c->mut_) == thrd_success);
-    size_t len;
-    if (c->in_ >= c->out_) {
-        len = c->in_ - c->out_;
-    }
-    len = c->in_ + (c->cap_ - c->out_);
+    size_t len = cx_chan_name_(_len_)(c);
     assert(mtx_unlock(&c->mut_) == thrd_success);
     return len;
 }
@@ -215,11 +220,7 @@ cx_chan_api_ bool cx_chan_name_(_send)(cx_chan_name* c, cx_chan_type v) {
 
     // Waits for available space
     while (1) {
-        size_t len;
-        if (c->in_ >= c->out_) {
-            len = c->in_ - c->out_;
-        }
-        len = c->in_ + (c->cap_ - c->out_);
+        size_t len = cx_chan_name_(_len_)(c);
         if (len) {
             break;
         }
@@ -241,8 +242,8 @@ cx_chan_api_ cx_chan_type cx_chan_name_(_recv)(cx_chan_name* c) {
     // Unbuffered channel
     if (c->cap_ == 0) {
         printf("reader1\n");
-        assert(mtx_lock(&c->rmut_) == thrd_success); // block other readers
-        assert(mtx_lock(&c->mut_) == thrd_success); // block other readers
+        assert(mtx_lock(&c->rmut_) == thrd_success);
+        assert(mtx_lock(&c->mut_) == thrd_success);
         // If channel is closed, returns channel type zero value
         if (c->closed_) {
             assert(mtx_unlock(&c->mut_) == thrd_success);
@@ -269,10 +270,9 @@ cx_chan_api_ cx_chan_type cx_chan_name_(_recv)(cx_chan_name* c) {
     }
 
     // Buffered channel
-    assert(mtx_lock(&c->mut_) == thrd_success); // block writers
-
-    // If channel is closed, returns channel type zero value
-    if (c->closed_) {
+    assert(mtx_lock(&c->mut_) == thrd_success);
+    // If queue is empty and channel closed, returns channel type zero value
+    if ((c->in_ == c->out_) && c->closed_) {
         assert(mtx_unlock(&c->mut_) == thrd_success);
         return (cx_chan_type){0};
     }
