@@ -136,6 +136,7 @@ cx_chan_api_ cx_chan_type cx_chan_name_(_recv)(cx_chan_name* c);
 
 #ifdef cx_chan_allocator
 
+    // Initialize using instance custom allocator
     cx_chan_api_ cx_chan_name cx_chan_name_(_init)(const CxAllocator* alloc, size_t size) {
         cx_chan_name ch = {.alloc = alloc};
         cx_chan_name_(_init_)(&ch, size);
@@ -144,6 +145,7 @@ cx_chan_api_ cx_chan_type cx_chan_name_(_recv)(cx_chan_name* c);
 
 #else
 
+    // Initialize using global type allocator
     cx_chan_api_ cx_chan_name cx_chan_name_(_init)(size_t size) {
         if (cx_chan_name_(_allocator) == NULL) {
             cx_chan_name_(_allocator) = cxDefaultAllocator();
@@ -158,9 +160,13 @@ cx_chan_api_ cx_chan_type cx_chan_name_(_recv)(cx_chan_name* c);
 cx_chan_api_ void cx_chan_name_(_free)(cx_chan_name* c) {
 
     if (c->cap_) {
-
-
+        cx_chan_free_(c, c->queue_, c->cap_ * sizeof(*c->queue_));
     }
+    cnd_destroy(&c->wcnd_);
+    cnd_destroy(&c->rcnd_);
+    mtx_destroy(&c->wmut_);
+    mtx_destroy(&c->rmut_);
+    mtx_destroy(&c->mut_);
 }
 
 cx_chan_api_ size_t cx_chan_name_(_len)(cx_chan_name* c) {
@@ -266,15 +272,20 @@ cx_chan_api_ cx_chan_type cx_chan_name_(_recv)(cx_chan_name* c) {
             return (cx_chan_type){0};
         }
 
-        // Waits for data
-        while (c->in_ == 0) {
+        // Waits for data or channel closed
+        while (c->in_ == 0 && !c->closed_) {
             assert(cnd_wait(&c->rcnd_, &c->mut_) == thrd_success);
         }
-
-        // Reads data and notify writer
-        cx_chan_type data = c->data_;
-        c->in_ = 0;
-        cnd_signal(&c->wcnd_);
+        cx_chan_type data;
+        if (!c->closed_) {
+            // Reads data and notify writer
+            data = c->data_;
+            c->in_ = 0;
+            cnd_signal(&c->wcnd_);
+        } else {
+            // Channel closed: returns 0 value
+            data = (cx_chan_type){0};
+        }
         assert(mtx_unlock(&c->mut_) == thrd_success);
         assert(mtx_unlock(&c->rmut_) == thrd_success);
         return data;
