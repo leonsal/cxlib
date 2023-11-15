@@ -232,17 +232,12 @@ cx_chan_api_ bool cx_chan_name_(_send)(cx_chan_name* c, cx_chan_type v) {
     }
 
     // Buffered channel
-    // If channel is closed, returns false
-    assert(mtx_lock(&c->mut_) == thrd_success); // block writers
-    if (c->closed_) {
-        assert(mtx_unlock(&c->mut_) == thrd_success);
-        return false;
-    }
+    assert(mtx_lock(&c->mut_) == thrd_success);
 
-    // Waits for available space
+    // Waits for available space or channel closed
     while (1) {
         size_t len = cx_chan_name_(_len_)(c);
-        if (len) {
+        if (len < c->cap_ - 1 || c->closed_) {
             break;
         }
         // Unblock readers
@@ -250,12 +245,16 @@ cx_chan_api_ bool cx_chan_name_(_send)(cx_chan_name* c, cx_chan_type v) {
     }
 
     // Push data at the back of the queue
-    c->queue_[c->in_] = v;
-    c->in_++;
-    c->in_ %= c->cap_;
-    cnd_broadcast(&c->rcnd_); // broadcast to readers
+    bool res = false;
+    if (!c->closed_) {
+        c->queue_[c->in_] = v;
+        c->in_++;
+        c->in_ %= c->cap_;
+        cnd_broadcast(&c->rcnd_); // broadcast to readers
+        res = true;                        
+    }
     assert(mtx_unlock(&c->mut_) == thrd_success);
-    return true;
+    return res;
 }
 
 cx_chan_api_ cx_chan_type cx_chan_name_(_recv)(cx_chan_name* c) {
@@ -292,29 +291,49 @@ cx_chan_api_ cx_chan_type cx_chan_name_(_recv)(cx_chan_name* c) {
     }
 
     // Buffered channel
+    // Waits for available data or channel closed
     assert(mtx_lock(&c->mut_) == thrd_success);
-    // If queue is empty and channel closed, returns channel type zero value
-    if ((c->in_ == c->out_) && c->closed_) {
-        assert(mtx_unlock(&c->mut_) == thrd_success);
-        return (cx_chan_type){0};
+    while ((c->in_ == c->out_) && !c->closed_) {
+        assert(cnd_wait(&c->rcnd_, &c->mut_) == thrd_success);
     }
 
-    // Waits for available data
-    while (1) {
-        if (c->in_ != c->out_) {
-            break;
-        }
-        assert(cnd_wait(&c->wcnd_, &c->mut_) == thrd_success);
+    cx_chan_type data;
+    if (c->in_ != c->out_) {
+        data = c->queue_[c->out_];
+        c->out_++;
+        c->out_ %= c->cap_;
+        cnd_broadcast(&c->wcnd_);
+    } else {
+        data = (cx_chan_type){0};
     }
-    // Removes data at the front of the queue
-    cx_chan_type data = c->queue_[c->out_];
-    c->out_++;
-    c->out_ %= c->cap_;
-    cnd_broadcast(&c->wcnd_);
     assert(mtx_unlock(&c->mut_) == thrd_success);
     return data;
 }
-
-
 #endif // cx_chan_implement
+
+// Undefine config  macros
+#undef cx_chan_name
+#undef cx_chan_type
+#undef cx_chan_cap
+#undef cx_chan_error_handler
+#undef cx_chan_allocator
+#undef cx_chan_static
+#undef cx_chan_inline
+#undef cx_chan_implement
+
+// Undefine internal macros
+#undef cx_chan_concat2_
+#undef cx_chan_concat1_
+#undef cx_chan_name_
+#undef cx_chan_cap8_
+#undef cx_chan_cap16_
+#undef cx_chan_cap32_
+#undef cx_chan_cap64_
+#undef cx_chan_cap_type_
+#undef cx_chan_max_cap_
+#undef cx_chan_api_
+#undef cx_chan_alloc_field_
+#undef cx_chan_alloc_global_
+#undef cx_chan_alloc_
+#undef cx_chan_free_
 
