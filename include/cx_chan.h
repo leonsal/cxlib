@@ -69,7 +69,8 @@
 // Declarations
 //
 typedef struct cx_chan_name {
-    mtx_t              mut_;
+    mtx_t              wmut_;
+    mtx_t              rmut_;
     cnd_t              wcnd_;
     cnd_t              rcnd_;
     bool               closed_;
@@ -85,12 +86,12 @@ typedef struct cx_chan_name {
 #else
     cx_chan_api_ cx_chan_name cx_chan_name_(_init)(size_t cap);
 #endif
-cx_chan_api_ void cx_chan_name_(_free)(cx_chan_name* q);
-cx_chan_api_ void cx_chan_name_(_close)(cx_chan_name* q);
-cx_chan_api_ bool cx_chan_name_(_isclosed)(cx_chan_name* q);
-cx_chan_api_ size_t cx_chan_name_(_len)(cx_chan_name* q);
-cx_chan_api_ bool cx_chan_name_(_send)(cx_chan_name* q, cx_chan_type v);
-cx_chan_api_ cx_chan_type cx_chan_name_(_recv)(cx_chan_name* q);
+cx_chan_api_ void cx_chan_name_(_free)(cx_chan_name* c);
+cx_chan_api_ void cx_chan_name_(_close)(cx_chan_name* c);
+cx_chan_api_ bool cx_chan_name_(_isclosed)(cx_chan_name* c);
+cx_chan_api_ size_t cx_chan_name_(_len)(cx_chan_name* c);
+cx_chan_api_ bool cx_chan_name_(_send)(cx_chan_name* c, cx_chan_type v);
+cx_chan_api_ cx_chan_type cx_chan_name_(_recv)(cx_chan_name* c);
 
 //
 // Implementation
@@ -105,7 +106,8 @@ cx_chan_api_ cx_chan_type cx_chan_name_(_recv)(cx_chan_name* q);
             ch.queue_ = alloc->alloc(alloc->ctx, size * sizeof(*ch.queue_));
             ch.cap_ = size;
         }
-        assert(mtx_init(&ch.mut_, mtx_plain) == thrd_success);
+        assert(mtx_init(&ch.wmut_, mtx_plain) == thrd_success);
+        assert(mtx_init(&ch.rmut_, mtx_plain) == thrd_success);
         assert(cnd_init(&ch.rcnd_) == thrd_success);
         assert(cnd_init(&ch.wcnd_) == thrd_success);
         return ch;
@@ -128,73 +130,136 @@ cx_chan_api_ cx_chan_type cx_chan_name_(_recv)(cx_chan_name* q);
 
 #endif
 
+cx_chan_api_ bool cx_chan_name_(_isclosed)(cx_chan_name* c) {
+
+    assert(mtx_lock(&c->wmut_) == thrd_success);
+    bool closed = c->closed_;
+    assert(mtx_unlock(&c->wmut_) == thrd_success);
+    return closed;
+}
+
 cx_chan_api_ bool cx_chan_name_(_send)(cx_chan_name* c, cx_chan_type v) {
 
     // Unbuffered channel
     if (c->cap_ == 0) {
-        assert(mtx_lock(&c->mut_) == thrd_success);
+        assert(mtx_lock(&c->wmut_) == thrd_success);
+        assert(mtx_lock(&c->rmut_) == thrd_success);
+
+        // If channel is closed, returns false
         if (c->closed_) {
-            assert(mtx_unlock(&c->mut_) == thrd_success);
+            assert(mtx_unlock(&c->wmut_) == thrd_success);
+            assert(mtx_unlock(&c->rmut_) == thrd_success);
             return false;
         }
 
-        // Wait for space to store data
-        while (c->in_ != 0) {
-            assert(cnd_wait(&c->wcnd_, &c->mut_) == thrd_success);
-        }
+        // Store data and signal to readers
+        //printf("writer write:%d\n", v);
         c->data_ = v;
         c->in_ = 1;
         cnd_broadcast(&c->rcnd_);
 
         // Wait for reader to read data
+        //printf("writer: wait reader\n");
         while (c->in_ > 0) {
-            assert(cnd_wait(&c->rcnd_, &c->mut_) == thrd_success);
+            assert(cnd_wait(&c->rcnd_, &c->rmut_) == thrd_success);
+            //printf("writer: wait %d\n", c->in_);
         }
-        cnd_broadcast(&c->wcnd_);   // for other writers
-        assert(mtx_unlock(&c->mut_) == thrd_success);
+
+        //printf("writer exit1\n");
+        //cnd_broadcast(&c->wcnd_);   // for other writers
+        assert(mtx_unlock(&c->rmut_) == thrd_success);
+        assert(mtx_unlock(&c->wmut_) == thrd_success);
+        //printf("writer exit2\n");
         return true;
     }
 
-    // const size_t len = cx_queue_name_(_len)(q);
-    // if (len + n + 1 > q->cap_) {
-    //     cx_queue_name_(_grow_)(q, n, 0);
-    // }
-    // if (q->in_ >= q->out_) {
-    //     const size_t free = q->cap_ - q->in_;
-    //     const size_t cpy = n > free ? free : n;
-    //     memcpy(q->data_ + q->in_, v, cpy * sizeof(*(q->data_)));
-    //     if (n > cpy) {
-    //         memcpy(q->data_, v + cpy, (n - cpy) * sizeof(*(q->data_)));
-    //     }
-    // } else {
-    //     memcpy(q->data_ + q->in_, v, n * sizeof(*(q->data_)));
-    // }
-    // q->in_ += n;
-    // q->in_ %= q->cap_;
+    // Buffered channel
+    // If channel is closed, returns false
+    assert(mtx_lock(&c->wmut_) == thrd_success); // block writers
+    assert(mtx_lock(&c->rmut_) == thrd_success); // block readers
+    if (c->closed_) {
+        assert(mtx_unlock(&c->wmut_) == thrd_success);
+        assert(mtx_unlock(&c->rmut_) == thrd_success);
+        return false;
+    }
 
+    // Waits for available space
+    while (1) {
+        size_t len;
+        if (c->in_ >= c->out_) {
+            len = c->in_ - c->out_;
+        }
+        len = c->in_ + (c->cap_ - c->out_);
+        if (len) {
+            break;
+        }
+        // Unblock readers
+        assert(cnd_wait(&c->rcnd_, &c->rmut_) == thrd_success);
+    }
 
+    // Push data at the back of the queue
+    c->queue_[c->in_] = v;
+    c->in_++;
+    c->in_ %= c->cap_;
+    cnd_broadcast(&c->rcnd_); // broadcast to readers
+    assert(mtx_unlock(&c->wmut_) == thrd_success);
+    assert(mtx_unlock(&c->rmut_) == thrd_success);
+    return true;
 }
 
 cx_chan_api_ cx_chan_type cx_chan_name_(_recv)(cx_chan_name* c) {
 
-    assert(mtx_lock(&c->mut_) == thrd_success);
+    // Unbuffered channel
     if (c->cap_ == 0) {
+        assert(mtx_lock(&c->rmut_) == thrd_success);
+        // If channel is closed, returns channel type zero value
         if (c->closed_) {
-            assert(mtx_unlock(&c->mut_) == thrd_success);
+            assert(mtx_unlock(&c->rmut_) == thrd_success);
             return (cx_chan_type){0};
         }
+
         // Waits for data
+        //printf("reader wait\n");
         while (c->in_ == 0) {
-            assert(cnd_wait(&c->rcnd_, &c->mut_) == thrd_success);
+            assert(cnd_wait(&c->rcnd_, &c->rmut_) == thrd_success);
         }
+
+        // Reads data and notify writer
         cx_chan_type data = c->data_;
         c->in_ = 0;
-        cnd_signal(&c->wcnd_);   // for other writer
-
-
-
+        cnd_signal(&c->rcnd_);
+        assert(mtx_unlock(&c->rmut_) == thrd_success);
+        //printf("reader end:%d\n", data);
+        return data;
     }
 
+    // Buffered channel
+    assert(mtx_lock(&c->wmut_) == thrd_success); // block writers
+    assert(mtx_lock(&c->rmut_) == thrd_success); // block other readers
+
+    // If channel is closed, returns channel type zero value
+    if (c->closed_) {
+        assert(mtx_unlock(&c->wmut_) == thrd_success);
+        assert(mtx_unlock(&c->rmut_) == thrd_success);
+        return (cx_chan_type){0};
+    }
+
+    // Waits for available data
+    while (1) {
+        if (c->in_ != c->out_) {
+            break;
+        }
+        // Unblock writers
+        assert(cnd_wait(&c->wcnd_, &c->wmut_) == thrd_success);
+    }
+    // Removes data at the front of the queue
+    cx_chan_type data = c->queue_[c->out_];
+    c->out_++;
+    c->out_ %= c->cap_;
+    cnd_broadcast(&c->wcnd_);
+    assert(mtx_unlock(&c->wmut_) == thrd_success);
+    assert(mtx_unlock(&c->rmut_) == thrd_success);
+    return data;
 }
 
 
