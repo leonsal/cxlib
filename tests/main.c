@@ -35,23 +35,21 @@ int main() {
     mychan c = mychan_init(0);
 
     thrd_t w1;
-    assert(thrd_create(&w1, writer,
-        &(Params){.name = "writer1", .c=&c, .data=1}) == thrd_success);
+    Params p1 = {.name = "writer1", .c=&c, .data=1};
+    assert(thrd_create(&w1, writer, &p1) == thrd_success);
 
     thrd_t w2;
-    assert(thrd_create(&w2, writer,
-        &(Params){.name = "writer2", .c=&c, .data=2}) == thrd_success);
+    Params p2 = {.name = "writer2", .c=&c, .data=2};
+    assert(thrd_create(&w2, writer, &p2) == thrd_success);
    
     thrd_t r1;
-    assert(thrd_create(&r1, reader,
-        &(Params){.name = "reader1", .c=&c}) == thrd_success);
+    Params p3 = {.name = "reader1", .c=&c};
+    assert(thrd_create(&w2, reader, &p3) == thrd_success);
 
-    thrd_t r2;
-    assert(thrd_create(&r2, reader,
-        &(Params){.name = "reader2", .c=&c}) == thrd_success);
-    
     // thrd_t r2;
-    // assert(thrd_create(&r2, reader2, &c1) == thrd_success);
+    // assert(thrd_create(&r2, reader,
+    //     &(Params){.name = "reader2", .c=&c}) == thrd_success);
+    
 
     thrd_sleep(&(struct timespec){.tv_sec=10}, NULL);
     return 0;
