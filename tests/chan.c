@@ -53,10 +53,14 @@ void cxChanTest(const CxAllocator* alloc) {
     // Creates unbuffered channel, starts channel closer,
     // sends data and waits for return
     chu c1 = chu_init(0);
+    assert(chu_len(&c1) == 0);
+    assert(chu_cap(&c1) == 0);
     thrd_t t1;
     Params p1 = {.c = &c1};
     assert(thrd_create(&t1, closer, &p1) == thrd_success);
     assert(chu_send(&c1, 1) == false);
+    assert(chu_send(&c1, 2) == false);
+    assert(chu_isclosed(&c1));
     chu_free(&c1); 
 
     // Creates unbuffered channel, starts channel closer,
@@ -66,14 +70,17 @@ void cxChanTest(const CxAllocator* alloc) {
     Params p2 = {.c = &c2};
     assert(thrd_create(&t1, closer, &p2) == thrd_success);
     assert(chu_recv(&c2) == 0);
+    assert(chu_recv(&c2) == 0);
+    assert(chu_isclosed(&c2));
     chu_free(&c2); 
 
     // Creates unbuffered channel, starts N senders and N receivers
     chu c3 = chu_init(0);
-    thrd_t senders[10];
-    thrd_t receivers[10];
-    int results[10] = {0};
-    size_t count = sizeof(senders)/sizeof(senders[0]);
+    size_t const count = 10;
+    thrd_t senders[count];
+    thrd_t receivers[count];
+    int results[count];
+    memset(results, 0, sizeof(results[0]) * count);
     for (size_t i = 0; i < count; i++) {
         Params* p = malloc(sizeof(Params));
         p->c = &c3;
