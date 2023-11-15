@@ -58,17 +58,26 @@
     #define cx_chan_alloc_field_\
         const CxAllocator* alloc;
     #define cx_chan_alloc_global_
+    #define cx_chan_alloc_(s,n)\
+        cx_alloc_alloc(s->alloc, n)
+    #define cx_chan_free_(s,p,n)\
+        cx_alloc_free(s->alloc, p, n)
 // Use global type allocator
 #else
     #define cx_chan_alloc_field_
     #define cx_chan_alloc_global_\
         static const CxAllocator* cx_chan_name_(_allocator) = NULL;
+    #define cx_chan_alloc_(s,n)\
+        cx_alloc_alloc(cx_chan_name_(_allocator),n)
+    #define cx_chan_free_(s,p,n)\
+        cx_alloc_free(cx_chan_name_(_allocator),p,n)
 #endif
 
 //
 // Declarations
 //
 typedef struct cx_chan_name {
+    cx_chan_alloc_field_
     mtx_t              mut_;
     mtx_t              rmut_;
     mtx_t              wmut_;
@@ -104,19 +113,17 @@ cx_chan_api_ cx_chan_type cx_chan_name_(_recv)(cx_chan_name* c);
     cx_chan_alloc_global_;
 
     // Internal initializer
-    cx_chan_api_ cx_chan_name cx_chan_name_(_init_)(const CxAllocator* alloc, size_t size) {
+    cx_chan_api_ void cx_chan_name_(_init_)(cx_chan_name* ch, size_t size) {
 
-        cx_chan_name ch = {0};
         if (size > 0) {
-            ch.queue_ = alloc->alloc(alloc->ctx, (size + 1) * sizeof(*ch.queue_));
-            ch.cap_ = size + 1;
+            ch->queue_ = cx_chan_alloc_(ch, (size + 1) * sizeof(*ch->queue_));
+            ch->cap_ = size + 1;
         }
-        assert(mtx_init(&ch.mut_, mtx_plain) == thrd_success);
-        assert(mtx_init(&ch.rmut_, mtx_plain) == thrd_success);
-        assert(mtx_init(&ch.wmut_, mtx_plain) == thrd_success);
-        assert(cnd_init(&ch.rcnd_) == thrd_success);
-        assert(cnd_init(&ch.wcnd_) == thrd_success);
-        return ch;
+        assert(mtx_init(&ch->mut_, mtx_plain) == thrd_success);
+        assert(mtx_init(&ch->rmut_, mtx_plain) == thrd_success);
+        assert(mtx_init(&ch->wmut_, mtx_plain) == thrd_success);
+        assert(cnd_init(&ch->rcnd_) == thrd_success);
+        assert(cnd_init(&ch->wcnd_) == thrd_success);
     }
 
     // Internal queue length
@@ -130,7 +137,9 @@ cx_chan_api_ cx_chan_type cx_chan_name_(_recv)(cx_chan_name* c);
 #ifdef cx_chan_allocator
 
     cx_chan_api_ cx_chan_name cx_chan_name_(_init)(const CxAllocator* alloc, size_t size) {
-        return cx_chan_name_(_init_)(alloc, size);
+        cx_chan_name ch = {.alloc = alloc};
+        cx_chan_name_(_init_)(&ch, size);
+        return ch;
     }
 
 #else
@@ -139,10 +148,20 @@ cx_chan_api_ cx_chan_type cx_chan_name_(_recv)(cx_chan_name* c);
         if (cx_chan_name_(_allocator) == NULL) {
             cx_chan_name_(_allocator) = cxDefaultAllocator();
         }
-        return cx_chan_name_(_init_)(cx_chan_name_(_allocator), size);
+        cx_chan_name ch = {0};
+        cx_chan_name_(_init_)(&ch, size);
+        return ch;
     }
 
 #endif
+
+cx_chan_api_ void cx_chan_name_(_free)(cx_chan_name* c) {
+
+    if (c->cap_) {
+
+
+    }
+}
 
 cx_chan_api_ size_t cx_chan_name_(_len)(cx_chan_name* c) {
 
@@ -164,6 +183,8 @@ cx_chan_api_ void cx_chan_name_(_close)(cx_chan_name* c) {
 
     assert(mtx_lock(&c->mut_) == thrd_success);
     c->closed_ = true;
+    cnd_broadcast(&c->rcnd_);
+    cnd_broadcast(&c->wcnd_);
     assert(mtx_unlock(&c->mut_) == thrd_success);
 }
 
@@ -190,24 +211,18 @@ cx_chan_api_ bool cx_chan_name_(_send)(cx_chan_name* c, cx_chan_type v) {
         }
 
         // Store data and signal to readers
-        //printf("writer write:%d\n", v);
         c->data_ = v;
         c->in_ = 1;
         cnd_signal(&c->rcnd_);
 
-        // Wait for reader to read data
-        //printf("writer: wait reader\n");
-        while (c->in_ > 0) {
-            printf("writer: wait %d\n", c->in_);
+        // Wait for reader to read data or channel is closed
+        while (c->in_ > 0 && !c->closed_) {
             assert(cnd_wait(&c->wcnd_, &c->mut_) == thrd_success);
         }
-
-        //printf("writer exit1\n");
-        //cnd_broadcast(&c->wcnd_);   // for other writers
+        bool res = c->in_ ==  0 ? true : false;
         assert(mtx_unlock(&c->mut_) == thrd_success);
         assert(mtx_unlock(&c->wmut_) == thrd_success);
-        //printf("writer exit2\n");
-        return true;
+        return res;
     }
 
     // Buffered channel
@@ -241,23 +256,20 @@ cx_chan_api_ cx_chan_type cx_chan_name_(_recv)(cx_chan_name* c) {
 
     // Unbuffered channel
     if (c->cap_ == 0) {
-        printf("reader1\n");
         assert(mtx_lock(&c->rmut_) == thrd_success);
         assert(mtx_lock(&c->mut_) == thrd_success);
-        // If channel is closed, returns channel type zero value
-        if (c->closed_) {
+
+        // If no data available and channel is closed, returns channel type zero value
+        if (c->in_ == 0 && c->closed_) {
             assert(mtx_unlock(&c->mut_) == thrd_success);
             assert(mtx_unlock(&c->rmut_) == thrd_success);
             return (cx_chan_type){0};
         }
 
         // Waits for data
-        printf("reader2\n");
         while (c->in_ == 0) {
-            printf("reader3\n");
             assert(cnd_wait(&c->rcnd_, &c->mut_) == thrd_success);
         }
-        printf("reader4\n");
 
         // Reads data and notify writer
         cx_chan_type data = c->data_;
@@ -265,7 +277,6 @@ cx_chan_api_ cx_chan_type cx_chan_name_(_recv)(cx_chan_name* c) {
         cnd_signal(&c->wcnd_);
         assert(mtx_unlock(&c->mut_) == thrd_success);
         assert(mtx_unlock(&c->rmut_) == thrd_success);
-        //printf("reader end:%d\n", data);
         return data;
     }
 
