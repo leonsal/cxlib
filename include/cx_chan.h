@@ -88,6 +88,8 @@ typedef struct cx_chan_name {
     cx_chan_api_ cx_chan_name cx_chan_name_(_init)(size_t cap);
 #endif
 cx_chan_api_ void cx_chan_name_(_free)(cx_chan_name* c);
+cx_chan_api_ size_t cx_chan_name_(_len)(cx_chan_name* c);
+cx_chan_api_ size_t cx_chan_name_(_cap)(cx_chan_name* c);
 cx_chan_api_ void cx_chan_name_(_close)(cx_chan_name* c);
 cx_chan_api_ bool cx_chan_name_(_isclosed)(cx_chan_name* c);
 cx_chan_api_ size_t cx_chan_name_(_len)(cx_chan_name* c);
@@ -102,10 +104,11 @@ cx_chan_api_ cx_chan_type cx_chan_name_(_recv)(cx_chan_name* c);
     cx_chan_alloc_global_;
 
     cx_chan_api_ cx_chan_name cx_chan_name_(_init_)(const CxAllocator* alloc, size_t size) {
+
         cx_chan_name ch = {0};
         if (size > 0) {
-            ch.queue_ = alloc->alloc(alloc->ctx, size * sizeof(*ch.queue_));
-            ch.cap_ = size;
+            ch.queue_ = alloc->alloc(alloc->ctx, (size + 1) * sizeof(*ch.queue_));
+            ch.cap_ = size + 1;
         }
         assert(mtx_init(&ch.mut_, mtx_plain) == thrd_success);
         assert(mtx_init(&ch.rmut_, mtx_plain) == thrd_success);
@@ -131,6 +134,33 @@ cx_chan_api_ cx_chan_type cx_chan_name_(_recv)(cx_chan_name* c);
     }
 
 #endif
+
+cx_chan_api_ size_t cx_chan_name_(_len)(cx_chan_name* c) {
+
+    assert(mtx_lock(&c->mut_) == thrd_success);
+    size_t len;
+    if (c->in_ >= c->out_) {
+        len = c->in_ - c->out_;
+    }
+    len = c->in_ + (c->cap_ - c->out_);
+    assert(mtx_unlock(&c->mut_) == thrd_success);
+    return len;
+}
+
+cx_chan_api_ size_t cx_chan_name_(_cap)(cx_chan_name* c) {
+
+    if (c->cap_ == 0) {
+        return 0;
+    }
+    return c->cap_ - 1;
+}
+
+cx_chan_api_ void cx_chan_name_(_close)(cx_chan_name* c) {
+
+    assert(mtx_lock(&c->mut_) == thrd_success);
+    c->closed_ = true;
+    assert(mtx_unlock(&c->mut_) == thrd_success);
+}
 
 cx_chan_api_ bool cx_chan_name_(_isclosed)(cx_chan_name* c) {
 
@@ -264,6 +294,5 @@ cx_chan_api_ cx_chan_type cx_chan_name_(_recv)(cx_chan_name* c) {
 }
 
 
-
-#endif
+#endif // cx_chan_implement
 

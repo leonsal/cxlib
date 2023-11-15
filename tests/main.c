@@ -44,11 +44,11 @@ int main() {
    
     thrd_t r1;
     Params p3 = {.name = "reader1", .c=&c};
-    assert(thrd_create(&w2, reader, &p3) == thrd_success);
+    assert(thrd_create(&r1, reader, &p3) == thrd_success);
 
-    // thrd_t r2;
-    // assert(thrd_create(&r2, reader,
-    //     &(Params){.name = "reader2", .c=&c}) == thrd_success);
+    thrd_t r2;
+    Params p4 = {.name = "reader1", .c=&c};
+    assert(thrd_create(&r2, reader, &p4) == thrd_success);
     
 
     thrd_sleep(&(struct timespec){.tv_sec=10}, NULL);
