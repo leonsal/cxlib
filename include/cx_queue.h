@@ -248,7 +248,7 @@ cx_queue_api_ void cx_queue_name_(_pushb)(cx_queue_name* q, cx_queue_type v) {
 cx_queue_api_ size_t cx_queue_name_(_popfn)(cx_queue_name* q, cx_queue_type* v, size_t n) {
 
     const size_t len = cx_queue_name_(_len)(q);
-    n <= len ? n : len;
+    n = n <= len ? n : len;
     if (q->in_ >= q->out_) {
         memcpy(v, q->data_ + q->out_,  n);
     } else {

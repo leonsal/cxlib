@@ -22,6 +22,14 @@
 
 void cxChanTests(void) {
 
+    // Use default allocator
+    const size_t size = 100000;
+    cxChanTest(cxDefaultAllocator());
+
+    // Use pool allocator
+    CxAllocPool* ba = cxAllocPoolCreate(4*1024, NULL);
+    cxChanTest(cxAllocPoolGetAllocator(ba));
+    cxAllocPoolDestroy(ba);
 }
 
 typedef struct Params {

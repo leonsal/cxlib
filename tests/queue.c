@@ -53,6 +53,7 @@ void cxQueueTest(const CxAllocator* alloc) {
     for (size_t i = size; i < size/2; i++) {
         assert(queue_popf(&q1) == i);
     }
+    queue_free(&q1);
 }
 
 
