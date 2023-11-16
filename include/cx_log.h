@@ -17,9 +17,33 @@
 #endif
 #ifdef cx_log_tsafe
     #include <pthread.h>
-    #define cx_log_locker_  pthread_mutex_t locker;
+    #define cx_log_locker_      pthread_mutex_t locker;
+    #define cx_log_lock_(l)     assert(pthread_mutex_lock(&l->locker)==0)
+    #define cx_log_unlock_(l)   assert(pthread_mutex_unlock(&l->locker)==0)
 #else
     #define cx_log_locker_  
+    #define cx_log_lock_(l) 
+    #define cx_log_unlock_(l)
+#endif
+
+// Terminal color codes
+#ifndef cx_log_term_colors
+#define cx_log_term_colors
+#define CX_LOG_TERM_RESET          "\x1b[0m"
+#define CX_LOG_TERM_FG_BLACK       "\x1b[30m"
+#define CX_LOG_TERM_FG_RED         "\x1b[31m"
+#define CX_LOG_TERM_FG_GREEN       "\x1b[32m"
+#define CX_LOG_TERM_FG_YELLOW      "\x1b[33m"
+#define CX_LOG_TERM_FG_BLUE        "\x1b[34m"
+#define CX_LOG_TERM_FG_MAGENTA     "\x1b[35m"
+#define CX_LOG_TERM_FG_CYAN        "\x1b[36m"
+#define CX_LOG_TERM_FG_BRED        "\x1b[91m"
+#define CX_LOG_TERM_FG_BGREEN      "\x1b[92m"
+#define CX_LOG_TERM_FG_BYELLOW     "\x1b[93m"
+#define CX_LOG_TERM_FG_BBLUE       "\x1b[94m"
+#define CX_LOG_TERM_FG_BMAGENTA    "\x1b[95m"
+#define CX_LOG_TERM_FG_BCYAN       "\x1b[96m"
+#define CX_LOG_TERM_FG_BWHITE      "\x1b[97m"
 #endif
 
 // Auxiliary internal macros
@@ -42,6 +66,8 @@
 // Declarations
 //
 
+#ifndef CX_LOG_H 
+#define CX_LOG_H
 // Log levels
 typedef enum {
     CX_LOG_DEBUG,
@@ -63,28 +89,28 @@ typedef enum {
 typedef struct CxLogEvent {
     va_list ap;
     CxLogLevel level;           // Current log level
-    const char *func;           // Name of the function where the log was emitted
     const char *fmt;            // Format string passed by user
     struct timespec time;       // Event time
     void *hdata;                // Optional handler data
     char timeFormatted[128];    // Buffer with formatted time
 } CxLogEvent;
+#endif
 
-typedef void (*CxLogHandler)(CxLogEvent *ev);
+typedef struct cx_log_name cx_log_name;
+typedef void (*cx_log_name_(_handler))(cx_log_name* l, CxLogEvent *ev);
 
-// Log handler info
-typedef struct CxLogHandlerInfo {
-    CxLogHandler    hfunc;
+typedef struct cx_log_name_(_handler_info) {
+    cx_log_name_(_handler) hfunc;
     void*           hdata;
     CxLogLevel      level;
-} CxLogHandlerInfo;
+} cx_log_name_(_handler_info);
 
 typedef struct cx_log_name {
     cx_log_locker_ 
-    bool            disabled;
-    CxLogFlag       flags;
-    CxLogLevel      level;
-    CxLogHandlerInfo handlers[cx_log_max_handlers];
+    bool            disabled_;
+    CxLogFlag       flags_;
+    CxLogLevel      level_;
+    cx_log_name_(_handler_info) handlers_[cx_log_max_handlers];
 } cx_log_name;
 
 cx_log_api_ cx_log_name cx_log_name_(_init)();
@@ -92,10 +118,17 @@ cx_log_api_ void cx_log_name_(_set_level)(cx_log_name* l, CxLogLevel level);
 cx_log_api_ void cx_log_name_(_set_flags)(cx_log_name* l, CxLogFlag flags);
 cx_log_api_ void cx_log_name_(_enable)(cx_log_name* l, bool enable); 
 cx_log_api_ CxLogFlag cx_log_name_(_flags)(const cx_log_name* l);
-cx_log_api_ void cx_log_name_(_emit)(cx_log_name* l, CxLogLevel level, const char *fmt, ...);
-cx_log_api_ int cx_log_name_(_add_handler)(cx_log_name* l, CxLogHandler h, void* data, CxLogLevel level);
-cx_log_api_ int cx_log_name_(_del_handler)(cx_log_name* l, CxLogHandler h);
-cx_log_api_ int cx_log_name_(_deb)(cx_log_name* l, const char* fmt, ...);
+cx_log_api_ void cx_log_name_(_emit)(cx_log_name* l, CxLogLevel level, const char *fmt, va_list ap);
+cx_log_api_ int cx_log_name_(_add_handler)(cx_log_name* l, cx_log_name_(_handler) h, void* data, CxLogLevel level);
+cx_log_api_ int cx_log_name_(_del_handler)(cx_log_name* l, cx_log_name_(_handler) h);
+cx_log_api_ void cx_log_name_(_console_handler)(cx_log_name* l, CxLogEvent *ev);
+cx_log_api_ void cx_log_name_(_file_handler)(cx_log_name* l, CxLogEvent *ev);
+
+cx_log_api_ void cx_log_name_(_deb)(cx_log_name* l, const char* fmt, ...);
+cx_log_api_ void cx_log_name_(_info)(cx_log_name* l, const char* fmt, ...);
+cx_log_api_ void cx_log_name_(_warn)(cx_log_name* l, const char* fmt, ...);
+cx_log_api_ void cx_log_name_(_error)(cx_log_name* l, const char* fmt, ...);
+cx_log_api_ void cx_log_name_(_fatal)(cx_log_name* l, const char* fmt, ...);
 
 
 //
@@ -103,6 +136,13 @@ cx_log_api_ int cx_log_name_(_deb)(cx_log_name* l, const char* fmt, ...);
 //
 #define cx_log_implement
 #ifdef cx_log_implement
+    const char* cx_log_name_(_level_strings)[] = {
+        "DEBUG", "INFO", "WARN", "ERROR", "FATAL",
+    };
+
+    const char* cx_log_name_(_level_colors)[] = {
+        CX_LOG_TERM_FG_CYAN, CX_LOG_TERM_FG_GREEN, CX_LOG_TERM_FG_YELLOW, CX_LOG_TERM_FG_RED, CX_LOG_TERM_FG_MAGENTA
+    };
 
     cx_log_api_ cx_log_name cx_log_name_(_init)() {
         cx_log_name log = {0};
@@ -111,21 +151,26 @@ cx_log_api_ int cx_log_name_(_deb)(cx_log_name* l, const char* fmt, ...);
 #endif
         return log;
     }
+
     cx_log_api_ void cx_log_name_(_set_level)(cx_log_name* l, CxLogLevel level) {
-        l->level = level;
+        l->level_ = level;
     }
 
     cx_log_api_ void cx_log_name_(_set_flags)(cx_log_name* l, CxLogFlag flags) {
-        l->flags = flags;
+        l->flags_ = flags;
     }
 
     cx_log_api_ void cx_log_name_(_enable)(cx_log_name* l, bool enable) {
-        l->disabled = !enable;
+        l->disabled_ = !enable;
     }
 
-    cx_log_api_ void cx_log_name_(_emit)(cx_log_name* l, CxLogLevel level, const char* fmt, ...) {
+    cx_log_api_ CxLogFlag cx_log_name_(_flags)(const cx_log_name* l) {
+        return l->flags_;
+    }
 
-        if (l->disabled) {
+    cx_log_api_ void cx_log_name_(_emit)(cx_log_name* l, CxLogLevel level, const char* fmt, va_list ap) {
+
+        if (l->disabled_) {
             return;
         }
 
@@ -139,12 +184,12 @@ cx_log_api_ int cx_log_name_(_deb)(cx_log_name* l, const char* fmt, ...);
         // Formats the event time
         struct tm* time = localtime(&ev.time.tv_sec);
         char dateStr[32] = {};
-        if (l->flags & CX_LOG_FLAG_DATE) {
+        if (l->flags_ & CX_LOG_FLAG_DATE) {
             dateStr[strftime(dateStr, sizeof(dateStr), "%Y-%m-%d", time)] = 0;
             strcat(ev.timeFormatted, dateStr);
         }
         char timeStr[32] = {};
-        if (l->flags & CX_LOG_FLAG_TIME) {
+        if (l->flags_ & CX_LOG_FLAG_TIME) {
             timeStr[strftime(timeStr, sizeof(timeStr), "%H:%M:%S", time)] = 0;
             if (strlen(dateStr)) {
                 strcat(ev.timeFormatted, " ");
@@ -152,9 +197,9 @@ cx_log_api_ int cx_log_name_(_deb)(cx_log_name* l, const char* fmt, ...);
             strcat(ev.timeFormatted, timeStr);
         }
         char fracStr[32] = {};
-        if (l->flags & CX_LOG_FLAG_MS) {
+        if (l->flags_ & CX_LOG_FLAG_MS) {
             snprintf(fracStr, sizeof(fracStr), "%03ld", ev.time.tv_nsec/1000000);
-        } else if (l->flags & CX_LOG_FLAG_US) {
+        } else if (l->flags_ & CX_LOG_FLAG_US) {
             snprintf(fracStr, sizeof(fracStr), "%06ld", ev.time.tv_nsec/1000);
         }
         if (strlen(fracStr)) {
@@ -164,25 +209,109 @@ cx_log_api_ int cx_log_name_(_deb)(cx_log_name* l, const char* fmt, ...);
             strcat(ev.timeFormatted, fracStr);
         }
 
-        // LOCK
-
+        cx_log_lock_(l);
         // Call installed handlers
-        for (size_t i = 0; i < cx_log_max_handlers && l->handlers[i].hfunc; i++) {
-            CxLogHandlerInfo* hi = &l->handlers[i];
+        for (size_t i = 0; i < cx_log_max_handlers && l->handlers_[i].hfunc; i++) {
+            cx_log_name_(_handler_info)* hi = &l->handlers_[i];
             if (level >= hi->level) {
-                va_start(ev.ap, fmt);
+                va_copy(ev.ap,ap);
                 ev.hdata = hi->hdata;
-                hi->hfunc(&ev);
+                hi->hfunc(l, &ev);
                 va_end(ev.ap);
             }
         }
-
-        // UNLOCK
+        cx_log_unlock_(l);
 
         if (level == CX_LOG_FATAL) {
             abort();
         }
     }
+
+    cx_log_api_ int cx_log_name_(_add_handler)(cx_log_name* l, cx_log_name_(_handler) h, void* data, CxLogLevel level) {
+
+        for (size_t i = 0; i < cx_log_max_handlers; i++) {
+            if (!l->handlers_[i].hfunc) {
+                l->handlers_[i] = (cx_log_name_(_handler_info)){h, data, level};
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    cx_log_api_ int cx_log_name_(_del_handler)(cx_log_name* l, cx_log_name_(_handler) h) {
+
+        for (size_t i = 0; i < cx_log_max_handlers; i++) {
+            if (l->handlers_[i].hfunc == h) {
+                l->handlers_[i].hfunc = NULL;
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    cx_log_api_ void cx_log_name_(_console_handler)(cx_log_name* l, CxLogEvent *ev) {
+
+        FILE* out = stderr;
+        if (l->flags_ & CX_LOG_FLAG_COLOR) {
+            fprintf(out, "%s %s%-5s" CX_LOG_TERM_RESET " " CX_LOG_TERM_FG_BGREEN  CX_LOG_TERM_RESET" ",
+                ev->timeFormatted, cx_log_name_(_level_colors)[ev->level], cx_log_name_(_level_strings)[ev->level]);
+        } else {
+            fprintf(out, "%s %-5s: ", ev->timeFormatted, cx_log_name_(_level_strings)[ev->level]);
+        }
+        vfprintf(out, ev->fmt, ev->ap);
+        fprintf(out, "\n");
+        fflush(out);
+    }
+    
+    cx_log_api_ void cx_log_name_(_file_handler)(cx_log_name* l, CxLogEvent *ev) {
+
+        FILE* out = ev->hdata;
+        fprintf(out, "%s %-5s: ", ev->timeFormatted, cx_log_name_(_level_strings)[ev->level]);
+        vfprintf(out, ev->fmt, ev->ap);
+        fprintf(out, "\n");
+        fflush(out);
+    }
+
+    cx_log_api_ void cx_log_name_(_deb)(cx_log_name* l, const char* fmt, ...) {
+        if (l->disabled_) return;
+        va_list ap;
+        va_start(ap, fmt);
+        cx_log_name_(_emit)(l, CX_LOG_DEBUG, fmt, ap);
+        va_end(ap);
+    }
+
+    cx_log_api_ void cx_log_name_(_info)(cx_log_name* l, const char* fmt, ...) {
+        if (l->disabled_) return;
+        va_list ap;
+        va_start(ap, fmt);
+        cx_log_name_(_emit)(l, CX_LOG_INFO, fmt, ap);
+        va_end(ap);
+    }
+
+    cx_log_api_ void cx_log_name_(_warn)(cx_log_name* l, const char* fmt, ...) {
+        if (l->disabled_) return;
+        va_list ap;
+        va_start(ap, fmt);
+        cx_log_name_(_emit)(l, CX_LOG_WARN, fmt, ap);
+        va_end(ap);
+    }
+
+    cx_log_api_ void cx_log_name_(_error)(cx_log_name* l, const char* fmt, ...) {
+        if (l->disabled_) return;
+        va_list ap;
+        va_start(ap, fmt);
+        cx_log_name_(_emit)(l, CX_LOG_ERROR, fmt, ap);
+        va_end(ap);
+    }
+
+    cx_log_api_ void cx_log_name_(_fatal)(cx_log_name* l, const char* fmt, ...) {
+        if (l->disabled_) return;
+        va_list ap;
+        va_start(ap, fmt);
+        cx_log_name_(_emit)(l, CX_LOG_FATAL, fmt, ap);
+        va_end(ap);
+    }
+
 
 #endif // cx_log_implement
 
