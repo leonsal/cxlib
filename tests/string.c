@@ -17,6 +17,7 @@
 #include "cx_str.h"
 
 #include "string.h"
+#include "logger.h"
 
 void cxStrTests(void) {
 
@@ -30,6 +31,8 @@ void cxStrTests(void) {
 }
 
 void cxStrTest(const CxAllocator* alloc) {
+
+    LOGI("strings. alloc=%p", alloc);
 
     // init
 #ifdef CX_STR_ALLOCATOR

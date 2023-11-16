@@ -20,6 +20,8 @@
 #include "cx_hmap2.h"
 #include "hmap.h"
 
+#include "logger.h"
+
 void cxHmapTests(void) {
 
     cxHmapTest1(100, 40, NULL);
@@ -28,6 +30,7 @@ void cxHmapTests(void) {
 
 void cxHmapTest1(size_t size, size_t nbuckets, const CxAllocator* alloc) {
 
+    LOGI("hmap. size=%lu nbuckets=%lu alloc=%p", size, nbuckets, alloc);
     // Initializes map type 1 and sets entries
     mapt1 m1 = mapt1_init(alloc, nbuckets);
     for (size_t  i = 0; i < size; i++) {
@@ -145,6 +148,7 @@ void cxHmapTest1(size_t size, size_t nbuckets, const CxAllocator* alloc) {
 
 void cxHmapTest2(size_t size, size_t nbuckets, const CxAllocator* alloc) {
 
+    LOGI("hmap2. size=%lu nbuckets=%lu alloc=%p", size, nbuckets, alloc);
     // Initializes map type 1 and sets entries
     mapt2 m1 = mapt2_init(alloc, nbuckets);
     for (size_t  i = 0; i < size; i++) {

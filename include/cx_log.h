@@ -37,6 +37,7 @@
 #define CX_LOG_TERM_FG_BLUE        "\x1b[34m"
 #define CX_LOG_TERM_FG_MAGENTA     "\x1b[35m"
 #define CX_LOG_TERM_FG_CYAN        "\x1b[36m"
+#define CX_LOG_TERM_FG_GRAY        "\x1b[37m"
 #define CX_LOG_TERM_FG_BRED        "\x1b[91m"
 #define CX_LOG_TERM_FG_BGREEN      "\x1b[92m"
 #define CX_LOG_TERM_FG_BYELLOW     "\x1b[93m"
@@ -114,6 +115,7 @@ typedef struct cx_log_name {
 } cx_log_name;
 
 cx_log_api_ cx_log_name cx_log_name_(_init)();
+cx_log_api_ void cx_log_name_(_free)(cx_log_name* l);
 cx_log_api_ void cx_log_name_(_set_level)(cx_log_name* l, CxLogLevel level);
 cx_log_api_ void cx_log_name_(_set_flags)(cx_log_name* l, CxLogFlag flags);
 cx_log_api_ void cx_log_name_(_enable)(cx_log_name* l, bool enable); 
@@ -124,17 +126,16 @@ cx_log_api_ int cx_log_name_(_del_handler)(cx_log_name* l, cx_log_name_(_handler
 cx_log_api_ void cx_log_name_(_console_handler)(cx_log_name* l, CxLogEvent *ev);
 cx_log_api_ void cx_log_name_(_file_handler)(cx_log_name* l, CxLogEvent *ev);
 
-cx_log_api_ void cx_log_name_(_deb)(cx_log_name* l, const char* fmt, ...);
-cx_log_api_ void cx_log_name_(_info)(cx_log_name* l, const char* fmt, ...);
-cx_log_api_ void cx_log_name_(_warn)(cx_log_name* l, const char* fmt, ...);
-cx_log_api_ void cx_log_name_(_error)(cx_log_name* l, const char* fmt, ...);
-cx_log_api_ void cx_log_name_(_fatal)(cx_log_name* l, const char* fmt, ...);
+cx_log_api_ void cx_log_name_(_deb)(cx_log_name* l, const char* fmt, ...) __attribute__((format(printf,2,3)));
+cx_log_api_ void cx_log_name_(_info)(cx_log_name* l, const char* fmt, ...) __attribute__((format(printf,2,3)));
+cx_log_api_ void cx_log_name_(_warn)(cx_log_name* l, const char* fmt, ...) __attribute__((format(printf,2,3)));
+cx_log_api_ void cx_log_name_(_error)(cx_log_name* l, const char* fmt, ...) __attribute__((format(printf,2,3)));
+cx_log_api_ void cx_log_name_(_fatal)(cx_log_name* l, const char* fmt, ...) __attribute__((format(printf,2,3)));
 
 
 //
 // Implementation
 //
-#define cx_log_implement
 #ifdef cx_log_implement
     const char* cx_log_name_(_level_strings)[] = {
         "DEBUG", "INFO", "WARN", "ERROR", "FATAL",
@@ -150,6 +151,12 @@ cx_log_api_ void cx_log_name_(_fatal)(cx_log_name* l, const char* fmt, ...);
         assert(pthread_mutex_init(&log.locker, NULL) == 0);
 #endif
         return log;
+    }
+
+    cx_log_api_ void cx_log_name_(_free)(cx_log_name* l) {
+#ifdef cx_log_tsafe
+        assert(pthread_mutex_destroy(&l->locker) == 0);
+#endif
     }
 
     cx_log_api_ void cx_log_name_(_set_level)(cx_log_name* l, CxLogLevel level) {
@@ -253,12 +260,15 @@ cx_log_api_ void cx_log_name_(_fatal)(cx_log_name* l, const char* fmt, ...);
 
         FILE* out = stderr;
         if (l->flags_ & CX_LOG_FLAG_COLOR) {
-            fprintf(out, "%s %s%-5s" CX_LOG_TERM_RESET " " CX_LOG_TERM_FG_BGREEN  CX_LOG_TERM_RESET" ",
+            fprintf(out, CX_LOG_TERM_RESET CX_LOG_TERM_FG_GRAY "%s %s%-5s ",
                 ev->timeFormatted, cx_log_name_(_level_colors)[ev->level], cx_log_name_(_level_strings)[ev->level]);
+            fprintf(out,  CX_LOG_TERM_FG_BWHITE);
+            vfprintf(out, ev->fmt, ev->ap);
+            fprintf(out,  CX_LOG_TERM_RESET);
         } else {
             fprintf(out, "%s %-5s: ", ev->timeFormatted, cx_log_name_(_level_strings)[ev->level]);
+            vfprintf(out, ev->fmt, ev->ap);
         }
-        vfprintf(out, ev->fmt, ev->ap);
         fprintf(out, "\n");
         fflush(out);
     }
@@ -320,6 +330,8 @@ cx_log_api_ void cx_log_name_(_fatal)(cx_log_name* l, const char* fmt, ...);
 #undef cx_log_type
 #undef cx_log_static
 #undef cx_log_inline
+#undef cx_log_max_handlers
+#undef cx_log_tsafe
 #undef cx_log_implement
 
 // Undefine internal macros
@@ -327,5 +339,8 @@ cx_log_api_ void cx_log_name_(_fatal)(cx_log_name* l, const char* fmt, ...);
 #undef cx_log_concat1_
 #undef cx_log_name_
 #undef cx_log_api_
+#undef cx_log_locker_
+#undef cx_log_lock_
+#undef cx_log_unlock_
 
 

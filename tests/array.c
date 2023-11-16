@@ -18,6 +18,8 @@
 #endif
 #include "cx_array.h"
 
+#include "logger.h"
+
 // Sort function
 static int sort_int_desc(const int* v1, const int* v2) {
     return *v2 > *v1;
@@ -36,6 +38,8 @@ void cxArrayTests(void) {
 }
 
 void cxArrayTest(size_t size, const CxAllocator* alloc) {
+
+    LOGI("array. size=%lu alloc:%p", size, alloc);
 
 #ifdef CX_ARRAY_ALLOCATOR
     cxarray a1 = cxarray_init(alloc);

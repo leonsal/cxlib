@@ -4,13 +4,17 @@
 #include "cx_alloc_pool.h"
 #include "alloc.h"
 
+#include "logger.h"
+
 void cxAllocBlockTests(void) {
 
     cxAllocBlockTest(100, 4*1024);
+    cxAllocBlockTest(200, 1*1024);
 }
 
 void cxAllocBlockTest(size_t allocs, size_t blockSize) {
 
+    LOGI("alloc pool tests. allocs=%lu blockSize=%lu", allocs, blockSize);
     // Allocation group
     typedef struct Group {
         int     start;  // start value of the first int
