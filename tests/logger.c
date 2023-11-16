@@ -1,7 +1,5 @@
-
-#define CX_LOG_IMPLEMENT
+#define cx_log_implement
 #include "logger.h"
-
 logger default_logger;
 
 

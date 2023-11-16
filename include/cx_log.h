@@ -27,8 +27,8 @@
 #endif
 
 // Terminal color codes
-#ifndef cx_log_term_colors
-#define cx_log_term_colors
+#ifndef CX_LOG_TERM_COLORS
+#define CX_LOG_TERM_COLORS
 #define CX_LOG_TERM_RESET          "\x1b[0m"
 #define CX_LOG_TERM_FG_BLACK       "\x1b[30m"
 #define CX_LOG_TERM_FG_RED         "\x1b[31m"
@@ -125,7 +125,6 @@ cx_log_api_ int cx_log_name_(_add_handler)(cx_log_name* l, cx_log_name_(_handler
 cx_log_api_ int cx_log_name_(_del_handler)(cx_log_name* l, cx_log_name_(_handler) h);
 cx_log_api_ void cx_log_name_(_console_handler)(cx_log_name* l, CxLogEvent *ev);
 cx_log_api_ void cx_log_name_(_file_handler)(cx_log_name* l, CxLogEvent *ev);
-
 cx_log_api_ void cx_log_name_(_deb)(cx_log_name* l, const char* fmt, ...) __attribute__((format(printf,2,3)));
 cx_log_api_ void cx_log_name_(_info)(cx_log_name* l, const char* fmt, ...) __attribute__((format(printf,2,3)));
 cx_log_api_ void cx_log_name_(_warn)(cx_log_name* l, const char* fmt, ...) __attribute__((format(printf,2,3)));

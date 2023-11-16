@@ -1,11 +1,9 @@
 #ifndef LOGGER_H
 #define LOGGER_H
 
+// Declare logger type
 #define cx_log_name logger
 #define cx_log_tsafe
-#ifdef CX_LOG_IMPLEMENT
-#define cx_log_implement
-#endif
 #include "cx_log.h"
 
 extern logger default_logger;

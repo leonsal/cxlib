@@ -12,6 +12,8 @@
 #define cx_queue_implement
 #include "cx_queue.h"
 
+#include "logger.h"
+
 void cxQueueTests(void) {
 
     // Use default allocator
@@ -24,6 +26,8 @@ void cxQueueTests(void) {
 }
 
 void cxQueueTest(const CxAllocator* alloc) {
+
+    LOGI("queue. alloc=%p", alloc);
 
     // push back
     queue q1 = queue_init(cxDefaultAllocator());

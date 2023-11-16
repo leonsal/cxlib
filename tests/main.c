@@ -16,6 +16,8 @@ int main() {
     cxArrayTests();
     cxHmapTests();
     cxStrTests();
+    cxQueueTests();
+    cxChanTests();
     LOGW("END");
 }
 

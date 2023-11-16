@@ -20,6 +20,8 @@
 #define cx_chan_implement
 #include "cx_chan.h"
 
+#include "logger.h"
+
 void cxChanTests(void) {
 
     // Use default allocator
@@ -103,6 +105,8 @@ static int reader2(void* d) {
 }
 
 void cxChanTest(const CxAllocator* alloc) {
+
+    LOGI("chan. alloc=%p", alloc);
 
     // Creates unbuffered channel, starts channel closer,
     // sends data and waits for return
