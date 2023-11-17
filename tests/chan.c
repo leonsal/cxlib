@@ -46,54 +46,54 @@ typedef struct Params2 {
     int*  results;
 } Params2;
 
-static int closer(void* d) {
+static void* closer(void* d) {
 
     Params* p = d;
     // Waits 100ms before closing
-    thrd_sleep(&(struct timespec){.tv_nsec=100000000}, NULL);
+    nanosleep(&(struct timespec){.tv_nsec=100000000}, NULL);
     chu_close(p->c);
-    return thrd_success;
+    return NULL;
 }
 
-static int writer(void* d) {
+static void* writer(void* d) {
 
     Params* p = d;
     //printf("writer before send: %d\n", p->data);
     chu_send(p->c, p->data);
     //printf("writer after send: %d\n", p->data);
     free(p);
-    return thrd_success;
+    return NULL;
 }
 
-static int reader(void* d) {
+static void* reader(void* d) {
 
     Params* p = d;
     int v = chu_recv(p->c);
     p->results[v]++;
     free(p);
-    return thrd_success;
+    return NULL;
 }
 
-static int closer2(void* d) {
+static void* closer2(void* d) {
 
     Params2* p = d;
     // Waits 100ms before closing
-    thrd_sleep(&(struct timespec){.tv_nsec=100000000}, NULL);
+    nanosleep(&(struct timespec){.tv_nsec=100000000}, NULL);
     chb_close(p->c);
-    return thrd_success;
+    return NULL;
 }
 
-static int writer2(void* d) {
+static void* writer2(void* d) {
 
     Params2* p = d;
     //printf("writer2 before send: %d\n", p->data);
     chb_send(p->c, p->data);
     //printf("writer2 after send: %d\n", p->data);
     free(p);
-    return thrd_success;
+    return NULL;
 }
 
-static int reader2(void* d) {
+static void* reader2(void* d) {
 
     Params2* p = d;
     //printf("reader2 before recv\n");
@@ -101,7 +101,7 @@ static int reader2(void* d) {
     //printf("reader2 after recv:%d\n", v);
     p->results[v]++;
     free(p);
-    return thrd_success;
+    return NULL;
 }
 
 void cxChanTest(const CxAllocator* alloc) {
@@ -114,9 +114,10 @@ void cxChanTest(const CxAllocator* alloc) {
         chu c = chu_init(alloc, 0);
         assert(chu_len(&c) == 0);
         assert(chu_cap(&c) == 0);
-        thrd_t t;
+        pthread_t t;
         Params p = {.c = &c};
-        assert(thrd_create(&t, closer, &p) == thrd_success);
+        assert(pthread_create(&t, NULL, closer, &p) == 0);
+        assert(pthread_detach(t) == 0);
         assert(chu_send(&c, 1) == false);
         assert(chu_send(&c, 2) == false);
         assert(chu_isclosed(&c));
@@ -127,9 +128,10 @@ void cxChanTest(const CxAllocator* alloc) {
     // try to receive data and waits for return
     {
         chu c = chu_init(alloc, 0);
-        thrd_t t;
+        pthread_t t;
         Params p = {.c = &c};
-        assert(thrd_create(&t, closer, &p) == thrd_success);
+        assert(pthread_create(&t, NULL, closer, &p) == 0);
+        assert(pthread_detach(t) == 0);
         assert(chu_recv(&c) == 0);
         assert(chu_recv(&c) == 0);
         assert(chu_isclosed(&c));
@@ -140,26 +142,26 @@ void cxChanTest(const CxAllocator* alloc) {
     {
         chu c = chu_init(alloc, 0);
         size_t const count = 10;
-        thrd_t senders[count];
-        thrd_t receivers[count];
+        pthread_t senders[count];
+        pthread_t receivers[count];
         int results[count];
         memset(results, 0, sizeof(results[0]) * count);
         for (size_t i = 0; i < count; i++) {
             Params* p = malloc(sizeof(*p));
             p->c = &c;
             p->data = i;
-            assert(thrd_create(&senders[i], writer, p) == thrd_success);
+            assert(pthread_create(&senders[i], NULL, writer, p) == 0);
         }
         for (size_t i = 0; i < count; i++) {
             Params* p = malloc(sizeof(*p));
             p->c = &c;
             p->results = results;
-            assert(thrd_create(&receivers[i], reader, p) == thrd_success);
+            assert(pthread_create(&receivers[i], NULL, reader, p) == 0);
         }
         // Wait for all threads
         for (size_t i = 0; i < count; i++) {
-            thrd_join(senders[i], NULL);
-            thrd_join(receivers[i], NULL);
+            pthread_join(senders[i], NULL);
+            pthread_join(receivers[i], NULL);
         }
         // Check results
         for (size_t i = 0; i < count; i++) {
@@ -173,9 +175,10 @@ void cxChanTest(const CxAllocator* alloc) {
     {
         chb c = chb_init(alloc, 1);
         assert(chb_send(&c, 10));
-        thrd_t t;
+        pthread_t t;
         Params2 p = {.c = &c};
-        assert(thrd_create(&t, closer2, &p) == thrd_success);
+        assert(pthread_create(&t, NULL, closer2, &p) == 0);
+        assert(pthread_detach(t) == 0);
         assert(chb_send(&c, 20) == false); // blocks till closed
         assert(chb_recv(&c) == 10);
         assert(chb_recv(&c) == 0);
@@ -225,26 +228,26 @@ void cxChanTest(const CxAllocator* alloc) {
         size_t cap = 10;
         chb c = chb_init(alloc, cap);
         size_t const tcount = 100;
-        thrd_t senders[tcount];
-        thrd_t receivers[tcount];
+        pthread_t senders[tcount];
+        pthread_t receivers[tcount];
         int results[tcount];
         memset(results, 0, sizeof(results[0]) * tcount);
         for (size_t i = 0; i < tcount; i++) {
             Params2* p = malloc(sizeof(*p));
             p->c = &c;
             p->data = i;
-            assert(thrd_create(&senders[i], writer2, p) == thrd_success);
+            assert(pthread_create(&senders[i], NULL, writer2, p) == 0);
         }
         for (size_t i = 0; i < tcount; i++) {
             Params2* p = malloc(sizeof(*p));
             p->c = &c;
             p->results = results;
-            assert(thrd_create(&receivers[i], reader2, p) == thrd_success);
+            assert(pthread_create(&receivers[i], NULL, reader2, p) == 0);
         }
         // Wait for all threads
         for (size_t i = 0; i < tcount; i++) {
-            thrd_join(senders[i], NULL);
-            thrd_join(receivers[i], NULL);
+            pthread_join(senders[i], NULL);
+            pthread_join(receivers[i], NULL);
         }
         // Check results
         for (size_t i = 0; i < tcount; i++) {

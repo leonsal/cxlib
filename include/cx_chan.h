@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include <threads.h>
+#include <pthread.h>
 #include "cx_alloc.h"
 
 // chan type name must be defined
@@ -78,17 +78,17 @@
 //
 typedef struct cx_chan_name {
     cx_chan_alloc_field_
-    mtx_t              mut_;
-    mtx_t              rmut_;
-    mtx_t              wmut_;
-    cnd_t              rcnd_;
-    cnd_t              wcnd_;
-    bool               closed_;
-    cx_chan_type       data_;
-    cx_chan_cap_type_  cap_;   // current capacity
-    cx_chan_cap_type_  in_;    // input index
-    cx_chan_cap_type_  out_;   // output index
-    cx_chan_type*      queue_;
+    pthread_mutex_t     mut_;
+    pthread_mutex_t     rmut_;
+    pthread_mutex_t     wmut_;
+    pthread_cond_t      rcnd_;
+    pthread_cond_t      wcnd_;
+    bool                closed_;
+    cx_chan_type        data_;
+    cx_chan_cap_type_   cap_;   // current capacity
+    cx_chan_cap_type_   in_;    // input index
+    cx_chan_cap_type_   out_;   // output index
+    cx_chan_type*       queue_;
 } cx_chan_name;
 
 #ifdef cx_chan_allocator
@@ -119,11 +119,11 @@ cx_chan_api_ cx_chan_type cx_chan_name_(_recv)(cx_chan_name* c);
             ch->queue_ = cx_chan_alloc_(ch, (size + 1) * sizeof(*ch->queue_));
             ch->cap_ = size + 1;
         }
-        assert(mtx_init(&ch->mut_, mtx_plain) == thrd_success);
-        assert(mtx_init(&ch->rmut_, mtx_plain) == thrd_success);
-        assert(mtx_init(&ch->wmut_, mtx_plain) == thrd_success);
-        assert(cnd_init(&ch->rcnd_) == thrd_success);
-        assert(cnd_init(&ch->wcnd_) == thrd_success);
+        assert(pthread_mutex_init(&ch->mut_, NULL) == 0);
+        assert(pthread_mutex_init(&ch->rmut_, NULL) == 0);
+        assert(pthread_mutex_init(&ch->wmut_, NULL) == 0);
+        assert(pthread_cond_init(&ch->rcnd_, NULL) == 0);
+        assert(pthread_cond_init(&ch->wcnd_, NULL) == 0);
     }
 
     // Internal queue length
@@ -162,18 +162,18 @@ cx_chan_api_ void cx_chan_name_(_free)(cx_chan_name* c) {
     if (c->cap_) {
         cx_chan_free_(c, c->queue_, c->cap_ * sizeof(*c->queue_));
     }
-    cnd_destroy(&c->wcnd_);
-    cnd_destroy(&c->rcnd_);
-    mtx_destroy(&c->wmut_);
-    mtx_destroy(&c->rmut_);
-    mtx_destroy(&c->mut_);
+    pthread_cond_destroy(&c->wcnd_);
+    pthread_cond_destroy(&c->rcnd_);
+    pthread_mutex_destroy(&c->wmut_);
+    pthread_mutex_destroy(&c->rmut_);
+    pthread_mutex_destroy(&c->mut_);
 }
 
 cx_chan_api_ size_t cx_chan_name_(_len)(cx_chan_name* c) {
 
-    assert(mtx_lock(&c->mut_) == thrd_success);
+    assert(pthread_mutex_lock(&c->mut_) == 0);
     size_t len = cx_chan_name_(_len_)(c);
-    assert(mtx_unlock(&c->mut_) == thrd_success);
+    assert(pthread_mutex_unlock(&c->mut_) == 0);
     return len;
 }
 
@@ -187,18 +187,18 @@ cx_chan_api_ size_t cx_chan_name_(_cap)(cx_chan_name* c) {
 
 cx_chan_api_ void cx_chan_name_(_close)(cx_chan_name* c) {
 
-    assert(mtx_lock(&c->mut_) == thrd_success);
+    assert(pthread_mutex_lock(&c->mut_) == 0);
     c->closed_ = true;
-    cnd_broadcast(&c->rcnd_);
-    cnd_broadcast(&c->wcnd_);
-    assert(mtx_unlock(&c->mut_) == thrd_success);
+    pthread_cond_broadcast(&c->rcnd_);
+    pthread_cond_broadcast(&c->wcnd_);
+    assert(pthread_mutex_unlock(&c->mut_) == 0);
 }
 
 cx_chan_api_ bool cx_chan_name_(_isclosed)(cx_chan_name* c) {
 
-    assert(mtx_lock(&c->mut_) == thrd_success);
+    assert(pthread_mutex_lock(&c->mut_) == 0);
     bool closed = c->closed_;
-    assert(mtx_unlock(&c->mut_) == thrd_success);
+    assert(pthread_mutex_unlock(&c->mut_) == 0);
     return closed;
 }
 
@@ -206,33 +206,33 @@ cx_chan_api_ bool cx_chan_name_(_send)(cx_chan_name* c, cx_chan_type v) {
 
     // Unbuffered channel
     if (c->cap_ == 0) {
-        assert(mtx_lock(&c->wmut_) == thrd_success);
-        assert(mtx_lock(&c->mut_) == thrd_success);
+        assert(pthread_mutex_lock(&c->wmut_) == 0);
+        assert(pthread_mutex_lock(&c->mut_) == 0);
 
         // If channel is closed, returns false
         if (c->closed_) {
-            assert(mtx_unlock(&c->mut_) == thrd_success);
-            assert(mtx_unlock(&c->wmut_) == thrd_success);
+            assert(pthread_mutex_unlock(&c->mut_) == 0);
+            assert(pthread_mutex_unlock(&c->wmut_) == 0);
             return false;
         }
 
         // Store data and signal to readers
         c->data_ = v;
         c->in_ = 1;
-        cnd_signal(&c->rcnd_);
+        pthread_cond_signal(&c->rcnd_);
 
         // Wait for reader to read data or channel is closed
         while (c->in_ > 0 && !c->closed_) {
-            assert(cnd_wait(&c->wcnd_, &c->mut_) == thrd_success);
+            assert(pthread_cond_wait(&c->wcnd_, &c->mut_) == 0);
         }
         bool res = c->in_ ==  0 ? true : false;
-        assert(mtx_unlock(&c->mut_) == thrd_success);
-        assert(mtx_unlock(&c->wmut_) == thrd_success);
+        assert(pthread_mutex_unlock(&c->mut_) == 0);
+        assert(pthread_mutex_unlock(&c->wmut_) == 0);
         return res;
     }
 
     // Buffered channel
-    assert(mtx_lock(&c->mut_) == thrd_success);
+    assert(pthread_mutex_lock(&c->mut_) == 0);
 
     // Waits for available space or channel closed
     while (1) {
@@ -240,7 +240,7 @@ cx_chan_api_ bool cx_chan_name_(_send)(cx_chan_name* c, cx_chan_type v) {
         if (len < c->cap_ - 1 || c->closed_) {
             break;
         }
-        assert(cnd_wait(&c->wcnd_, &c->mut_) == thrd_success);
+        assert(pthread_cond_wait(&c->wcnd_, &c->mut_) == 0);
     }
 
     // Push data at the back of the queue
@@ -249,10 +249,10 @@ cx_chan_api_ bool cx_chan_name_(_send)(cx_chan_name* c, cx_chan_type v) {
         c->queue_[c->in_] = v;
         c->in_++;
         c->in_ %= c->cap_;
-        cnd_broadcast(&c->rcnd_); // broadcast to readers
+        pthread_cond_broadcast(&c->rcnd_); // broadcast to readers
         res = true;                        
     }
-    assert(mtx_unlock(&c->mut_) == thrd_success);
+    assert(pthread_mutex_unlock(&c->mut_) == 0);
     return res;
 }
 
@@ -260,40 +260,40 @@ cx_chan_api_ cx_chan_type cx_chan_name_(_recv)(cx_chan_name* c) {
 
     // Unbuffered channel
     if (c->cap_ == 0) {
-        assert(mtx_lock(&c->rmut_) == thrd_success);
-        assert(mtx_lock(&c->mut_) == thrd_success);
+        assert(pthread_mutex_lock(&c->rmut_) == 0);
+        assert(pthread_mutex_lock(&c->mut_) == 0);
 
         // If no data available and channel is closed, returns channel type zero value
         if (c->in_ == 0 && c->closed_) {
-            assert(mtx_unlock(&c->mut_) == thrd_success);
-            assert(mtx_unlock(&c->rmut_) == thrd_success);
+            assert(pthread_mutex_unlock(&c->mut_) == 0);
+            assert(pthread_mutex_unlock(&c->rmut_) == 0);
             return (cx_chan_type){0};
         }
 
         // Waits for data or channel closed
         while (c->in_ == 0 && !c->closed_) {
-            assert(cnd_wait(&c->rcnd_, &c->mut_) == thrd_success);
+            assert(pthread_cond_wait(&c->rcnd_, &c->mut_) == 0);
         }
         cx_chan_type data;
         if (!c->closed_) {
             // Reads data and notify writer
             data = c->data_;
             c->in_ = 0;
-            cnd_signal(&c->wcnd_);
+            pthread_cond_signal(&c->wcnd_);
         } else {
             // Channel closed: returns 0 value
             data = (cx_chan_type){0};
         }
-        assert(mtx_unlock(&c->mut_) == thrd_success);
-        assert(mtx_unlock(&c->rmut_) == thrd_success);
+        assert(pthread_mutex_unlock(&c->mut_) == 0);
+        assert(pthread_mutex_unlock(&c->rmut_) == 0);
         return data;
     }
 
     // Buffered channel
     // Waits for available data or channel closed
-    assert(mtx_lock(&c->mut_) == thrd_success);
+    assert(pthread_mutex_lock(&c->mut_) == 0);
     while ((c->in_ == c->out_) && !c->closed_) {
-        assert(cnd_wait(&c->rcnd_, &c->mut_) == thrd_success);
+        assert(pthread_cond_wait(&c->rcnd_, &c->mut_) == 0);
     }
 
     cx_chan_type data;
@@ -301,11 +301,11 @@ cx_chan_api_ cx_chan_type cx_chan_name_(_recv)(cx_chan_name* c) {
         data = c->queue_[c->out_];
         c->out_++;
         c->out_ %= c->cap_;
-        cnd_broadcast(&c->wcnd_); // signal writers
+        pthread_cond_broadcast(&c->wcnd_); // signal writers
     } else {
         data = (cx_chan_type){0};
     }
-    assert(mtx_unlock(&c->mut_) == thrd_success);
+    assert(pthread_mutex_unlock(&c->mut_) == 0);
     return data;
 }
 #endif // cx_chan_implement
