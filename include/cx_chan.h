@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <sys/eventfd.h>
+#include <unistd.h>
 #include <pthread.h>
 #include "cx_alloc.h"
 
@@ -12,7 +14,10 @@
 #endif
 // chan element type name must be defined
 #ifndef cx_chan_type
-    #error "cx_queue_type not defined"
+    #error "cx_chan_type not defined"
+#endif
+#ifndef cx_chan_max_select
+    #define cx_chan_max_select (4)
 #endif
 
 // Auxiliary internal macros
@@ -83,6 +88,7 @@ typedef struct cx_chan_name {
     pthread_mutex_t     wmut_;
     pthread_cond_t      rcnd_;
     pthread_cond_t      wcnd_;
+    int                 fd_;
     bool                closed_;
     cx_chan_type        data_;
     cx_chan_cap_type_   cap_;   // current capacity
@@ -99,9 +105,9 @@ typedef struct cx_chan_name {
 cx_chan_api_ void cx_chan_name_(_free)(cx_chan_name* c);
 cx_chan_api_ size_t cx_chan_name_(_len)(cx_chan_name* c);
 cx_chan_api_ size_t cx_chan_name_(_cap)(cx_chan_name* c);
+cx_chan_api_ int cx_chan_name_(_fd)(cx_chan_name* c);
 cx_chan_api_ void cx_chan_name_(_close)(cx_chan_name* c);
 cx_chan_api_ bool cx_chan_name_(_isclosed)(cx_chan_name* c);
-cx_chan_api_ size_t cx_chan_name_(_len)(cx_chan_name* c);
 cx_chan_api_ bool cx_chan_name_(_send)(cx_chan_name* c, cx_chan_type v);
 cx_chan_api_ cx_chan_type cx_chan_name_(_recv)(cx_chan_name* c);
 
@@ -124,6 +130,8 @@ cx_chan_api_ cx_chan_type cx_chan_name_(_recv)(cx_chan_name* c);
         assert(pthread_mutex_init(&ch->wmut_, NULL) == 0);
         assert(pthread_cond_init(&ch->rcnd_, NULL) == 0);
         assert(pthread_cond_init(&ch->wcnd_, NULL) == 0);
+        ch->fd_ = eventfd(0, EFD_NONBLOCK);
+        assert(ch->fd_ >= 0); 
     }
 
     // Internal queue length
@@ -167,6 +175,7 @@ cx_chan_api_ void cx_chan_name_(_free)(cx_chan_name* c) {
     pthread_mutex_destroy(&c->wmut_);
     pthread_mutex_destroy(&c->rmut_);
     pthread_mutex_destroy(&c->mut_);
+    close(c->fd_);
 }
 
 cx_chan_api_ size_t cx_chan_name_(_len)(cx_chan_name* c) {
@@ -183,6 +192,11 @@ cx_chan_api_ size_t cx_chan_name_(_cap)(cx_chan_name* c) {
         return 0;
     }
     return c->cap_ - 1;
+}
+
+cx_chan_api_ int cx_chan_name_(_fd)(cx_chan_name* c) {
+
+    return c->fd_;
 }
 
 cx_chan_api_ void cx_chan_name_(_close)(cx_chan_name* c) {
@@ -308,13 +322,13 @@ cx_chan_api_ cx_chan_type cx_chan_name_(_recv)(cx_chan_name* c) {
     assert(pthread_mutex_unlock(&c->mut_) == 0);
     return data;
 }
+
 #endif // cx_chan_implement
 
 // Undefine config  macros
 #undef cx_chan_name
 #undef cx_chan_type
 #undef cx_chan_cap
-#undef cx_chan_error_handler
 #undef cx_chan_allocator
 #undef cx_chan_static
 #undef cx_chan_inline

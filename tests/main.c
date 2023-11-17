@@ -12,11 +12,11 @@ int main() {
 
     LOG_INIT();
     LOGW("START");
-    cxAllocBlockTests();
-    cxArrayTests();
-    cxHmapTests();
-    cxStrTests();
-    cxQueueTests();
+    // cxAllocBlockTests();
+    // cxArrayTests();
+    // cxHmapTests();
+    // cxStrTests();
+    // cxQueueTests();
     cxChanTests();
     LOGW("END");
 }

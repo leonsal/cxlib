@@ -15,7 +15,7 @@
 #ifndef cx_log_max_handlers
     #define cx_log_max_handlers  (4)
 #endif
-#ifdef cx_log_tsafe
+#ifdef cx_log_mtsafe
     #include <pthread.h>
     #define cx_log_locker_      pthread_mutex_t locker;
     #define cx_log_lock_(l)     assert(pthread_mutex_lock(&l->locker)==0)
@@ -146,14 +146,14 @@ cx_log_api_ void cx_log_name_(_fatal)(cx_log_name* l, const char* fmt, ...) __at
 
     cx_log_api_ cx_log_name cx_log_name_(_init)() {
         cx_log_name log = {0};
-#ifdef cx_log_tsafe
+#ifdef cx_log_mtsafe
         assert(pthread_mutex_init(&log.locker, NULL) == 0);
 #endif
         return log;
     }
 
     cx_log_api_ void cx_log_name_(_free)(cx_log_name* l) {
-#ifdef cx_log_tsafe
+#ifdef cx_log_mtsafe
         assert(pthread_mutex_destroy(&l->locker) == 0);
 #endif
     }
@@ -330,7 +330,7 @@ cx_log_api_ void cx_log_name_(_fatal)(cx_log_name* l, const char* fmt, ...) __at
 #undef cx_log_static
 #undef cx_log_inline
 #undef cx_log_max_handlers
-#undef cx_log_tsafe
+#undef cx_log_mtsafe
 #undef cx_log_implement
 
 // Undefine internal macros
