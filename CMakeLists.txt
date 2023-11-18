@@ -12,7 +12,6 @@ set(SOURCES
     src/cx_alloc_pool.c
     src/cx_str.c
     src/cx_hmap.c
-    src/cx_chan.c
 )
 
 add_library(cxlib ${SOURCES})

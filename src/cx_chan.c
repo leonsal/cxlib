@@ -4,14 +4,9 @@
 #include <stdint.h>
 #include <poll.h>
 
-typedef struct CxChanSelect {
-    size_t  nreaders;
-    int*    readers;
-    size_t  nwriters;
-    int*    writers;
-} CxChanSelect;
+#include "cx_chan.h"
 
- int cxChanSelect(CxChanSelect* sel, int timeout, int* selected) {
+int cxChanSelect(CxChanSelect* sel, int timeout, int* selected) {
 
     // struct pollfd polls[8];
     // if (n > 8) {

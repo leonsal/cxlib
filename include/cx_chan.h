@@ -6,6 +6,7 @@
 #include <sys/eventfd.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <poll.h>
 #include "cx_alloc.h"
 
 // chan type name must be defined
@@ -78,6 +79,11 @@
         cx_alloc_free(cx_chan_name_(_allocator),p,n)
 #endif
 
+#define cx_chan_can_write_(c)\
+    write(c->wfd_, &(uint64_t){1}, sizeof(uint64_t))
+#define cx_chan_can_read_(c)\
+    write(c->rfd_, &(uint64_t){1}, sizeof(uint64_t))
+
 //
 // Declarations
 //
@@ -88,7 +94,8 @@ typedef struct cx_chan_name {
     pthread_mutex_t     wmut_;
     pthread_cond_t      rcnd_;
     pthread_cond_t      wcnd_;
-    int                 fd_;
+    int                 wfd_;   // signal write ready
+    int                 rfd_;   // signal read ready
     bool                closed_;
     cx_chan_type        data_;
     cx_chan_cap_type_   cap_;   // current capacity
@@ -96,6 +103,8 @@ typedef struct cx_chan_name {
     cx_chan_cap_type_   out_;   // output index
     cx_chan_type*       queue_;
 } cx_chan_name;
+
+
 
 #ifdef cx_chan_allocator
     cx_chan_api_ cx_chan_name cx_chan_name_(_init)(const CxAllocator*, size_t cap);
@@ -105,11 +114,13 @@ typedef struct cx_chan_name {
 cx_chan_api_ void cx_chan_name_(_free)(cx_chan_name* c);
 cx_chan_api_ size_t cx_chan_name_(_len)(cx_chan_name* c);
 cx_chan_api_ size_t cx_chan_name_(_cap)(cx_chan_name* c);
-cx_chan_api_ int cx_chan_name_(_fd)(cx_chan_name* c);
+cx_chan_api_ int cx_chan_name_(_rfd)(cx_chan_name* c);
+cx_chan_api_ int cx_chan_name_(_wfd)(cx_chan_name* c);
 cx_chan_api_ void cx_chan_name_(_close)(cx_chan_name* c);
 cx_chan_api_ bool cx_chan_name_(_isclosed)(cx_chan_name* c);
 cx_chan_api_ bool cx_chan_name_(_send)(cx_chan_name* c, cx_chan_type v);
 cx_chan_api_ cx_chan_type cx_chan_name_(_recv)(cx_chan_name* c);
+cx_chan_api_ int cx_chan_name_(_select)(size_t nr, int* readers, size_t nw, int* writers);
 
 //
 // Implementation
@@ -130,8 +141,10 @@ cx_chan_api_ cx_chan_type cx_chan_name_(_recv)(cx_chan_name* c);
         assert(pthread_mutex_init(&ch->wmut_, NULL) == 0);
         assert(pthread_cond_init(&ch->rcnd_, NULL) == 0);
         assert(pthread_cond_init(&ch->wcnd_, NULL) == 0);
-        ch->fd_ = eventfd(0, EFD_NONBLOCK);
-        assert(ch->fd_ >= 0); 
+        ch->wfd_ = eventfd(0, EFD_NONBLOCK);
+        assert(ch->wfd_ >= 0); 
+        ch->rfd_ = eventfd(0, EFD_NONBLOCK);
+        assert(ch->rfd_ >= 0); 
     }
 
     // Internal queue length
@@ -175,7 +188,8 @@ cx_chan_api_ void cx_chan_name_(_free)(cx_chan_name* c) {
     pthread_mutex_destroy(&c->wmut_);
     pthread_mutex_destroy(&c->rmut_);
     pthread_mutex_destroy(&c->mut_);
-    close(c->fd_);
+    close(c->wfd_);
+    close(c->rfd_);
 }
 
 cx_chan_api_ size_t cx_chan_name_(_len)(cx_chan_name* c) {
@@ -194,9 +208,14 @@ cx_chan_api_ size_t cx_chan_name_(_cap)(cx_chan_name* c) {
     return c->cap_ - 1;
 }
 
-cx_chan_api_ int cx_chan_name_(_fd)(cx_chan_name* c) {
+cx_chan_api_ int cx_chan_name_(_rfd)(cx_chan_name* c) {
 
-    return c->fd_;
+    return c->rfd_;
+}
+
+cx_chan_api_ int cx_chan_name_(_wfd)(cx_chan_name* c) {
+
+    return c->wfd_;
 }
 
 cx_chan_api_ void cx_chan_name_(_close)(cx_chan_name* c) {
@@ -234,6 +253,7 @@ cx_chan_api_ bool cx_chan_name_(_send)(cx_chan_name* c, cx_chan_type v) {
         c->data_ = v;
         c->in_ = 1;
         pthread_cond_signal(&c->rcnd_);
+        cx_chan_can_read_(c);
 
         // Wait for reader to read data or channel is closed
         while (c->in_ > 0 && !c->closed_) {
@@ -264,6 +284,7 @@ cx_chan_api_ bool cx_chan_name_(_send)(cx_chan_name* c, cx_chan_type v) {
         c->in_++;
         c->in_ %= c->cap_;
         pthread_cond_broadcast(&c->rcnd_); // broadcast to readers
+        cx_chan_can_read_(c);
         res = true;                        
     }
     assert(pthread_mutex_unlock(&c->mut_) == 0);
@@ -294,6 +315,7 @@ cx_chan_api_ cx_chan_type cx_chan_name_(_recv)(cx_chan_name* c) {
             data = c->data_;
             c->in_ = 0;
             pthread_cond_signal(&c->wcnd_);
+            cx_chan_can_write_(c);
         } else {
             // Channel closed: returns 0 value
             data = (cx_chan_type){0};
@@ -316,12 +338,79 @@ cx_chan_api_ cx_chan_type cx_chan_name_(_recv)(cx_chan_name* c) {
         c->out_++;
         c->out_ %= c->cap_;
         pthread_cond_broadcast(&c->wcnd_); // signal writers
+        cx_chan_can_write_(c);
     } else {
         data = (cx_chan_type){0};
     }
     assert(pthread_mutex_unlock(&c->mut_) == 0);
     return data;
 }
+
+cx_chan_api_ int cx_chan_name_(_select)(size_t nr, int* readers, size_t nw, int* writers) {
+
+    struct pollfd polls[8];
+    if (nr + nw > 8) {
+        abort();
+    }
+    size_t pos = 0;
+    for (size_t i = 0; i < nr; i++) {
+        polls[pos].fd = readers[i];
+        polls[pos].events = POLLIN;
+        pos++;
+    }
+    for (size_t i = 0; i < nw; i++) {
+        polls[pos].fd = writers[i];
+        polls[pos].events = POLLIN|POLLOUT;
+        pos++;
+    }
+    int count = poll(polls, pos, -1);
+    if (count < 0) {
+        return count;
+    }
+    int seln = 0;
+    if (count > 1) {
+        struct timespec now;
+        timespec_get(&now, TIME_UTC);
+        srand(now.tv_nsec);
+        seln = rand() % count;
+    }
+    int selcount = 0;
+    for (size_t i = 0; i < pos; i++) {
+        if (i < nr && polls[i].revents & POLLIN) {
+            if (seln == selcount) {
+                return i;
+            }
+            selcount++;
+            continue;
+        }
+        if (polls[i].revents & (POLLIN|POLLOUT)) {
+            if (seln == selcount) {
+                return i;
+            }
+            selcount++;
+        }
+    }
+    return -1;
+
+    // int seln = 0;
+    // if (count > 1) {
+    //     struct timespec now;
+    //     timespec_get(&now, TIME_UTC);
+    //     srand(now.tv_nsec);
+    //     seln = rand() % count;
+    // }
+    // int selcount = 0;
+    // for (size_t i = 0; i < n; i++) {
+    //     if (polls[i].revents & POLLIN) {
+    //         if (seln == selcount) {
+    //             return i;
+    //         }
+    //         selcount++;
+    //     }
+    // }
+    // return -1;
+}
+
 
 #endif // cx_chan_implement
 
