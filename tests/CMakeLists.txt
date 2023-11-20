@@ -11,4 +11,5 @@ set(SOURCES
 add_subdirectory(.. cxlib)
 add_executable(tests ${SOURCES})
 set_property(TARGET tests PROPERTY C_STANDARD  11)
+target_compile_options(tests PRIVATE -Wall -Wno-unused-function)
 target_link_libraries(tests cxlib)
