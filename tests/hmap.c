@@ -36,7 +36,7 @@ void cxHmapTest1(size_t size, size_t nbuckets, const CxAllocator* alloc) {
     for (size_t  i = 0; i < size; i++) {
         mapt1_set(&m1, i, i*2.0);
     }
-    mapt1_stats s = mapt1_get_stats(&m1);
+    //mapt1_stats s = mapt1_get_stats(&m1);
     //mapt1_print_stats(&s);
     assert(mapt1_count(&m1) == size);
     // Checks entries directly
@@ -154,7 +154,7 @@ void cxHmapTest2(size_t size, size_t nbuckets, const CxAllocator* alloc) {
     for (size_t  i = 0; i < size; i++) {
         mapt2_set(&m1, i, i*2.0);
     }
-    mapt2_stats s = mapt2_get_stats(&m1);
+    //mapt2_stats s = mapt2_get_stats(&m1);
     //mapt2_print_stats(&s);
     assert(mapt2_count(&m1) == size);
     // Checks entries directly

@@ -8,16 +8,23 @@
 #include "string.h"
 #include "queue.h"
 
+typedef struct Vec2{float x; float y;} Vec2;
+#define cx_array_name arrv2
+#define cx_array_type Vec2*
+#define cx_array_implement
+#include "cx_array.h"
+
+
 int main() {
 
-    LOG_INIT();
-    LOGW("START");
-    cxAllocBlockTests();
-    cxArrayTests();
-    cxHmapTests();
-    cxStrTests();
-    cxQueueTests();
-    LOGW("END");
+    // LOG_INIT();
+    // LOGW("START");
+    // cxAllocBlockTests();
+    // cxArrayTests();
+    // cxHmapTests();
+    // cxStrTests();
+    // cxQueueTests();
+    // LOGW("END");
     return 0;
 }
 

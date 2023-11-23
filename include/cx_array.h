@@ -239,14 +239,14 @@ cx_array_api_ ptrdiff_t cx_array_name_(_len)(cx_array_name* a);
 cx_array_api_ bool cx_array_name_(_empty)(cx_array_name* a);
 cx_array_api_ void cx_array_name_(_setcap)(cx_array_name* a, size_t cap);
 cx_array_api_ void cx_array_name_(_setlen)(cx_array_name* a, size_t len);
-cx_array_api_ void cx_array_name_(_pushn)(cx_array_name* a, const cx_array_type* v, size_t n);
+cx_array_api_ void cx_array_name_(_pushn)(cx_array_name* a, cx_array_type* v, size_t n);
 cx_array_api_ void cx_array_name_(_push)(cx_array_name* a, cx_array_type v);
 cx_array_api_ void cx_array_name_(_pusha)(cx_array_name* a, const cx_array_name* src);
 cx_array_api_ cx_array_type cx_array_name_(_pop)(cx_array_name* a);
 cx_array_api_ cx_array_type* cx_array_name_(_at)(cx_array_name* a, size_t idx);
 cx_array_api_ cx_array_type cx_array_name_(_last)(const cx_array_name* a);
 cx_array_api_ void cx_array_name_(_reserve)(cx_array_name* a, size_t n);
-cx_array_api_ void cx_array_name_(_insn)(cx_array_name* a, const cx_array_type* src, size_t n, size_t idx);
+cx_array_api_ void cx_array_name_(_insn)(cx_array_name* a, cx_array_type* src, size_t n, size_t idx);
 cx_array_api_ void cx_array_name_(_ins)(cx_array_name* a, cx_array_type v, size_t idx);
 cx_array_api_ void cx_array_name_(_insa)(cx_array_name* a, const cx_array_name* src, size_t idx);
 cx_array_api_ void cx_array_name_(_deln)(cx_array_name* a, size_t idx, size_t n);
@@ -369,7 +369,7 @@ cx_array_api_ void cx_array_name_(_setlen)(cx_array_name* a, size_t len) {
     a->len_ = len;
 }
 
-cx_array_api_ void cx_array_name_(_pushn)(cx_array_name* a, const cx_array_type* v, size_t n) {
+cx_array_api_ void cx_array_name_(_pushn)(cx_array_name* a, cx_array_type* v, size_t n) {
     if (a->len_ + n > a->cap_) {
         cx_array_name_(_grow_)(a, n, 0);
     }
@@ -427,7 +427,7 @@ cx_array_api_ void cx_array_name_(_reserve)(cx_array_name* a, size_t n) {
     }
 }
 
-cx_array_api_ void cx_array_name_(_insn)(cx_array_name* a, const cx_array_type* src, size_t n, size_t idx) {
+cx_array_api_ void cx_array_name_(_insn)(cx_array_name* a, cx_array_type* src, size_t n, size_t idx) {
 #ifdef cx_array_error_handler
     if (idx > a->len_) {
         cx_array_error_handler("invalid index",__func__);
