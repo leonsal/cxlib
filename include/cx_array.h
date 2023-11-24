@@ -11,15 +11,6 @@ Example
 #define cx_array_implement
 #include "cx_array.h"
 
-// Defines array of 'doubles' using instance allocator
-#define cx_array_name af64
-#define cx_array_type double
-#define cx_array_static
-#define cx_array_inline
-#define cx_array_allocator
-#define cx_array_implement
-#include "cx_array.h"
-
 int main() {
 
     ai32 a1 = ai32_init();
@@ -47,8 +38,18 @@ void (*handler)(const char* err_msg, const char* func_name)
 which will be called if error is detected  (default = no handler):
     #define cx_array_error_handler <func>
 
-Sets if array uses custom allocator per instance
-    #define cx_array_allocator
+Define optional custom allocator function which must return pointer to allocator interface.
+Uses default allocator if not defined.
+This allocator will be used for all instances of this array type.
+    #define cx_array_allocator <alloc_func>
+
+Sets if array uses custom allocator per instance.
+If set, it is necessary to initialize each array with the desired allocator.
+    #define cx_array_instance_allocator
+
+Defines optional array element comparison function used in find().
+If not defined, uses 'memcmp()'
+    #define cx_array_cmp_el <cmp_func>
 
 Sets if all array functions are prefixed with 'static'
     #define cx_array_static
@@ -70,7 +71,8 @@ Assuming:
 Initialize array defined with custom allocator
     cxarray cxarray_init(const CxAllocator* a);
 
-Initialize array NOT defined with custom allocator
+Initialize array NOT defined with custom allocator.
+It is equivalent to zero initialize the array struct.
     cxarray cxarray_init();
 
 Free array allocated memory
@@ -142,6 +144,9 @@ For ascending order the function should return zero if the elements are equal,
 greater than 0 if first element greater than the second or less than zero otherwise.
     void cxarray_sort(cxarray* a, int (*f)(const cxtype*, const cxtype*));
 
+Finds element in the array returning its index or -1 if not found.
+    ssize_t cxarray_find(cxarray* a, cxtype v);
+
 */ 
 #include <stdint.h>
 #include <stdbool.h>
@@ -196,8 +201,18 @@ greater than 0 if first element greater than the second or less than zero otherw
     #define cx_array_api_
 #endif
 
+// Default element comparison function
+#ifndef cx_array_cmp_el
+    #define cx_array_cmp_el memcmp
+#endif
+
+// Default array allocator
+#ifndef cx_array_allocator
+    #define cx_array_allocator cxDefaultAllocator
+#endif
+
 // Use custom instance allocator
-#ifdef cx_array_allocator
+#ifdef cx_array_instance_allocator
     #define cx_array_alloc_field_\
         const CxAllocator* alloc;
     #define cx_array_alloc_global_
@@ -208,12 +223,10 @@ greater than 0 if first element greater than the second or less than zero otherw
 // Use global type allocator
 #else
     #define cx_array_alloc_field_
-    #define cx_array_alloc_global_\
-        static const CxAllocator* cx_array_name_(_allocator) = NULL;
     #define cx_array_alloc_(s,n)\
-        cx_alloc_alloc(cx_array_name_(_allocator),n)
+        cx_alloc_alloc(cx_array_allocator(),n)
     #define cx_array_free_(s,p,n)\
-        cx_alloc_free(cx_array_name_(_allocator),p,n)
+        cx_alloc_free(cx_array_allocator(),p,n)
 #endif
 
 //
@@ -226,7 +239,7 @@ typedef struct cx_array_name {
     cx_array_type*      data;
 } cx_array_name;
 
-#ifdef cx_array_allocator
+#ifdef cx_array_instance_allocator
     cx_array_api_ cx_array_name cx_array_name_(_init)(const CxAllocator*);
 #else
     cx_array_api_ cx_array_name cx_array_name_(_init)(void);
@@ -253,12 +266,12 @@ cx_array_api_ void cx_array_name_(_deln)(cx_array_name* a, size_t idx, size_t n)
 cx_array_api_ void cx_array_name_(_del)(cx_array_name* a, size_t idx);
 cx_array_api_ void cx_array_name_(_delswap)(cx_array_name* a, size_t i);
 cx_array_api_ void cx_array_name_(_sort)(cx_array_name* a, int (*f)(const cx_array_type*, const cx_array_type*));
+cx_array_api_ ssize_t cx_array_name_(_find)(cx_array_name* a, cx_array_type v);
 
 //
 // Implementations
 //
 #ifdef cx_array_implement
-    cx_array_alloc_global_;
 
     // Internal array reallocation function
 static void cx_array_name_(_grow_)(cx_array_name* a, size_t addLen, size_t minCap) {
@@ -303,27 +316,17 @@ static void cx_array_name_(_grow_)(cx_array_name* a, size_t addLen, size_t minCa
 }
 
 
-#ifdef cx_array_allocator
+#ifdef cx_array_instance_allocator
 
     cx_array_api_ cx_array_name cx_array_name_(_init)(const CxAllocator* alloc) {
         return (cx_array_name) {
             .alloc = alloc,
-            .len_ = 0,
-            .cap_ = 0,
-            .data = NULL,
         };
     }
 #else
 
     cx_array_api_ cx_array_name cx_array_name_(_init)(void) {
-        if (cx_array_name_(_allocator) == NULL) {
-            cx_array_name_(_allocator) = cxDefaultAllocator();
-        }
-        return (cx_array_name) {
-            .len_ = 0,
-            .cap_ = 0,
-            .data = NULL,
-        };
+        return (cx_array_name){0};
     }
 #endif
 
@@ -481,6 +484,15 @@ cx_array_api_ void cx_array_name_(_sort)(cx_array_name* a, int (*f)(const cx_arr
     qsort(a->data,a->len_,sizeof(*(a->data)),(int (*)(const void*,const void*))f);
 }
 
+cx_array_api_ ssize_t cx_array_name_(_find)(cx_array_name* a, cx_array_type v) {
+    for (ssize_t i = 0; i < a->len_; i++) {
+        if (cx_array_cmp_el(&a->data[i], &v, sizeof(v)) == 0) {
+            return i;
+        }
+    }
+    return -1;
+}
+
 #endif
 
 // Undefine config  macros
@@ -488,7 +500,7 @@ cx_array_api_ void cx_array_name_(_sort)(cx_array_name* a, int (*f)(const cx_arr
 #undef cx_array_type
 #undef cx_array_cap
 #undef cx_array_error_handler
-#undef cx_array_allocator
+#undef cx_array_instance_allocator
 #undef cx_array_static
 #undef cx_array_inline
 #undef cx_array_implement

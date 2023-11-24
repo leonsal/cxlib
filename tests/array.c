@@ -12,10 +12,7 @@
 #define cx_array_cap 32
 #define cx_array_error_handler(msg,func)\
     printf("CXARRAY ERROR:%s at %s\n", msg, func);abort()
-//#define CX_ARRAY_ALLOCATOR
-#ifdef CX_ARRAY_ALLOCATOR
-    #define cx_array_allocator
-#endif
+#define cx_array_instance_allocator
 #include "cx_array.h"
 
 #include "logger.h"
@@ -40,15 +37,8 @@ void cxArrayTests(void) {
 void cxArrayTest(size_t size, const CxAllocator* alloc) {
 
     LOGI("array. size=%lu alloc:%p", size, alloc);
-
-#ifdef CX_ARRAY_ALLOCATOR
     cxarray a1 = cxarray_init(alloc);
     cxarray a2 = cxarray_init(alloc);
-#else
-    cxarray_allocator = alloc;
-    cxarray a1 = cxarray_init();
-    cxarray a2 = cxarray_init();
-#endif
 
     // push
     assert(cxarray_len(&a1) == 0);
@@ -204,6 +194,9 @@ void cxArrayTest(size_t size, const CxAllocator* alloc) {
         assert(*cxarray_at(&a1, i) == bufSize-i);
         assert(a1.data[i] == bufSize-i);
     }
+    // Finds element
+    assert(cxarray_find(&a1, 1) == 8);
+    assert(cxarray_find(&a1, 0) == -1);
     cxarray_free(&a1);
 }
 
