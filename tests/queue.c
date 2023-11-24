@@ -8,7 +8,7 @@
 #define cx_queue_cap 16
 #define cx_queue_static
 #define cx_queue_inline
-#define cx_queue_allocator
+#define cx_queue_instance_allocator
 #define cx_queue_implement
 #include "cx_queue.h"
 

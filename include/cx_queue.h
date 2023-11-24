@@ -51,11 +51,15 @@
     #define cx_queue_api_
 #endif
 
+// Default allocator
+#ifndef cx_queue_allocator
+    #define cx_queue_allocator cxDefaultAllocator
+#endif
+
 // Use custom instance allocator
-#ifdef cx_queue_allocator
+#ifdef cx_queue_instance_allocator
     #define cx_queue_alloc_field_\
         const CxAllocator* alloc;
-    #define cx_queue_alloc_global_
     #define cx_queue_alloc_(s,n)\
         cx_alloc_alloc(s->alloc, n)
     #define cx_queue_free_(s,p,n)\
@@ -63,12 +67,10 @@
 // Use global type allocator
 #else
     #define cx_queue_alloc_field_
-    #define cx_queue_alloc_global_\
-        static const CxAllocator* cx_queue_name_(_allocator) = NULL;
     #define cx_queue_alloc_(s,n)\
-        cx_alloc_alloc(cx_queue_name_(_allocator),n)
+        cx_alloc_alloc(cx_queue_allocator(),n)
     #define cx_queue_free_(s,p,n)\
-        cx_alloc_free(cx_queue_name_(_allocator),p,n)
+        cx_alloc_free(cx_queue_allocator(),p,n)
 #endif
 
 //
@@ -82,7 +84,7 @@ typedef struct cx_queue_name {
     cx_queue_type*      data_;
 } cx_queue_name;
 
-#ifdef cx_queue_allocator
+#ifdef cx_queue_instance_allocator
     cx_queue_api_ cx_queue_name cx_queue_name_(_init)(const CxAllocator*);
 #else
     cx_queue_api_ cx_queue_name cx_queue_name_(_init)(void);
@@ -107,7 +109,6 @@ cx_queue_api_ void cx_queue_name_(_reserve)(cx_queue_name* q, size_t n);
 // Implementations
 //
 #ifdef cx_queue_implement
-    cx_queue_alloc_global_;
 
     // Internal queue reallocation function
 static void cx_queue_name_(_grow_)(cx_queue_name* q, size_t addLen, size_t minCap) {
@@ -159,7 +160,7 @@ static void cx_queue_name_(_grow_)(cx_queue_name* q, size_t addLen, size_t minCa
 }
 
 
-#ifdef cx_queue_allocator
+#ifdef cx_queue_instance_allocator
 
     cx_queue_api_ cx_queue_name cx_queue_name_(_init)(const CxAllocator* alloc) {
         return (cx_queue_name) {
@@ -169,11 +170,7 @@ static void cx_queue_name_(_grow_)(cx_queue_name* q, size_t addLen, size_t minCa
 #else
 
     cx_queue_api_ cx_queue_name cx_queue_name_(_init)(void) {
-        if (cx_queue_name_(_allocator) == NULL) {
-            cx_queue_name_(_allocator) = cxDefaultAllocator();
-        }
-        return (cx_queue_name) {
-        };
+        return (cx_queue_name){0};
     }
 #endif
 
@@ -316,6 +313,7 @@ cx_queue_api_ void cx_queue_name_(_reserve)(cx_queue_name* a, size_t n) {
 #undef cx_queue_cap
 #undef cx_queue_error_handler
 #undef cx_queue_allocator
+#undef cx_queue_instance_allocator
 #undef cx_queue_static
 #undef cx_queue_inline
 #undef cx_queue_implement
