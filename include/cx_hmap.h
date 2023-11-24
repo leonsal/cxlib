@@ -89,7 +89,8 @@ Uses default allocator if not defined.
 This allocator will be used for all instances of this type.
     #define cx_hmap_allocator <alloc_func>
 
-Sets if map uses custom allocator per instance
+Sets if map uses custom allocator per instance.
+If set, it is necessary to initialize each array with the desired allocator.
     #define cx_hmap_instance_allocator
 
 Sets if all map functions are prefixed with 'static'
