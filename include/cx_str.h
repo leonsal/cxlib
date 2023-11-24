@@ -38,8 +38,14 @@ void (*handler)(const char* err_msg, const char* func_name)
 which will be called if error is detected (default = no handler):
     #define cx_str_error_handler <func>
 
+Define optional custom allocator function which must return pointer to allocator interface.
+Uses default allocator if not defined.
+This allocator will be used for all instances of this type.
+    #define cx_str_allocator <alloc_func>
+
 Sets if string uses custom allocator per instance
-    #define cx_str_allocator
+If set, it is necessary to initialize each string with the desired allocator.
+    #define cx_str_instance_allocator
 
 Sets if all string functions are prefixed with 'static'
     #define cx_str_static
@@ -203,11 +209,15 @@ Return 0 if equal, -1 or 1 (as memcmp())
     #define cx_str_api_
 #endif
 
+// Default array allocator
+#ifndef cx_str_allocator
+    #define cx_str_allocator cxDefaultAllocator
+#endif
+
 // Use custom instance allocator
-#ifdef cx_str_allocator
+#ifdef cx_str_instance_allocator
     #define cx_str_alloc_field_\
         const CxAllocator* alloc;
-    #define cx_str_alloc_global_
     #define cx_str_alloc_(s,n)\
         cx_alloc_alloc(s->alloc, n)
     #define cx_str_free_(s,p,n)\
@@ -215,12 +225,10 @@ Return 0 if equal, -1 or 1 (as memcmp())
 // Use global type allocator
 #else
     #define cx_str_alloc_field_
-    #define cx_str_alloc_global_\
-        static const CxAllocator* cx_str_name_(_allocator) = NULL;
     #define cx_str_alloc_(s,n)\
-        cx_alloc_alloc(cx_str_name_(_allocator),n)
+        cx_alloc_alloc(cx_str_allocator(),n)
     #define cx_str_free_(s,p,n)\
-        cx_alloc_free(cx_str_name_(_allocator),p,n)
+        cx_alloc_free(cx_str_allocator(),p,n)
 #endif
 
 //
@@ -233,7 +241,7 @@ typedef struct cx_str_name {
     char* data;
 } cx_str_name;
 
-#ifdef cx_str_allocator
+#ifdef cx_str_instance_allocator
     cx_str_api_ cx_str_name cx_str_name_(_init)(const CxAllocator* a);
     cx_str_api_ cx_str_name cx_str_name_(_initn)(const CxAllocator* a, const char* src, size_t n);
     cx_str_api_ cx_str_name cx_str_name_(_initc)(const CxAllocator* a, const char* src);
@@ -292,7 +300,6 @@ cx_str_api_ void cx_str_name_(_rtrim)(cx_str_name* s, const char* cset);
 //
 #ifdef cx_str_implement
 
-    cx_str_alloc_global_;
     extern int utf8casecmp(const char* src1, const char* src2);
     extern size_t utf8len(const char* str);
     extern char* utf8valid(const char* str);
@@ -347,7 +354,7 @@ static void cx_str_name_(_grow_)(cx_str_name* s, size_t addLen, size_t minCap) {
     s->cap_ = minCap;
 }
 
-#ifdef cx_str_allocator
+#ifdef cx_str_instance_allocator
 
     cx_str_api_ cx_str_name cx_str_name_(_init)(const CxAllocator* a) {
 
@@ -378,9 +385,6 @@ static void cx_str_name_(_grow_)(cx_str_name* s, size_t addLen, size_t minCap) {
 #else
 
     cx_str_api_ cx_str_name cx_str_name_(_init)(void) {
-        if (cx_str_name_(_allocator) == NULL) {
-            cx_str_name_(_allocator) = cxDefaultAllocator();
-        }
         return (cx_str_name) {0};
     }
 
@@ -841,7 +845,7 @@ cx_str_api_ void cx_str_name_(_rtrim)(cx_str_name* s, const char* cset) {
 #undef cx_str_static
 #undef cx_str_inline
 #undef cx_str_cap
-#undef cx_str_allocator
+#undef cx_str_instance_allocator
 #undef cx_str_error_handler
 #undef cx_str_implement
 

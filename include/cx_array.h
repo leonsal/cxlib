@@ -500,6 +500,7 @@ cx_array_api_ ssize_t cx_array_name_(_find)(cx_array_name* a, cx_array_type v) {
 #undef cx_array_type
 #undef cx_array_cap
 #undef cx_array_error_handler
+#undef cx_array_allocator
 #undef cx_array_instance_allocator
 #undef cx_array_static
 #undef cx_array_inline

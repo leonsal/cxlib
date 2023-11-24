@@ -84,8 +84,14 @@ uint32_t (*hash)(const void* key, size_t size);
 The default hash function implements FNV-1a algorithm
     #define cx_hmap_hash_key <hash_func>
 
-Sets if map uses custom allocator per instance
-    #define cx_hmap_allocator
+Define optional custom allocator function which must return pointer to allocator interface.
+Uses default allocator if not defined.
+This allocator will be used for all instances of this type.
+    #define cx_hmap_allocator <alloc_func>
+
+Sets if map uses custom allocator per instance.
+If set, it is necessary to initialize each array with the desired allocator.
+    #define cx_hmap_instance_allocator
 
 Sets if all map functions are prefixed with 'static'
     #define cx_hmap_static
@@ -198,7 +204,7 @@ Returns statistics for the specified map (if enabled)
 #endif
 
 // Use custom instance allocator
-#ifdef cx_hmap_allocator
+#ifdef cx_hmap_instance_allocator
     #define cx_hmap_alloc_field_\
         const CxAllocator* alloc_;
     #define cx_hmap_alloc_global_
@@ -209,12 +215,10 @@ Returns statistics for the specified map (if enabled)
 // Use global type allocator
 #else
     #define cx_hmap_alloc_field_
-    #define cx_hmap_alloc_global_\
-        static const CxAllocator* cx_hmap_name_(_allocator) = NULL;
     #define cx_hmap_alloc_(m,n)\
-        cx_alloc_alloc(cx_hmap_name_(_allocator),n)
+        cx_alloc_alloc(cx_hmap_allocator(),n)
     #define cx_hmap_free_(m,p,n)\
-        cx_alloc_free(cx_hmap_name_(_allocator),p,n)
+        cx_alloc_free(cx_hmap_allocator(),p,n)
 #endif
 
 //
@@ -239,7 +243,7 @@ typedef struct cx_hmap_name_(_iter) {
     size_t bucket_;
 } cx_hmap_name_(_iter);
 
-#ifdef cx_hmap_allocator
+#ifdef cx_hmap_instance_allocator
     cx_hmap_api_ cx_hmap_name cx_hmap_name_(_init)(const CxAllocator* alloc, size_t nbuckets);
 #else
     cx_hmap_api_ cx_hmap_name cx_hmap_name_(_init)(size_t nbuckets);
@@ -366,7 +370,7 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
         }
     }
 
-#ifdef cx_hmap_allocator
+#ifdef cx_hmap_instance_allocator
 
     cx_hmap_api_ cx_hmap_name cx_hmap_name_(_init)(const CxAllocator* alloc, size_t nbuckets) {
         return (cx_hmap_name){
@@ -378,9 +382,6 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
 #else
 
     cx_hmap_api_ cx_hmap_name cx_hmap_name_(_init)(size_t nbuckets) {
-        if (cx_hmap_name_(_allocator) == NULL) {
-            cx_hmap_name_(_allocator) = cxDefaultAllocator();
-        }
         return (cx_hmap_name){
             .nbuckets_ = nbuckets == 0 ? cx_hmap_def_nbuckets : nbuckets,
         };
@@ -545,6 +546,8 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
 #undef cx_hmap_resize_load
 #undef cx_hmap_cmp_key
 #undef cx_hmap_hash_key
+#undef cx_hmap_allocator
+#undef cx_hmap_instance_allocator
 #undef cx_hmap_static
 #undef cx_hmap_inline
 #undef cx_hmap_implement

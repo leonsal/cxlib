@@ -6,7 +6,7 @@
 #define cx_hmap_name mapt1
 #define cx_hmap_key int
 #define cx_hmap_val double
-#define cx_hmap_allocator
+#define cx_hmap_instance_allocator
 #define cx_hmap_stats
 #define cx_hmap_implement
 #include "cx_hmap.h"
@@ -14,7 +14,7 @@
 #define cx_hmap_name mapt2
 #define cx_hmap_key int
 #define cx_hmap_val double
-#define cx_hmap_allocator
+#define cx_hmap_instance_allocator
 #define cx_hmap_stats
 #define cx_hmap_implement
 #include "cx_hmap2.h"

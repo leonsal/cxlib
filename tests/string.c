@@ -9,10 +9,7 @@
 #define cx_str_static
 #define cx_str_error_handler(msg,func)\
     printf("CXSTR ERROR:%s at %s\n", msg, func);abort()
-//#define CX_STR_ALLOCATOR
-#ifdef CX_STR_ALLOCATOR
-    #define cx_str_allocator
-#endif
+#define cx_str_instance_allocator
 #define cx_str_implement
 #include "cx_str.h"
 
@@ -35,14 +32,8 @@ void cxStrTest(const CxAllocator* alloc) {
     LOGI("strings. alloc=%p", alloc);
 
     // init
-#ifdef CX_STR_ALLOCATOR
     cxstr s1 = cxstr_init(alloc);
     cxstr s2 = cxstr_init(alloc);
-#else
-    cxstr_allocator = alloc;
-    cxstr s1 = cxstr_initc(NULL);
-    cxstr s2 = cxstr_initc(NULL);
-#endif
     assert(cxstr_len(&s1) == 0);
     assert(cxstr_cap(&s1) == 0);
     assert(cxstr_empty(&s1));
