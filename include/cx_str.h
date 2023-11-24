@@ -43,6 +43,11 @@ Uses default allocator if not defined.
 This allocator will be used for all instances of this type.
     #define cx_str_allocator <alloc_func>
 
+Define optional custom allocator pointer or function which return pointer to allocator.
+Uses default allocator if not defined.
+This allocator will be used for all instances of this array type.
+    #define cx_str_allocator <allocator>
+
 Sets if string uses custom allocator per instance
 If set, it is necessary to initialize each string with the desired allocator.
     #define cx_str_instance_allocator
@@ -211,7 +216,7 @@ Return 0 if equal, -1 or 1 (as memcmp())
 
 // Default array allocator
 #ifndef cx_str_allocator
-    #define cx_str_allocator cxDefaultAllocator
+    #define cx_str_allocator cxDefaultAllocator()
 #endif
 
 // Use custom instance allocator
@@ -226,9 +231,9 @@ Return 0 if equal, -1 or 1 (as memcmp())
 #else
     #define cx_str_alloc_field_
     #define cx_str_alloc_(s,n)\
-        cx_alloc_alloc(cx_str_allocator(),n)
+        cx_alloc_alloc(cx_str_allocator,n)
     #define cx_str_free_(s,p,n)\
-        cx_alloc_free(cx_str_allocator(),p,n)
+        cx_alloc_free(cx_str_allocator,p,n)
 #endif
 
 //

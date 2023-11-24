@@ -84,10 +84,10 @@ uint32_t (*hash)(const void* key, size_t size);
 The default hash function implements FNV-1a algorithm
     #define cx_hmap_hash_key <hash_func>
 
-Define optional custom allocator function which must return pointer to allocator interface.
+Define optional custom allocator pointer or function call which return pointer to allocator.
 Uses default allocator if not defined.
 This allocator will be used for all instances of this type.
-    #define cx_hmap_allocator <alloc_func>
+    #define cx_hmap_allocator <allocator>
 
 Sets if map uses custom allocator per instance.
 If set, it is necessary to initialize each array with the desired allocator.
@@ -203,7 +203,7 @@ Returns statistics for the specified map (if enabled)
 
 // Default allocator
 #ifndef cx_hmap_allocator
-    #define cx_hmap_allocator cxDefaultAllocator
+    #define cx_hmap_allocator cxDefaultAllocator()
 #endif
 
 // Use custom instance allocator
@@ -219,9 +219,9 @@ Returns statistics for the specified map (if enabled)
 #else
     #define cx_hmap_alloc_field_
     #define cx_hmap_alloc_(m,n)\
-        cx_alloc_alloc(cx_hmap_allocator(),n)
+        cx_alloc_alloc(cx_hmap_allocator,n)
     #define cx_hmap_free_(m,p,n)\
-        cx_alloc_free(cx_hmap_allocator(),p,n)
+        cx_alloc_free(cx_hmap_allocator,p,n)
 #endif
 
 //

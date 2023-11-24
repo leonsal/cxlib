@@ -1,6 +1,9 @@
 #include <stdio.h>
 #include <stdio.h>
 #include <assert.h>
+#include "cx_alloc.h"
+#include "cx_alloc_pool.h"
+
 #include "logger.h"
 #include "alloc.h"
 #include "array.h"
@@ -8,15 +11,27 @@
 #include "string.h"
 #include "queue.h"
 
+const CxAllocator* testAllocator;
+
 #define cx_array_name arri32
 #define cx_array_type int
+#define cx_array_allocator testAllocator
 #define cx_array_implement
 #include "cx_array.h"
 
 
 int main() {
 
+    // Use pool allocator
+    CxAllocPool* pa = cxAllocPoolCreate(4*1024, NULL);
+    testAllocator = cxAllocPoolGetAllocator(pa);
+    arri32 a1 = {};
+    arri32_push(&a1, 2);
+    arri32_free(&a1);
+    cxAllocPoolDestroy(pa);
+
     LOG_INIT();
+    LOGW("START");
     cxAllocBlockTests();
     cxArrayTests();
     cxHmapTests();

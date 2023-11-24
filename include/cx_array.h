@@ -38,10 +38,10 @@ void (*handler)(const char* err_msg, const char* func_name)
 which will be called if error is detected  (default = no handler):
     #define cx_array_error_handler <func>
 
-Define optional custom allocator function which must return pointer to allocator interface.
+Define optional custom allocator pointer or function which return pointer to allocator.
 Uses default allocator if not defined.
 This allocator will be used for all instances of this array type.
-    #define cx_array_allocator <alloc_func>
+    #define cx_array_allocator <allocator>
 
 Sets if array uses custom allocator per instance.
 If set, it is necessary to initialize each array with the desired allocator.
@@ -208,7 +208,7 @@ Finds element in the array returning its index or -1 if not found.
 
 // Default array allocator
 #ifndef cx_array_allocator
-    #define cx_array_allocator cxDefaultAllocator
+    #define cx_array_allocator cxDefaultAllocator()
 #endif
 
 // Use custom instance allocator
@@ -224,9 +224,9 @@ Finds element in the array returning its index or -1 if not found.
 #else
     #define cx_array_alloc_field_
     #define cx_array_alloc_(s,n)\
-        cx_alloc_alloc(cx_array_allocator(),n)
+        cx_alloc_alloc(cx_array_allocator,n)
     #define cx_array_free_(s,p,n)\
-        cx_alloc_free(cx_array_allocator(),p,n)
+        cx_alloc_free(cx_array_allocator,p,n)
 #endif
 
 //

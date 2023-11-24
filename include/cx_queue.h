@@ -53,7 +53,7 @@
 
 // Default allocator
 #ifndef cx_queue_allocator
-    #define cx_queue_allocator cxDefaultAllocator
+    #define cx_queue_allocator cxDefaultAllocator()
 #endif
 
 // Use custom instance allocator
@@ -68,9 +68,9 @@
 #else
     #define cx_queue_alloc_field_
     #define cx_queue_alloc_(s,n)\
-        cx_alloc_alloc(cx_queue_allocator(),n)
+        cx_alloc_alloc(cx_queue_allocator,n)
     #define cx_queue_free_(s,p,n)\
-        cx_alloc_free(cx_queue_allocator(),p,n)
+        cx_alloc_free(cx_queue_allocator,p,n)
 #endif
 
 //
