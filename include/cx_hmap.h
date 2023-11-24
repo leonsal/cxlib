@@ -310,6 +310,11 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
             }
         }
 
+        // Allows for static initialization of maps
+        if (m->nbuckets_ == 0) {
+            m->nbuckets_ = cx_hmap_def_nbuckets;
+        }
+
         if (op == cx_hmap_op_set_) {
             cx_hmap_name_(_check_resize_)(m);
         }
