@@ -304,15 +304,14 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
                 return NULL;
             }
             if (op == cx_hmap_op_set_) {
+                // Allows for static initialization of maps
+                if (m->nbuckets_ == 0) {
+                    m->nbuckets_ = cx_hmap_def_nbuckets;
+                }
                 const size_t allocSize = m->nbuckets_ * sizeof(*m->buckets_);
                 m->buckets_ = cx_hmap_alloc_(m, allocSize);
                 memset(m->buckets_, 0, allocSize);
             }
-        }
-
-        // Allows for static initialization of maps
-        if (m->nbuckets_ == 0) {
-            m->nbuckets_ = cx_hmap_def_nbuckets;
         }
 
         if (op == cx_hmap_op_set_) {
