@@ -273,9 +273,6 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
     #define cx_hmap_op_get_ (1)
     #define cx_hmap_op_del_ (2)
 
-    // Optional type global pointer to allocator
-    cx_hmap_alloc_global_;
-
     // External functions defined in 'cx_hmap.c'
     size_t cxHashFNV1a32(void* key, size_t keySize);
 
