@@ -143,6 +143,10 @@ Returns true if found or false otherwise.
 Returns the number of entries in the hashmap
     size_t hmap_count(const hmap* m);
 
+Clears the map without deallocating memory.
+The current number of buckets is not changed.
+    void hmap_clear(hmap* m);
+
 Returns the next hashmap entry from the specified iterator.
 Returns NULL after the last entry.
     hmap_entry* hmap_next(const hmap* m, hmap_iter* iter);
@@ -252,10 +256,12 @@ typedef struct cx_hmap_name_(_iter) {
     cx_hmap_api_ cx_hmap_name cx_hmap_name_(_init)(size_t nbuckets);
 #endif
 cx_hmap_api_ cx_hmap_name cx_hmap_name_(_clone)(cx_hmap_name* src, size_t nbuckets);
+cx_hmap_api_ void cx_hmap_name_(_free_internal_)(cx_hmap_name* m, bool all);
 cx_hmap_api_ void cx_hmap_name_(_free)(cx_hmap_name* m);
 cx_hmap_api_ void cx_hmap_name_(_set)(cx_hmap_name* m, cx_hmap_key k, cx_hmap_val v);
 cx_hmap_api_ cx_hmap_val* cx_hmap_name_(_get)(cx_hmap_name* m, cx_hmap_key k);
 cx_hmap_api_ bool cx_hmap_name_(_del)(cx_hmap_name* m, cx_hmap_key k);
+cx_hmap_api_ void cx_hmap_name_(_clear)(cx_hmap_name* m);
 cx_hmap_api_ size_t cx_hmap_name_(_count)(cx_hmap_name* m);
 cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hmap_name_(_iter)* iter);
 
@@ -438,7 +444,7 @@ cx_hmap_api_ cx_hmap_name cx_hmap_name_(_clone)(cx_hmap_name* src, size_t nbucke
     return dst;
 }
 
-cx_hmap_api_ void cx_hmap_name_(_free)(cx_hmap_name* m) {
+cx_hmap_api_ void cx_hmap_name_(_free_internal_)(cx_hmap_name* m, bool all) {
 
     if (m == NULL) {
          return;
@@ -463,9 +469,16 @@ cx_hmap_api_ void cx_hmap_name_(_free)(cx_hmap_name* m) {
         }
         e->next_ = NULL;
     }
-    cx_hmap_free_(m, m->buckets_, m->nbuckets_ * sizeof(cx_hmap_name_(_entry)));
     m->count_ = 0;
-    m->buckets_ = NULL;
+    if (all) {
+        cx_hmap_free_(m, m->buckets_, m->nbuckets_ * sizeof(cx_hmap_name_(_entry)));
+        m->buckets_ = NULL;
+    }
+}
+
+cx_hmap_api_ void cx_hmap_name_(_free)(cx_hmap_name* m) {
+
+    cx_hmap_name_(_free_internal_)(m, true);
 }
 
 cx_hmap_api_ void cx_hmap_name_(_set)(cx_hmap_name* m, cx_hmap_key k, cx_hmap_val v) {
@@ -482,6 +495,11 @@ cx_hmap_api_ cx_hmap_val* cx_hmap_name_(_get)(cx_hmap_name* m, cx_hmap_key k) {
 cx_hmap_api_ bool cx_hmap_name_(_del)(cx_hmap_name* m, cx_hmap_key k) {
     cx_hmap_name_(_entry)* e = cx_hmap_name_(_oper_)(m, cx_hmap_op_del_, &k);
     return e == NULL ? false : true;
+}
+
+cx_hmap_api_ void cx_hmap_name_(_clear)(cx_hmap_name* m) {
+
+    cx_hmap_name_(_free_internal_)(m, false);
 }
 
 cx_hmap_api_ size_t cx_hmap_name_(_count)(cx_hmap_name* m) {

@@ -143,6 +143,10 @@ Returns true if found or false otherwise.
 Returns the number of entries in the hashmap
     size_t hmap_count(const hmap* m);
 
+Clears the map without deallocating memory.
+The current number of buckets is not changed.
+    void hmap_clear(hmap* m);
+
 Returns the next hashmap entry from the specified iterator.
 Returns NULL after the last entry.
     hmap_entry* hmap_next(const hmap* m, hmap_iter* iter);
@@ -258,6 +262,7 @@ cx_hmap_api_ void cx_hmap_name_(_free)(cx_hmap_name* m);
 cx_hmap_api_ void cx_hmap_name_(_set)(cx_hmap_name* m, cx_hmap_key k, cx_hmap_val v);
 cx_hmap_api_ cx_hmap_val* cx_hmap_name_(_get)(const cx_hmap_name* m, cx_hmap_key k);
 cx_hmap_api_ bool cx_hmap_name_(_del)(cx_hmap_name* m, cx_hmap_key k);
+cx_hmap_api_ void cx_hmap_name_(_clear)(cx_hmap_name* m);
 cx_hmap_api_ size_t cx_hmap_name_(_count)(const cx_hmap_name* m);
 cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hmap_name_(_iter)* iter);
 
@@ -446,6 +451,14 @@ cx_hmap_api_ bool cx_hmap_name_(_del)(cx_hmap_name* m, cx_hmap_key k) {
     assert(m);
     cx_hmap_name_(_entry)* e = cx_hmap_name_(_oper_)(m, cx_hmap_op_del_, &k, NULL);
     return e == NULL ? false : true;
+}
+
+cx_hmap_api_ void cx_hmap_name_(_clear)(cx_hmap_name* m) {
+
+    assert(m);
+    memset(m->status_, cx_hmap_empty_, m->nbuckets_ * sizeof(*m->status_));
+    m->count_ = 0;
+    m->deleted_ = 0;
 }
 
 cx_hmap_api_ size_t cx_hmap_name_(_count)(const cx_hmap_name* m) {
