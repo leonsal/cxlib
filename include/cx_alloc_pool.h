@@ -10,7 +10,7 @@ typedef struct CxAllocPool CxAllocPool;
 typedef struct CxAllocPoolInfo {
     size_t allocs;      // Number of individual allocations
     size_t blocks;      // Number of blocks allocated
-    size_t maxPool;    // Maximum block size
+    size_t maxPool;     // Maximum block size
     size_t nbytes;      // Total number of bytes allocated
 } CxAllocPoolInfo;
 

@@ -7,22 +7,22 @@
 #include "cx_alloc.h"
 #include "cx_alloc_pool.h"
 
-// Header of arena blocks
+// Block header
 typedef struct Block Block;
 typedef struct Block {
     Block*  next;       // Pointer to next block in the chain
     size_t  size;       // Size of this block (not including this header)
-    size_t  used;       // How many bytes used in this block (not including this header)
-    char   data[];     // Block data
+    char    data[];     // Block data
 } Block;
 
-// Block Allocator control state
+// Block Allocator state
 typedef struct CxAllocPool {
     size_t              blockSize;  // Minimum block size
     Block*              firstFree;  // First block of the free chain
     Block*              nextFree;   // Next free block of the free chain
     Block*              firstBlock; // First block of the allocated chain
     Block*              currBlock;  // Current block of the allocated chain
+    size_t              used;       // Bytes allocated in current block (not including block header)
     const CxAllocator*  alloc;      // Allocator for blocks
     CxAllocator         userAlloc;  // Block allocator for users
     CxAllocPoolInfo     info;
@@ -46,6 +46,7 @@ CxAllocPool* cxAllocPoolCreate(size_t blockSize, const CxAllocator* alloc) {
     a->nextFree = NULL;
     a->firstBlock = NULL;
     a->currBlock = NULL;
+    a->used = 0;
     a->alloc = alloc;
     a->userAlloc = (CxAllocator){
         .ctx = a,
@@ -71,14 +72,14 @@ void* cxAllocPoolAlloc2(CxAllocPool* a, size_t size, size_t align) {
 
     uintptr_t padding = 0;
     if (a->currBlock) {
-        padding = alignForward(a->currBlock->used, align) - a->currBlock->used;
+        padding = alignForward(a->used, align) - a->used;
     }
-    if (a->currBlock == NULL || (a->currBlock->used + padding + size > a->currBlock->size)) {
+    if (a->currBlock == NULL || (a->used + padding + size > a->currBlock->size)) {
         newBlock(a, size);
         padding = 0;
     }
-    void *newp = a->currBlock->data + a->currBlock->used + padding;
-    a->currBlock->used += padding + size;
+    void *newp = a->currBlock->data + a->used + padding;
+    a->used += padding + size;
     a->info.allocs++;
     return newp;
 }
@@ -116,19 +117,35 @@ CxAllocPoolInfo cxAllocPoolGetInfo(const CxAllocPool* a) {
 // Allocates a new block for the pool with the specified size.
 static inline void newBlock(CxAllocPool* a, size_t size) {
 
-    if (size < a->blockSize) {
-        size = a->blockSize;
+    // Adjusts block size
+    size = size > a->blockSize ? size : a->blockSize;
+
+    // Checks if it is possible to use the next free block
+    Block* new = NULL;
+    if (a->nextFree != NULL && a->nextFree->size >= size) {
+        new = a->nextFree;
+        a->nextFree = new->next;
+    } else {
+        // No next free block or next free block is small:
+        // Allocates a new block
+        const size_t allocSize = sizeof(Block) + size;
+        new = a->alloc->alloc(a->alloc->ctx, allocSize);
+        if (new == NULL) {
+            abort();
+        }
+        new->size = size;
     }
-    const size_t allocSize = sizeof(Block) + size;
-    Block* b;
-    b = a->alloc->alloc(a->alloc->ctx, allocSize);
-    if (b == NULL) {
-        abort();
+
+    new->next = NULL;
+    if (a->currBlock != NULL) {
+        a->currBlock->next = new;
     }
-    b->size = size;
-    b->used = 0;
-    b->prev = a->curr;
-    a->curr = b;
+    a->currBlock = new;
+    if (a->firstBlock == NULL) {
+        a->firstBlock = new;
+    }
+
+    // Update stats
     a->info.blocks++;
     a->info.nbytes += size;
     if (size > a->info.maxPool) {
