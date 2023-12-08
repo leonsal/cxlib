@@ -10,7 +10,7 @@
 // Header of arena blocks
 typedef struct Block Block;
 typedef struct Block {
-    Block*  prev;       // Pointer to previous block in the chain
+    Block*  next;       // Pointer to next block in the chain
     size_t  size;       // Size of this block (not including this header)
     size_t  used;       // How many bytes used in this block (not including this header)
     char   data[];     // Block data
@@ -19,10 +19,13 @@ typedef struct Block {
 // Block Allocator control state
 typedef struct CxAllocPool {
     size_t              blockSize;  // Minimum block size
-    Block*              curr;       // Pointer to current block
+    Block*              firstFree;  // First block of the free chain
+    Block*              nextFree;   // Next free block of the free chain
+    Block*              firstBlock; // First block of the allocated chain
+    Block*              currBlock;  // Current block of the allocated chain
     const CxAllocator*  alloc;      // Allocator for blocks
     CxAllocator         userAlloc;  // Block allocator for users
-    CxAllocPoolInfo    info;
+    CxAllocPoolInfo     info;
 } CxAllocPool;
 
 
@@ -38,8 +41,11 @@ CxAllocPool* cxAllocPoolCreate(size_t blockSize, const CxAllocator* alloc) {
         alloc = cxDefaultAllocator();
     }
     CxAllocPool* a = alloc->alloc(alloc->ctx, sizeof(CxAllocPool));
-    a->curr = NULL;
     a->blockSize = blockSize;
+    a->firstFree = NULL;
+    a->nextFree = NULL;
+    a->firstBlock = NULL;
+    a->currBlock = NULL;
     a->alloc = alloc;
     a->userAlloc = (CxAllocator){
         .ctx = a,
@@ -64,15 +70,15 @@ void* cxAllocPoolAlloc(CxAllocPool* a, size_t size) {
 void* cxAllocPoolAlloc2(CxAllocPool* a, size_t size, size_t align) {
 
     uintptr_t padding = 0;
-    if (a->curr) {
-        padding = alignForward(a->curr->used, align) - a->curr->used;
+    if (a->currBlock) {
+        padding = alignForward(a->currBlock->used, align) - a->currBlock->used;
     }
-    if (a->curr == NULL || (a->curr->used + padding + size > a->blockSize)) {
+    if (a->currBlock == NULL || (a->currBlock->used + padding + size > a->currBlock->size)) {
         newBlock(a, size);
         padding = 0;
     }
-    void *newp = a->curr->data + a->curr->used + padding;
-    a->curr->used += padding + size;
+    void *newp = a->currBlock->data + a->currBlock->used + padding;
+    a->currBlock->used += padding + size;
     a->info.allocs++;
     return newp;
 }
@@ -85,13 +91,13 @@ void cxAllocPoolClear(CxAllocPool* a) {
 
 void cxAllocPoolFree(CxAllocPool* a) {
 
-    Block *b = a->curr;
+    Block *b = a->firstBlock;
     while (b != NULL) {
-        Block* prev = b->prev;
+        Block* next = b->next;
         a->alloc->free(a->alloc->ctx, b, sizeof(Block));
-        b = prev;
+        b = next;
     }
-    a->curr = NULL;
+    a->firstBlock = NULL;
 }
 
 static void cxAllocPoolDummyFree(void* ctx, void* p, size_t n) {}
