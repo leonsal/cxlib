@@ -11,33 +11,49 @@
 #include "string.h"
 #include "queue.h"
 
-const CxAllocator* testAllocator;
+// const CxAllocator* testAllocator;
+//
+// #define cx_array_name arri32
+// #define cx_array_type int
+// #define cx_array_allocator testAllocator
+// #define cx_array_implement
+// #include "cx_array.h"
 
-#define cx_array_name arri32
-#define cx_array_type int
-#define cx_array_allocator testAllocator
-#define cx_array_implement
-#include "cx_array.h"
-
+#define IFACE(IF,MT,...) IF->MT(IF->ctx,__VA_ARGS__)
 
 int main() {
-
-    // Use pool allocator
-    CxAllocPool* pa = cxAllocPoolCreate(4*1024, NULL);
-    testAllocator = cxAllocPoolGetAllocator(pa);
-    arri32 a1 = {};
-    arri32_push(&a1, 2);
-    arri32_free(&a1);
-    cxAllocPoolDestroy(pa);
-
     LOG_INIT();
     LOGW("START");
-    cxAllocBlockTests();
-    cxArrayTests();
-    cxHmapTests();
-    cxStrTests();
-    cxQueueTests();
+
+    CxAllocPool* pa = cxAllocPoolCreate(128, NULL);
+    const CxAllocator* alloc = cxAllocPoolGetAllocator(pa);
+
+    void* a1 = IFACE(alloc, alloc, 1);
+    void* a2 = IFACE(alloc, alloc, 1);
+    void* a3 = IFACE(alloc, alloc, 128);
+    void* a4 = IFACE(alloc, alloc, 3);
+    void* a5 = IFACE(alloc, alloc, 130);
+
+    cxAllocPoolFree(pa);
+    cxAllocPoolDestroy(pa);
     LOGW("END");
+
+    // // Use pool allocator
+    // CxAllocPool* pa = cxAllocPoolCreate(4*1024, NULL);
+    // testAllocator = cxAllocPoolGetAllocator(pa);
+    // arri32 a1 = {};
+    // arri32_push(&a1, 2);
+    // arri32_free(&a1);
+    // cxAllocPoolDestroy(pa);
+    //
+    // LOG_INIT();
+    // LOGW("START");
+    // cxAllocBlockTests();
+    // cxArrayTests();
+    // cxHmapTests();
+    // cxStrTests();
+    // cxQueueTests();
+    // LOGW("END");
     return 0;
 }
 

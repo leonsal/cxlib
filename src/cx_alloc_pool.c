@@ -98,7 +98,10 @@ void cxAllocPoolFree(CxAllocPool* a) {
         a->alloc->free(a->alloc->ctx, b, sizeof(Block));
         b = next;
     }
+    a->currBlock = NULL;
     a->firstBlock = NULL;
+    a->used = 0;
+    a->info = (CxAllocPoolInfo){0};
 }
 
 static void cxAllocPoolDummyFree(void* ctx, void* p, size_t n) {}
@@ -144,6 +147,7 @@ static inline void newBlock(CxAllocPool* a, size_t size) {
     if (a->firstBlock == NULL) {
         a->firstBlock = new;
     }
+    a->used = 0;
 
     // Update stats
     a->info.blocks++;
