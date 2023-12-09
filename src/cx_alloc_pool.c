@@ -87,7 +87,7 @@ void cxAllocPoolClear(CxAllocPool* a) {
     if (a->firstBlock == NULL) {
         return;
     }
-    // Join the used blocks chain with the eventual free blocks chain
+    // Join free blocks chain with the used blocks
     if (a->nextFree != NULL) {
         Block *curr = a->nextFree;
         Block *next = a->nextFree->next;

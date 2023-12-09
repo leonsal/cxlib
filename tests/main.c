@@ -25,7 +25,7 @@ int main() {
     LOG_INIT();
     LOGW("START");
 
-    cxAllocPoolTest(10, 256, 2);
+    cxAllocPoolTest(1000, 256, 100);
 
     // CxAllocPool* pa = cxAllocPoolCreate(128, NULL);
     // const CxAllocator* alloc = cxAllocPoolGetAllocator(pa);

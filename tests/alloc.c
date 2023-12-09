@@ -84,13 +84,17 @@ void cxAllocPoolTest(size_t allocs, size_t blockSize, size_t ncycles) {
     } Group;
     Group* groups = malloc(sizeof(Group) * allocs);
 
-    srand(time(NULL));
-    // Allocate groups with random number of elements and
-    // fill the data with random value
+    // Calculate the maximum count of elements to allocate
+    // allowing for allocations of blocks of size greater than blockSize
     size_t maxCount = blockSize / sizeof(*groups[0].p);
-    maxCount *= 1.1;    // 10 % percent of larger blocks than blockSize
+    maxCount *= 1.2;    // 20 % percent of larger blocks than blockSize
+    srand(time(NULL));
 
+    // For specified number of cycles
     for (size_t ci = 0; ci < ncycles; ci++) {
+
+        // Allocate groups with random number of elements and fill
+        // data with random value
         for (size_t i = 0; i < allocs; i++) {
             size_t count = rand() % maxCount;
             groups[i] = (Group){
@@ -109,7 +113,7 @@ void cxAllocPoolTest(size_t allocs, size_t blockSize, size_t ncycles) {
                 assert(groups[i].p[j] == groups[i].value);
             }
         }
-        // Clear the allocator
+        // Clear the allocator before restarting the cycle
         cxAllocPoolClear(pa);
     }
 
