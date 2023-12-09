@@ -28,11 +28,14 @@ int main() {
     CxAllocPool* pa = cxAllocPoolCreate(128, NULL);
     const CxAllocator* alloc = cxAllocPoolGetAllocator(pa);
 
-    void* a1 = IFACE(alloc, alloc, 1);
-    void* a2 = IFACE(alloc, alloc, 1);
-    void* a3 = IFACE(alloc, alloc, 128);
-    void* a4 = IFACE(alloc, alloc, 3);
-    void* a5 = IFACE(alloc, alloc, 130);
+    for (size_t i = 0; i < 10; i++) {
+        void* a1 = IFACE(alloc, alloc, 1);
+        void* a2 = IFACE(alloc, alloc, 1);
+        void* a3 = IFACE(alloc, alloc, 128);
+        void* a4 = IFACE(alloc, alloc, 3);
+        void* a5 = IFACE(alloc, alloc, 130);
+        cxAllocPoolClear(pa);
+    }
 
     cxAllocPoolFree(pa);
     cxAllocPoolDestroy(pa);

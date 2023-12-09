@@ -86,8 +86,24 @@ void* cxAllocPoolAlloc2(CxAllocPool* a, size_t size, size_t align) {
 
 void cxAllocPoolClear(CxAllocPool* a) {
 
-
-
+    if (a->firstBlock == NULL) {
+        return;
+    }
+    // Join the used blocks chain with the eventual free blocks chain
+    if (a->firstFree != NULL) {
+        Block *curr = a->firstFree->next;
+        while (curr != NULL) {
+            curr = curr->next;
+        }
+        curr->next = a->firstBlock;
+    } else {
+        a->firstFree = a->firstBlock;
+    }
+    a->nextFree = a->firstFree;
+    a->firstBlock = NULL;
+    a->currBlock = NULL;
+    a->used = 0;
+    a->info = (CxAllocPoolInfo){0};
 }
 
 void cxAllocPoolFree(CxAllocPool* a) {
