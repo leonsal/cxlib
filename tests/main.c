@@ -25,7 +25,7 @@ int main() {
     LOG_INIT();
     LOGW("START");
 
-    cxAllocPoolTest(10, 256, 40);
+    cxAllocPoolTests();
 
     LOGW("END");
 

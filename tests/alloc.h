@@ -1,7 +1,6 @@
 #pragma once
 #include <stdlib.h>
 
-void cxAllocBlockTests(void);
-void cxAllocBlockTest(size_t allocs, size_t blockSize);
+void cxAllocPoolTests();
 void cxAllocPoolTest(size_t allocs, size_t blockSize, size_t ncycles);
 void cxAllocPoolTestPrint(CxAllocPool* pa);

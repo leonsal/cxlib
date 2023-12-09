@@ -17,16 +17,15 @@ typedef struct Block {
 
 // Block Allocator state
 typedef struct CxAllocPool {
+    const CxAllocator*  alloc;      // Allocator for blocks
     size_t              blockSize;  // Minimum block size
     Block*              nextFree;   // Next free block of the free chain
     Block*              firstBlock; // First block of the allocated chain
     Block*              currBlock;  // Current block of the allocated chain
     size_t              used;       // Bytes allocated in current block (not including block header)
-    const CxAllocator*  alloc;      // Allocator for blocks
     CxAllocator         userAlloc;  // Block allocator for users
     size_t              nallocs;    // Number of individual allocations
     size_t              nbytes;     // Total bytes requested for allocation
-    //CxAllocPoolInfo     info;
 } CxAllocPool;
 
 
@@ -112,12 +111,21 @@ void cxAllocPoolClear(CxAllocPool* a) {
 
 void cxAllocPoolFree(CxAllocPool* a) {
 
+    // Free used blocks
     Block *b = a->firstBlock;
     while (b != NULL) {
         Block* next = b->next;
         a->alloc->free(a->alloc->ctx, b, sizeof(Block));
         b = next;
     }
+    // Free unused blocks
+    b = a->nextFree;
+    while (b != NULL) {
+        Block* next = b->next;
+        a->alloc->free(a->alloc->ctx, b, sizeof(Block));
+        b = next;
+    }
+    a->nextFree = NULL;
     a->currBlock = NULL;
     a->firstBlock = NULL;
     a->used = 0;
@@ -157,14 +165,26 @@ static inline void newBlock(CxAllocPool* a, size_t size) {
     // Adjusts block size
     size = size > a->blockSize ? size : a->blockSize;
 
-    // Checks if it is possible to use the next free block
     Block* new = NULL;
-    if (a->nextFree != NULL && a->nextFree->size >= size) {
-        new = a->nextFree;
-        a->nextFree = new->next;
-    } else {
-        // No next free block or next free block is small:
-        // Allocates a new block
+    // Looks for free block which fits requested size
+    if (a->nextFree != NULL) {
+        Block* prev = NULL;
+        Block* curr = a->nextFree;
+        while (curr != NULL && curr->size < size) {
+            prev = curr;
+            curr = curr->next;
+        }
+        if (curr != NULL) {
+            new = curr;
+            if (prev != NULL) {
+                prev->next = curr->next;
+            } else {
+                a->nextFree = curr->next;
+            }
+        }
+    }
+    if (new == NULL) {
+        // No free block found with requeste size: Allocates a new block
         const size_t allocSize = sizeof(Block) + size;
         new = a->alloc->alloc(a->alloc->ctx, allocSize);
         if (new == NULL) {
