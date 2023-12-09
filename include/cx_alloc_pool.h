@@ -6,13 +6,13 @@
 // Pool allocator opaque type
 typedef struct CxAllocPool CxAllocPool;
 
-// Pool allocator info
-typedef struct CxAllocPoolInfo {
-    size_t allocs;      // Number of individual allocations
-    size_t blocks;      // Number of blocks allocated
-    size_t maxPool;     // Maximum block size
-    size_t nbytes;      // Total number of bytes allocated
-} CxAllocPoolInfo;
+// Pool allocator stats
+typedef struct CxAllocPoolStats {
+    size_t nallocs;     // Number of individual allocations
+    size_t nbytes;      // Total number of requested bytes
+    size_t usedBlocks;  // Number of allocated used blocks
+    size_t freeBlocks;  // Number of allocated blocks in free list
+} CxAllocPoolStats;
 
 // Creates an block allocator using the specified minimum blocksize and
 // using the specified memory allocator. If NULL is passed as the allocator,
@@ -34,10 +34,13 @@ void* cxAllocPoolAlloc(CxAllocPool* a, size_t size);
 //
 void* cxAllocPoolAlloc2(CxAllocPool* a, size_t size, size_t align);
 
+//
+// Clears the allocator keeping the memory allocated from parent allocator
+//
 void cxAllocPoolClear(CxAllocPool* a);
 
 //
-// Free all allocated blocks of the allocator
+// Free all allocated memory
 //
 void cxAllocPoolFree(CxAllocPool* a);
 
@@ -47,9 +50,9 @@ void cxAllocPoolFree(CxAllocPool* a);
 const CxAllocator* cxAllocPoolGetAllocator(CxAllocPool* a);
 
 //
-// Returns nfo
+// Returns allocator statistics
 //
-CxAllocPoolInfo cxAllocPoolGetInfo(const CxAllocPool* a);
+CxAllocPoolStats cxAllocPoolGetStats(const CxAllocPool* a);
 
 #endif
 

@@ -87,7 +87,7 @@ void cxAllocPoolTest(size_t allocs, size_t blockSize, size_t ncycles) {
     // Calculate the maximum count of elements to allocate
     // allowing for allocations of blocks of size greater than blockSize
     size_t maxCount = blockSize / sizeof(*groups[0].p);
-    maxCount *= 1.2;    // 20 % percent of larger blocks than blockSize
+    maxCount *= 1.1;    // 20 % percent of larger blocks than blockSize
     srand(time(NULL));
 
     // For specified number of cycles
@@ -114,11 +114,28 @@ void cxAllocPoolTest(size_t allocs, size_t blockSize, size_t ncycles) {
             }
         }
         // Clear the allocator before restarting the cycle
+        cxAllocPoolTestPrint(pa);
         cxAllocPoolClear(pa);
     }
 
 
     cxAllocPoolDestroy(pa);
     free(groups);
+}
+
+void cxAllocPoolTestPrint(CxAllocPool* pa) {
+
+    CxAllocPoolStats stats = cxAllocPoolGetStats(pa);
+    printf("nallocs:%lu "
+            "nbytes:%lu "
+            "usedBlocks: %lu "
+            "freeBlocks: %lu "
+            "\n",
+            stats.nallocs,
+            stats.nbytes,
+            stats.usedBlocks,
+            stats.freeBlocks
+    );
+
 }
 

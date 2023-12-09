@@ -24,7 +24,9 @@ typedef struct CxAllocPool {
     size_t              used;       // Bytes allocated in current block (not including block header)
     const CxAllocator*  alloc;      // Allocator for blocks
     CxAllocator         userAlloc;  // Block allocator for users
-    CxAllocPoolInfo     info;
+    size_t              nallocs;    // Number of individual allocations
+    size_t              nbytes;     // Total bytes requested for allocation
+    //CxAllocPoolInfo     info;
 } CxAllocPool;
 
 
@@ -51,7 +53,8 @@ CxAllocPool* cxAllocPoolCreate(size_t blockSize, const CxAllocator* alloc) {
         .alloc = (CxAllocatorAllocFn)cxAllocPoolAlloc,
         .free = cxAllocPoolDummyFree,
     };
-    a->info = (CxAllocPoolInfo){};
+    a->nallocs = 0;
+    a->nbytes = 0;
     return a;
 }
 
@@ -78,7 +81,8 @@ void* cxAllocPoolAlloc2(CxAllocPool* a, size_t size, size_t align) {
     }
     void *newp = a->currBlock->data + a->used + padding;
     a->used += padding + size;
-    a->info.allocs++;
+    a->nallocs++;
+    a->nbytes += size;
     return newp;
 }
 
@@ -102,7 +106,8 @@ void cxAllocPoolClear(CxAllocPool* a) {
     a->firstBlock = NULL;
     a->currBlock = NULL;
     a->used = 0;
-    a->info = (CxAllocPoolInfo){0};
+    a->nallocs = 0;
+    a->nbytes = 0;
 }
 
 void cxAllocPoolFree(CxAllocPool* a) {
@@ -116,7 +121,8 @@ void cxAllocPoolFree(CxAllocPool* a) {
     a->currBlock = NULL;
     a->firstBlock = NULL;
     a->used = 0;
-    a->info = (CxAllocPoolInfo){0};
+    a->nallocs = 0;
+    a->nbytes = 0;
 }
 
 static void cxAllocPoolDummyFree(void* ctx, void* p, size_t n) {}
@@ -126,13 +132,26 @@ const CxAllocator* cxAllocPoolGetAllocator(CxAllocPool* a) {
     return &a->userAlloc;
 }
 
-CxAllocPoolInfo cxAllocPoolGetInfo(const CxAllocPool* a) {
+CxAllocPoolStats cxAllocPoolGetStats(const CxAllocPool* a) {
 
-    return a->info;
+    CxAllocPoolStats stats = {
+        .nallocs = a->nallocs,
+        .nbytes = a->nbytes,
+    };
+    Block* curr = a->firstBlock;
+    while (curr != NULL) {
+        stats.usedBlocks++;
+        curr = curr->next;
+    }
+    curr = a->nextFree;
+    while (curr != NULL) {
+        stats.freeBlocks++;
+        curr = curr->next;
+    }
+    return stats;
 }
 
-
-// Allocates a new block for the pool with the specified size.
+// Allocates a new block for with the specified size.
 static inline void newBlock(CxAllocPool* a, size_t size) {
 
     // Adjusts block size
@@ -163,17 +182,10 @@ static inline void newBlock(CxAllocPool* a, size_t size) {
         a->firstBlock = new;
     }
     a->used = 0;
-
-    // Update stats
-    a->info.blocks++;
-    a->info.nbytes += size;
-    if (size > a->info.maxPool) {
-        a->info.maxPool = size;
-    }
 }
 
 // Returns the aligned pointer for the specified pointer and desired alignment
-static uintptr_t alignForward(uintptr_t ptr, size_t align) {
+static inline uintptr_t alignForward(uintptr_t ptr, size_t align) {
 
     // Alignment must be power of 2
     assert((align & (align-1)) == 0);
