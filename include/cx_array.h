@@ -217,14 +217,14 @@ Finds element in the array returning its index or -1 if not found.
         const CxAllocator* alloc;
     #define cx_array_alloc_global_
     #define cx_array_alloc_(s,n)\
-        cx_alloc_alloc(s->alloc, n)
+        cx_alloc_malloc(s->alloc, n)
     #define cx_array_free_(s,p,n)\
         cx_alloc_free(s->alloc, p, n)
 // Use global type allocator
 #else
     #define cx_array_alloc_field_
     #define cx_array_alloc_(s,n)\
-        cx_alloc_alloc(cx_array_allocator,n)
+        cx_alloc_malloc(cx_array_allocator,n)
     #define cx_array_free_(s,p,n)\
         cx_alloc_free(cx_array_allocator,p,n)
 #endif

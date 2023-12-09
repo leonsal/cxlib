@@ -218,14 +218,14 @@ Returns statistics for the specified map (if enabled)
         const CxAllocator* alloc_;
     #define cx_hmap_alloc_global_
     #define cx_hmap_alloc_(s,n)\
-        cx_alloc_alloc((s)->alloc_, n)
+        cx_alloc_malloc((s)->alloc_, n)
     #define cx_hmap_free_(s,p,n)\
         cx_alloc_free((s)->alloc_, p, n)
 // Use global type allocator
 #else
     #define cx_hmap_alloc_field_
     #define cx_hmap_alloc_(m,n)\
-        cx_alloc_alloc(cx_hmap_allocator,n)
+        cx_alloc_malloc(cx_hmap_allocator,n)
     #define cx_hmap_free_(m,p,n)\
         cx_alloc_free(cx_hmap_allocator,p,n)
 #endif

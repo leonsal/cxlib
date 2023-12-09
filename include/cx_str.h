@@ -224,14 +224,14 @@ Return 0 if equal, -1 or 1 (as memcmp())
     #define cx_str_alloc_field_\
         const CxAllocator* alloc;
     #define cx_str_alloc_(s,n)\
-        cx_alloc_alloc(s->alloc, n)
+        cx_alloc_malloc(s->alloc, n)
     #define cx_str_free_(s,p,n)\
         cx_alloc_free(s->alloc, p, n)
 // Use global type allocator
 #else
     #define cx_str_alloc_field_
     #define cx_str_alloc_(s,n)\
-        cx_alloc_alloc(cx_str_allocator,n)
+        cx_alloc_malloc(cx_str_allocator,n)
     #define cx_str_free_(s,p,n)\
         cx_alloc_free(cx_str_allocator,p,n)
 #endif

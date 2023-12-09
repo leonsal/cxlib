@@ -61,14 +61,14 @@
     #define cx_queue_alloc_field_\
         const CxAllocator* alloc;
     #define cx_queue_alloc_(s,n)\
-        cx_alloc_alloc(s->alloc, n)
+        cx_alloc_malloc(s->alloc, n)
     #define cx_queue_free_(s,p,n)\
         cx_alloc_free(s->alloc, p, n)
 // Use global type allocator
 #else
     #define cx_queue_alloc_field_
     #define cx_queue_alloc_(s,n)\
-        cx_alloc_alloc(cx_queue_allocator,n)
+        cx_alloc_malloc(cx_queue_allocator,n)
     #define cx_queue_free_(s,p,n)\
         cx_alloc_free(cx_queue_allocator,p,n)
 #endif

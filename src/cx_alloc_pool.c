@@ -18,12 +18,12 @@ typedef struct Block {
 // Block Allocator state
 typedef struct CxAllocPool {
     const CxAllocator*  alloc;      // Allocator for blocks
+    CxAllocator         userAlloc;  // Allocator interface
     size_t              blockSize;  // Minimum block size
     Block*              nextFree;   // Next free block of the free chain
     Block*              firstBlock; // First block of the allocated chain
     Block*              currBlock;  // Current block of the allocated chain
     size_t              used;       // Bytes allocated in current block (not including block header)
-    CxAllocator         userAlloc;  // Block allocator for users
     size_t              nallocs;    // Number of individual allocations
     size_t              nbytes;     // Total bytes requested for allocation
 } CxAllocPool;
@@ -31,7 +31,7 @@ typedef struct CxAllocPool {
 
 // Local functions forward declarations
 static void cxAllocPoolDummyFree(void* ctx, void* p, size_t n);
-static inline void newBlock(CxAllocPool* p, size_t size);
+static inline int newBlock(CxAllocPool* p, size_t size);
 static inline uintptr_t alignForward(uintptr_t ptr, size_t align);
 
 
@@ -40,18 +40,19 @@ CxAllocPool* cxAllocPoolCreate(size_t blockSize, const CxAllocator* alloc) {
     if (alloc == NULL) {
         alloc = cxDefaultAllocator();
     }
-    CxAllocPool* a = alloc->alloc(alloc->ctx, sizeof(CxAllocPool));
-    a->blockSize = blockSize;
-    a->nextFree = NULL;
-    a->firstBlock = NULL;
-    a->currBlock = NULL;
-    a->used = 0;
+    CxAllocPool* a = cx_alloc_malloc(alloc, sizeof(CxAllocPool));
     a->alloc = alloc;
     a->userAlloc = (CxAllocator){
         .ctx = a,
         .alloc = (CxAllocatorAllocFn)cxAllocPoolAlloc,
         .free = cxAllocPoolDummyFree,
     };
+
+    a->blockSize = blockSize;
+    a->nextFree = NULL;
+    a->firstBlock = NULL;
+    a->currBlock = NULL;
+    a->used = 0;
     a->nallocs = 0;
     a->nbytes = 0;
     return a;
@@ -60,7 +61,7 @@ CxAllocPool* cxAllocPoolCreate(size_t blockSize, const CxAllocator* alloc) {
 void cxAllocPoolDestroy(CxAllocPool* a) {
 
     cxAllocPoolFree(a);
-    a->alloc->free(a->alloc->ctx, a, sizeof(CxAllocPool));
+    cx_alloc_free(a->alloc, a, sizeof(CxAllocPool));
 }
 
 void* cxAllocPoolAlloc(CxAllocPool* a, size_t size) {
@@ -75,14 +76,16 @@ void* cxAllocPoolAlloc2(CxAllocPool* a, size_t size, size_t align) {
         padding = alignForward(a->used, align) - a->used;
     }
     if (a->currBlock == NULL || (a->used + padding + size > a->currBlock->size)) {
-        newBlock(a, size);
+        if (newBlock(a, size)) {
+            return NULL;
+        }
         padding = 0;
     }
-    void *newp = a->currBlock->data + a->used + padding;
+    void *p = a->currBlock->data + a->used + padding;
     a->used += padding + size;
     a->nallocs++;
     a->nbytes += size;
-    return newp;
+    return p;
 }
 
 void cxAllocPoolClear(CxAllocPool* a) {
@@ -115,14 +118,14 @@ void cxAllocPoolFree(CxAllocPool* a) {
     Block *b = a->firstBlock;
     while (b != NULL) {
         Block* next = b->next;
-        a->alloc->free(a->alloc->ctx, b, sizeof(Block));
+        cx_alloc_free(a->alloc, b, sizeof(Block));
         b = next;
     }
     // Free unused blocks
     b = a->nextFree;
     while (b != NULL) {
         Block* next = b->next;
-        a->alloc->free(a->alloc->ctx, b, sizeof(Block));
+        cx_alloc_free(a->alloc, b, sizeof(Block));
         b = next;
     }
     a->nextFree = NULL;
@@ -146,11 +149,15 @@ CxAllocPoolStats cxAllocPoolGetStats(const CxAllocPool* a) {
         .nallocs = a->nallocs,
         .nbytes = a->nbytes,
     };
+
+    // Counts number of used blocks
     Block* curr = a->firstBlock;
     while (curr != NULL) {
         stats.usedBlocks++;
         curr = curr->next;
     }
+
+    // Counts number of unused blocks
     curr = a->nextFree;
     while (curr != NULL) {
         stats.freeBlocks++;
@@ -160,7 +167,7 @@ CxAllocPoolStats cxAllocPoolGetStats(const CxAllocPool* a) {
 }
 
 // Allocates a new block for with the specified size.
-static inline void newBlock(CxAllocPool* a, size_t size) {
+static inline int newBlock(CxAllocPool* a, size_t size) {
 
     // Adjusts block size
     size = size > a->blockSize ? size : a->blockSize;
@@ -183,25 +190,30 @@ static inline void newBlock(CxAllocPool* a, size_t size) {
             }
         }
     }
+
+    // If no free block found with requested size, allocates a new block
     if (new == NULL) {
-        // No free block found with requeste size: Allocates a new block
         const size_t allocSize = sizeof(Block) + size;
-        new = a->alloc->alloc(a->alloc->ctx, allocSize);
+        new = cx_alloc_malloc(a->alloc, allocSize);
         if (new == NULL) {
-            abort();
+            return -1;
         }
         new->size = size;
     }
-
     new->next = NULL;
+
+    // Add new block to used block chain
     if (a->currBlock != NULL) {
         a->currBlock->next = new;
     }
     a->currBlock = new;
+
+    // Saves the pointer of first block of the used block chain
     if (a->firstBlock == NULL) {
         a->firstBlock = new;
     }
     a->used = 0;
+    return 0;
 }
 
 // Returns the aligned pointer for the specified pointer and desired alignment

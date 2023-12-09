@@ -1,9 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+
 #include "cx_alloc_pool.h"
 #include "alloc.h"
-
 #include "logger.h"
 
 void cxAllocPoolTests(void) {
@@ -23,7 +23,7 @@ void cxAllocPoolTest(size_t allocs, size_t blockSize, size_t ncycles) {
 
     // Allocation group
     typedef struct Group {
-        size_t  count;  // number of ints allocated in the group
+        size_t  count;  // number of elements allocated in the group
         int     value;  // value of all the elements
         int*    p;      // pointer to first element
     } Group;
@@ -59,7 +59,7 @@ void cxAllocPoolTest(size_t allocs, size_t blockSize, size_t ncycles) {
             }
         }
         // Clear the allocator before restarting the cycle
-        cxAllocPoolTestPrint(pa);
+        //cxAllocPoolTestPrint(pa);
         cxAllocPoolClear(pa);
     }
 
@@ -80,6 +80,5 @@ void cxAllocPoolTestPrint(CxAllocPool* pa) {
             stats.usedBlocks,
             stats.freeBlocks
     );
-
 }
 

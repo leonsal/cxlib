@@ -6,7 +6,7 @@
 typedef void* (*CxAllocatorAllocFn)(void*, size_t);
 typedef void  (*CxAllocatorFreeFn)(void*, void*, size_t);
 
-// Type for allocators
+// Interface for allocators
 typedef struct CxAllocator {
     void* ctx;                  // Allocator internal state
     CxAllocatorAllocFn alloc;   // Allocates and returns pointer
@@ -18,7 +18,7 @@ typedef struct CxAllocator {
 //
 const CxAllocator* cxDefaultAllocator();
 
-#define cx_alloc_alloc(a,n)     a->alloc(a->ctx,n)
+#define cx_alloc_malloc(a,n)    a->alloc(a->ctx,n)
 #define cx_alloc_free(a,p,n)    a->free(a->ctx,p,n)
 
 #endif
