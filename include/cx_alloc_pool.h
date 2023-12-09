@@ -34,6 +34,8 @@ void* cxAllocPoolAlloc(CxAllocPool* a, size_t size);
 //
 void* cxAllocPoolAlloc2(CxAllocPool* a, size_t size, size_t align);
 
+void cxAllocPoolClear(CxAllocPool* a);
+
 //
 // Free all allocated blocks of the allocator
 //

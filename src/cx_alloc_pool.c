@@ -18,7 +18,6 @@ typedef struct Block {
 // Block Allocator state
 typedef struct CxAllocPool {
     size_t              blockSize;  // Minimum block size
-    Block*              firstFree;  // First block of the free chain
     Block*              nextFree;   // Next free block of the free chain
     Block*              firstBlock; // First block of the allocated chain
     Block*              currBlock;  // Current block of the allocated chain
@@ -42,7 +41,6 @@ CxAllocPool* cxAllocPoolCreate(size_t blockSize, const CxAllocator* alloc) {
     }
     CxAllocPool* a = alloc->alloc(alloc->ctx, sizeof(CxAllocPool));
     a->blockSize = blockSize;
-    a->firstFree = NULL;
     a->nextFree = NULL;
     a->firstBlock = NULL;
     a->currBlock = NULL;
@@ -90,16 +88,17 @@ void cxAllocPoolClear(CxAllocPool* a) {
         return;
     }
     // Join the used blocks chain with the eventual free blocks chain
-    if (a->firstFree != NULL) {
-        Block *curr = a->firstFree->next;
-        while (curr != NULL) {
-            curr = curr->next;
+    if (a->nextFree != NULL) {
+        Block *curr = a->nextFree;
+        Block *next = a->nextFree->next;
+        while (next != NULL) {
+            curr = next;
+            next = curr->next;
         }
         curr->next = a->firstBlock;
     } else {
-        a->firstFree = a->firstBlock;
+        a->nextFree = a->firstBlock;
     }
-    a->nextFree = a->firstFree;
     a->firstBlock = NULL;
     a->currBlock = NULL;
     a->used = 0;

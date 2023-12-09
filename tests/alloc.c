@@ -70,3 +70,51 @@ void cxAllocBlockTest(size_t allocs, size_t blockSize) {
     cxAllocPoolDestroy(a2);
 }
 
+void cxAllocPoolTest(size_t allocs, size_t blockSize, size_t ncycles) {
+
+    // Creates pool allocator
+    CxAllocPool* pa = cxAllocPoolCreate(blockSize, NULL);
+    const CxAllocator* alloc = cxAllocPoolGetAllocator(pa);
+
+    // Allocation group
+    typedef struct Group {
+        size_t  count;  // number of ints allocated in the group
+        int     value;  // value of all the elements
+        int*    p;      // pointer to first element
+    } Group;
+    Group* groups = malloc(sizeof(Group) * allocs);
+
+    srand(time(NULL));
+    // Allocate groups with random number of elements and
+    // fill the data with random value
+    size_t maxCount = blockSize / sizeof(*groups[0].p);
+    maxCount *= 1.1;    // 10 % percent of larger blocks than blockSize
+
+    for (size_t ci = 0; ci < ncycles; ci++) {
+        for (size_t i = 0; i < allocs; i++) {
+            size_t count = rand() % maxCount;
+            groups[i] = (Group){
+                .count = count,
+                .value = rand(),
+                .p = alloc->alloc(alloc->ctx, count*sizeof(*groups[i].p)),
+            };
+            for (size_t j = 0; j < count; j++) {
+                groups[i].p[j] = groups[i].value;
+            }
+        }
+
+        // Check all groups
+        for (size_t i = 0; i < allocs; i++) {
+            for (size_t j = 0; j < groups[i].count; j++) {
+                assert(groups[i].p[j] == groups[i].value);
+            }
+        }
+        // Clear the allocator
+        cxAllocPoolClear(pa);
+    }
+
+
+    cxAllocPoolDestroy(pa);
+    free(groups);
+}
+
