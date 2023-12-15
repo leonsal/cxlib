@@ -247,8 +247,8 @@ typedef struct cx_array_name {
 cx_array_api_ void cx_array_name_(_free)(cx_array_name* a);
 cx_array_api_ void cx_array_name_(_clear)(cx_array_name* a);
 cx_array_api_ cx_array_name cx_array_name_(_clone)(cx_array_name* a);
-cx_array_api_ ptrdiff_t cx_array_name_(_cap)(cx_array_name* a);
-cx_array_api_ ptrdiff_t cx_array_name_(_len)(cx_array_name* a);
+cx_array_api_ size_t cx_array_name_(_cap)(cx_array_name* a);
+cx_array_api_ size_t cx_array_name_(_len)(cx_array_name* a);
 cx_array_api_ bool cx_array_name_(_empty)(cx_array_name* a);
 cx_array_api_ void cx_array_name_(_setcap)(cx_array_name* a, size_t cap);
 cx_array_api_ void cx_array_name_(_setlen)(cx_array_name* a, size_t len);
@@ -349,11 +349,11 @@ cx_array_api_ cx_array_name cx_array_name_(_clone)(cx_array_name* a) {
     return cloned;
 }
 
-cx_array_api_ ptrdiff_t cx_array_name_(_cap)(cx_array_name* a) {
+cx_array_api_ size_t cx_array_name_(_cap)(cx_array_name* a) {
     return a->cap_;
 }
 
-cx_array_api_ ptrdiff_t cx_array_name_(_len)(cx_array_name* a) {
+cx_array_api_ size_t cx_array_name_(_len)(cx_array_name* a) {
     return a->len_;
 }
 
