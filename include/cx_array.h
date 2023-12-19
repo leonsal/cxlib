@@ -520,6 +520,6 @@ cx_array_api_ ssize_t cx_array_name_(_find)(cx_array_name* a, cx_array_type v) {
 #undef cx_array_alloc_field_
 #undef cx_array_alloc_global_
 #undef cx_array_alloc_
-#undef cx_array_freec_
+#undef cx_array_free_
 
 
