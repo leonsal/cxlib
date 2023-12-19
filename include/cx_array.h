@@ -319,9 +319,8 @@ static void cx_array_name_(_grow_)(cx_array_name* a, size_t addLen, size_t minCa
 #ifdef cx_array_instance_allocator
 
     cx_array_api_ cx_array_name cx_array_name_(_init)(const CxAllocator* alloc) {
-        alloc != NULL ? alloc : cxDefaultAllocator();
         return (cx_array_name) {
-            .alloc = alloc,
+            .alloc = alloc == NULL ? cxDefaultAllocator() : alloc,
         };
     }
 #else
