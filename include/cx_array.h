@@ -18,6 +18,7 @@ int main() {
     ai32_push(&a2, 2);
     assert(ai32_len(&a1) = 2);
     assert(*ai32_at(&a1, 1) = 1);
+    ai32_free(&a1);
     return 0;
 }
  
