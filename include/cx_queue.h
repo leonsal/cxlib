@@ -214,11 +214,11 @@ typedef struct cx_queue_name {
 cx_queue_api_ void cx_queue_name_(_free)(cx_queue_name* q);
 cx_queue_api_ size_t cx_queue_name_(_cap)(cx_queue_name* q);
 cx_queue_api_ size_t cx_queue_name_(_len)(cx_queue_name* q);
+cx_queue_api_ bool cx_queue_name_(_empty)(cx_queue_name* q);
+cx_queue_api_ int cx_queue_name_(_sendn)(cx_queue_name* q, const cx_queue_type* v, size_t n);
+cx_queue_api_ int cx_queue_name_(_send)(cx_queue_name* q, const cx_queue_type v);
 // cx_queue_api_ void cx_queue_name_(_clear)(cx_queue_name* q);
 // cx_queue_api_ cx_queue_name cx_queue_name_(_clone)(cx_queue_name* q);
-// cx_queue_api_ bool cx_queue_name_(_empty)(cx_queue_name* q);
-// cx_queue_api_ void cx_queue_name_(_setcap)(cx_queue_name* q, size_t cap);
-// cx_queue_api_ void cx_queue_name_(_pushbn)(cx_queue_name* q, const cx_queue_type* v, size_t n);
 
 //
 // Implementation
@@ -289,6 +289,29 @@ cx_queue_api_ size_t cx_queue_name_(_len)(cx_queue_name* q) {
     return len;
 }
 
+cx_queue_api_ bool cx_queue_name_(_empty)(cx_queue_name* q) {
+
+    assert(pthread_mutex_lock(&q->mut_) == 0);
+    bool empty = q->in_ == q->out_;
+    assert(pthread_mutex_unlock(&q->mut_) == 0);
+    return empty;
+}
+
+cx_queue_api_ int cx_queue_name_(_sendn)(cx_queue_name* q, const cx_queue_type* v, size_t n) {
+
+
+    assert(pthread_mutex_lock(&q->mut_) == 0);
+
+
+    assert(pthread_mutex_unlock(&q->mut_) == 0);
+
+    return 0;
+}
+
+cx_queue_api_ int cx_queue_name_(_send)(cx_queue_name* q, const cx_queue_type v) {
+
+    return cx_queue_name_(_sendn)(q, &v, 1);
+}
 
 // cx_queue_api_ void cx_queue_name_(_clear)(cx_queue_name* q) {
 //     q->in_ = 0;
