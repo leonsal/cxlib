@@ -364,7 +364,7 @@ cx_queue_api_ int cx_queue_name_(_getn)(cx_queue_name* q, cx_queue_type* dst, si
         memcpy(dst, &q->data_[q->out_], n* sizeof(*q->data_));
     } else {
         memcpy(dst, &q->data_[q->out_], space * sizeof(*q->data_));
-        memcpy(dst + space, &q->data_, (n-space) * sizeof(*q->data_));
+        memcpy(dst + space, q->data_, (n-space) * sizeof(*q->data_));
     }
     q->out_ = (q->out_ + n) % q->cap_;
     q->len_ -= n;

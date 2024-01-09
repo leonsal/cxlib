@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <asm-generic/errno.h>
 #include <stdio.h>
 #include <assert.h>
 #include "cx_alloc.h"
@@ -41,6 +42,16 @@ int main() {
         uint64_t bufin2[] = {6,7,8,9};
         assert(qu64_putn(&q, bufin2, 4) == 0);
         assert(qu64_len(&q) == 7);
+        assert(qu64_close(&q) == 0);
+        bool closed;
+        assert(qu64_is_closed(&q, &closed) == 0 && closed);
+
+        assert(qu64_getn(&q, bufout, 7) == 0);
+        assert(qu64_len(&q) == 0);
+        for (size_t i = 0; i <= 6; i++) {
+            assert(bufout[i] == i + 3);
+        }
+        assert(qu64_get(&q, &bufout[0]) == ECANCELED);
     }
 
     // cxAllocPoolTests();
