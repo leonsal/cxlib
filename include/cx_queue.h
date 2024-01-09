@@ -1,7 +1,7 @@
 /*
 Concurrent Queue Implementation
 
-Implements a concurrent queue (FIFO) which supports
+Implements a concurrent fixed size queue (LIFO) which supports
 multiple producers and multiple consumers.
  
 Example
@@ -18,17 +18,14 @@ Example
 int main() {
 
     qint q1 = qint_init(10);
-    qint_send(&q1, 1);
-    qint_send(&q1, 2);
+    int buf1[] = {0,1,2,3,4};
+    qint_putn(&q1, buf, 5);
+    qint_put(&q1, 6);
     qint_close(&q1);
 
-    int v;
-    int res = qint_recv(&q1, &v);
-    assert(res == 0 && v == 1);
-    res = qint_recv(&q1, &v);
-    assert(res == 0 && v == 2);
-    res = qint_recv(&q1, &v);
-    assert(res == CLOSED);
+    int buf2[10];
+    int res = qint_getn(&q1, buf2, 6);
+    assert(res == 0 && buf2[5] == 5);
 
     qint_free(&q1);
     return 0;
@@ -90,27 +87,27 @@ Returns the current queue length in number of elements
 Returns it the queue is empty (length == 0)
     bool cxqueue_empty(const cxqueue* q);
 
-Inserts 'n' elements from 'src' at the front of the queue.
+Puts 'n' elements from 'src' at the input (front) of the queue.
 Blocks till there is space in the queue to insert all elements.
-Returns error if the queue is closed
-    int cxqueue_sendn(cxqueue* q, const cxtype* src, size_t n);
+Returns error if the queue is closed.
+    int cxqueue_putn(cxqueue* q, const cxtype* src, size_t n);
 
-Inserts one element at the front of the queue.
+Inserts one element at the input (front) of the queue.
 Blocks till there is space in the queue to insert the element.
 Returns error if the queue is closed.
-    int cxqueue_send(cxqueue* q, cxtype v);
+    int cxqueue_put(cxqueue* q, cxtype v);
 
-Removes 'n' elements from the back of the queue.
+Get 'n' elements from the output (back) of the queue.
 Blocks till there is the specified number of elements to remove.
-Returns error if the queue is closed
-    int cxqueue_recvn(cxqueue* q, cxtype* src, size_t n);
+Returns error if the queue is closed.
+    int cxqueue_getn(cxqueue* q, cxtype* src, size_t n);
 
-Removes one element from the back of the queue.
+Get one element from output (back) of the queue.
 Blocks till there is element to remove.
 Returns error if the queue is closed
-    int cxqueue_recv(cxqueue* q, cxtype* src);
+    int cxqueue_get(cxqueue* q, cxtype* src);
 
-Closes the queue, unblocking senders and receivers.
+Closes the queue, unblocking other threads which are trying to put or get data.
 After the queue is closed any operation of the queue returns error.
     int cxqueue_close(cxqueue* q);
 
@@ -122,6 +119,7 @@ Returns if the queue is closed.
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 #include "cx_alloc.h"
 
 // queue type name must be defined
@@ -198,11 +196,14 @@ Returns if the queue is closed.
 //
 typedef struct cx_queue_name {
     cx_queue_alloc_field_
-    pthread_mutex_t     mut_;
-    pthread_cond_t      cnd_;
-    cx_queue_cap_type_  cap_;   // capacity
-    cx_queue_cap_type_  in_;    // input index
-    cx_queue_cap_type_  out_;   // output index
+    pthread_mutex_t     lock_;      // For exclusive access to this struct
+    pthread_cond_t      hasData_;   // Cond var signaled when data is available
+    pthread_cond_t      hasSpace_;  // Cond var signaled when space is available
+    bool                closed;     // Queue closed flag
+    cx_queue_cap_type_  cap_;       // capacity in number of elements
+    cx_queue_cap_type_  len_;       // current length in number of elements
+    cx_queue_cap_type_  in_;        // input index
+    cx_queue_cap_type_  out_;       // output index
     cx_queue_type*      data_;
 } cx_queue_name;
 
@@ -215,10 +216,12 @@ cx_queue_api_ void cx_queue_name_(_free)(cx_queue_name* q);
 cx_queue_api_ size_t cx_queue_name_(_cap)(cx_queue_name* q);
 cx_queue_api_ size_t cx_queue_name_(_len)(cx_queue_name* q);
 cx_queue_api_ bool cx_queue_name_(_empty)(cx_queue_name* q);
-cx_queue_api_ int cx_queue_name_(_sendn)(cx_queue_name* q, const cx_queue_type* v, size_t n);
-cx_queue_api_ int cx_queue_name_(_send)(cx_queue_name* q, const cx_queue_type v);
-// cx_queue_api_ void cx_queue_name_(_clear)(cx_queue_name* q);
-// cx_queue_api_ cx_queue_name cx_queue_name_(_clone)(cx_queue_name* q);
+cx_queue_api_ int cx_queue_name_(_putn)(cx_queue_name* q, const cx_queue_type* v, size_t n);
+cx_queue_api_ int cx_queue_name_(_put)(cx_queue_name* q, const cx_queue_type v);
+cx_queue_api_ int cx_queue_name_(_getn)(cx_queue_name* q, cx_queue_type* v, size_t n);
+cx_queue_api_ int cx_queue_name_(_get)(cx_queue_name* q, cx_queue_type* v);
+cx_queue_api_ int cx_queue_name_(_close)(cx_queue_name* q);
+cx_queue_api_ int cx_queue_name_(_is_closed)(cx_queue_name* q, bool* closed);
 
 //
 // Implementation
@@ -232,19 +235,11 @@ cx_queue_api_ int cx_queue_name_(_send)(cx_queue_name* q, const cx_queue_type v)
     cx_queue_api_ void cx_queue_name_(_init_)(cx_queue_name* q, size_t cap) {
 
         assert(cap > 0);
-        q->data_ = cx_queue_alloc_(q, (cap + 1) * sizeof(*q->data_));
-        q->cap_ = cap + 1;
-        assert(pthread_mutex_init(&q->mut_, NULL) == 0);
-        assert(pthread_cond_init(&q->cnd_, NULL) == 0);
-    }
-
-    // Internal queue length
-    cx_queue_api_ size_t cx_queue_name_(_len_)(cx_queue_name* q) {
-
-        if (q->in_ >= q->out_) {
-            return q->in_ - q->out_;
-        }
-        return q->in_ + (q->cap_ - q->out_);
+        q->data_ = cx_queue_alloc_(q, cap * sizeof(*q->data_));
+        q->cap_ = cap;
+        assert(pthread_mutex_init(&q->lock_, NULL) == 0);
+        assert(pthread_cond_init(&q->hasData_, NULL) == 0);
+        assert(pthread_cond_init(&q->hasSpace_, NULL) == 0);
     }
 
 #ifdef cx_queue_instance_allocator
@@ -267,10 +262,13 @@ cx_queue_api_ int cx_queue_name_(_send)(cx_queue_name* q, const cx_queue_type v)
 
 cx_queue_api_ void cx_queue_name_(_free)(cx_queue_name* q) {
 
-    assert(pthread_cond_destroy(&q->cnd_) == 0);
-    assert(pthread_mutex_destroy(&q->mut_) == 0);
-    cx_queue_free_(q, q->data_, (q->cap_ + 1) * sizeof(*(q->data_)));
+    assert(pthread_cond_destroy(&q->hasSpace_) == 0);
+    assert(pthread_cond_destroy(&q->hasData_) == 0);
+    assert(pthread_mutex_destroy(&q->lock_) == 0);
+    cx_queue_free_(q, q->data_, q->cap_ * sizeof(*(q->data_)));
+    q->closed = false;
     q->cap_ = 0;
+    q->len_ = 0;
     q->in_ = 0;
     q->out_ = 0;
     q->data_ = NULL;
@@ -278,163 +276,135 @@ cx_queue_api_ void cx_queue_name_(_free)(cx_queue_name* q) {
 
 cx_queue_api_ size_t cx_queue_name_(_cap)(cx_queue_name* q) {
 
-    return q->cap_ - 1;
+    return q->cap_;
 }
 
 cx_queue_api_ size_t cx_queue_name_(_len)(cx_queue_name* q) {
 
-    assert(pthread_mutex_lock(&q->mut_) == 0);
-    size_t len = cx_queue_name_(_len_)(q);
-    assert(pthread_mutex_unlock(&q->mut_) == 0);
+    assert(pthread_mutex_lock(&q->lock_) == 0);
+    size_t len = q->len_;
+    assert(pthread_mutex_unlock(&q->lock_) == 0);
     return len;
 }
 
 cx_queue_api_ bool cx_queue_name_(_empty)(cx_queue_name* q) {
 
-    assert(pthread_mutex_lock(&q->mut_) == 0);
-    bool empty = q->in_ == q->out_;
-    assert(pthread_mutex_unlock(&q->mut_) == 0);
+    assert(pthread_mutex_lock(&q->lock_) == 0);
+    bool empty = q->len_ == 0;
+    assert(pthread_mutex_unlock(&q->lock_) == 0);
     return empty;
 }
 
-cx_queue_api_ int cx_queue_name_(_sendn)(cx_queue_name* q, const cx_queue_type* v, size_t n) {
+cx_queue_api_ int cx_queue_name_(_putn)(cx_queue_name* q, const cx_queue_type* v, size_t n) {
 
+    assert(n <= q->cap_);
+    // Waits for space in the queue
+    int error = pthread_mutex_lock(&q->lock_);
+    if (error) {
+        return error;
+    }
+    while (n > q->cap_ - q->len_ && !error && !q->closed) {
+        error = pthread_cond_wait(&q->hasSpace_, &q->lock_);
+    }
+    if (error) {
+        pthread_mutex_unlock(&q->lock_);
+        return error;
+    }
+    if (q->closed) {
+        pthread_mutex_unlock(&q->lock_);
+        return ECANCELED;
+    }
 
-    assert(pthread_mutex_lock(&q->mut_) == 0);
+    // Copy data to queue
+    size_t space = q->cap_ - q->in_;
+    if (n <= space) {
+        memcpy(&q->data_[q->in_], v, n* sizeof(*q->data_));
+    } else {
+        memcpy(&q->data_[q->in_], v, space * sizeof(*q->data_));
+        memcpy(&q->data_, v+space, (n-space) * sizeof(*q->data_));
+    }
+    q->in_ = (q->in_ + n) % q->cap_;
+    q->len_ += n;
 
+    // Signal that there is data in the queue
+    if ((error = pthread_cond_signal(&q->hasData_))) {
+        return error;
+    }
+    return pthread_mutex_unlock(&q->lock_);
+}
 
-    assert(pthread_mutex_unlock(&q->mut_) == 0);
+cx_queue_api_ int cx_queue_name_(_put)(cx_queue_name* q, const cx_queue_type v) {
 
+    return cx_queue_name_(_putn)(q, &v, 1);
+}
+
+cx_queue_api_ int cx_queue_name_(_getn)(cx_queue_name* q, cx_queue_type* dst, size_t n) {
+
+    assert(n <= q->cap_);
+    // Waits for data in the queue
+    int error = pthread_mutex_lock(&q->lock_);
+    if (error) {
+        return error;
+    }
+    while (n > q->len_ && !error && !q->closed) {
+        error = pthread_cond_wait(&q->hasData_, &q->lock_);
+    }
+    if (error) {
+        pthread_mutex_unlock(&q->lock_);
+        return error;
+    }
+    if (n > q->len_ && q->closed) {
+        pthread_mutex_unlock(&q->lock_);
+        return ECANCELED;
+    }
+
+    // Copy data from queue
+    size_t space = q->cap_ - q->out_;
+    if (n <= space) {
+        memcpy(dst, &q->data_[q->out_], n* sizeof(*q->data_));
+    } else {
+        memcpy(dst, &q->data_[q->out_], space * sizeof(*q->data_));
+        memcpy(dst + space, &q->data_, (n-space) * sizeof(*q->data_));
+    }
+    q->out_ = (q->out_ + n) % q->cap_;
+    q->len_ -= n;
+
+    // Signal that there is free space in the queue
+    if ((error = pthread_cond_signal(&q->hasSpace_))) {
+        return error;
+    }
+    return pthread_mutex_unlock(&q->lock_);
+}
+
+cx_queue_api_ int cx_queue_name_(_get)(cx_queue_name* q, cx_queue_type* dst) {
+
+    return cx_queue_name_(_getn)(q, dst, 1);
+}
+
+cx_queue_api_ int cx_queue_name_(_close)(cx_queue_name* q) {
+
+    int error = pthread_mutex_lock(&q->lock_);
+    if (error) {
+        return error;
+    }
+
+    q->closed = true;
+    int error1 = pthread_cond_broadcast(&q->hasData_);
+    int error2 = pthread_cond_broadcast(&q->hasSpace_);
+    int error3 = pthread_mutex_unlock(&q->lock_);
+    if (error1) { return error1; }
+    if (error2) { return error1; }
+    if (error3) { return error1; }
     return 0;
 }
 
-cx_queue_api_ int cx_queue_name_(_send)(cx_queue_name* q, const cx_queue_type v) {
+cx_queue_api_ int cx_queue_name_(_is_closed)(cx_queue_name* q, bool* closed) {
 
-    return cx_queue_name_(_sendn)(q, &v, 1);
+    int error = pthread_mutex_lock(&q->lock_);
+    if (error) { return error; }
+    *closed = q->closed;
+    return pthread_mutex_unlock(&q->lock_);
 }
-
-// cx_queue_api_ void cx_queue_name_(_clear)(cx_queue_name* q) {
-//     q->in_ = 0;
-//     q->out_ = 0;
-// }
-//
-// cx_queue_api_ cx_queue_name cx_queue_name_(_clone)(cx_queue_name* q) {
-//
-//     const size_t len = cx_queue_name_(_len)(q);
-//     const size_t alloc_size = len * sizeof(*(q->data_));
-//     cx_queue_name cloned = *q;
-//     cloned.data_  = cx_queue_alloc_(q, alloc_size),
-//     memcpy(cloned.data_, q->data_, alloc_size);
-//     return cloned;
-// }
-//
-// cx_queue_api_ size_t cx_queue_name_(_cap)(cx_queue_name* q) {
-//     return q->cap_;
-// }
-//
-// cx_queue_api_ size_t cx_queue_name_(_len)(cx_queue_name* q) {
-//
-//     if (q->in_ >= q->out_) {
-//         return q->in_ - q->out_;
-//     }
-//     return q->in_ + (q->cap_ - q->out_);
-// }
-//
-// cx_queue_api_ bool cx_queue_name_(_empty)(cx_queue_name* q) {
-//     return q->in_ == q->out_;
-// } 
-//
-// cx_queue_api_ void cx_queue_name_(_setcap)(cx_queue_name* q, size_t cap) {
-//     cx_queue_name_(_grow_)(q, 0, cap);
-// }
-//
-// cx_queue_api_ void cx_queue_name_(_pushbn)(cx_queue_name* q, const cx_queue_type* v, size_t n) {
-//
-//     const size_t len = cx_queue_name_(_len)(q);
-//     if (len + n + 1 > q->cap_) {
-//         cx_queue_name_(_grow_)(q, n, 0);
-//     }
-//     if (q->in_ >= q->out_) {
-//         const size_t free = q->cap_ - q->in_;
-//         const size_t cpy = n > free ? free : n;
-//         memcpy(q->data_ + q->in_, v, cpy * sizeof(*(q->data_)));
-//         if (n > cpy) {
-//             memcpy(q->data_, v + cpy, (n - cpy) * sizeof(*(q->data_)));
-//         }
-//     } else {
-//         memcpy(q->data_ + q->in_, v, n * sizeof(*(q->data_)));
-//     }
-//     q->in_ += n;
-//     q->in_ %= q->cap_;
-// }
-//
-// cx_queue_api_ void cx_queue_name_(_pushb)(cx_queue_name* q, cx_queue_type v) {
-//
-//     cx_queue_name_(_pushbn)(q, &v, 1);
-// }
-//
-// cx_queue_api_ size_t cx_queue_name_(_popfn)(cx_queue_name* q, cx_queue_type* v, size_t n) {
-//
-//     const size_t len = cx_queue_name_(_len)(q);
-//     n = n <= len ? n : len;
-//     if (q->in_ >= q->out_) {
-//         memcpy(v, q->data_ + q->out_,  n);
-//     } else {
-//         const size_t cpy = q->cap_ - q->out_;
-//         memcpy(v, q->data_ + q->out_,  cpy);
-//         if (n > cpy) {
-//             memcpy(v + cpy, q->data_,  n - cpy);
-//         }
-//     }
-//     q->out_ += n;
-//     q->out_ %= q->cap_;
-//     return n;
-// }
-//  
-// cx_queue_api_ cx_queue_type cx_queue_name_(_popf)(cx_queue_name* q) {
-//
-// #ifdef cx_queue_error_handler
-//     if (q->in_ == q->out_ {
-//         cx_queue_type el = {0};
-//         cx_queue_error_handler("queue empty",__func__);
-//         return el;
-//     }
-// #endif
-//     cx_queue_type el = q->data_[q->out_++];
-//     q->out_ %= q->cap_;
-//     return el;
-// }
-//
-// cx_queue_api_ cx_queue_type* cx_queue_name_(_at)(cx_queue_name* q, size_t idx) {
-//
-//     if (q->in_ == q->out_) {
-//         return NULL;
-//     }
-//     return q->data_ + q->out_ + idx;
-// }
-//
-// cx_queue_api_ cx_queue_type* cx_queue_name_(_back)(const cx_queue_name* q) {
-//
-//     if (q->in_ == q->out_) {
-//         return NULL;
-//     }
-//     const ssize_t in = (ssize_t)q->in_ - 1 < 0 ? q->cap_ - 1 : q->in_ - 1;
-//     return q->data_ + in;
-// }
-//
-// cx_queue_api_ cx_queue_type* cx_queue_name_(_front)(const cx_queue_name* q) {
-//
-//     if (q->in_ == q->out_) {
-//         return NULL;
-//     }
-//     return q->data_ + q->out_;
-// }
-//
-// cx_queue_api_ void cx_queue_name_(_reserve)(cx_queue_name* a, size_t n) {
-//     // if (a->len_ + n > a->cap_ ) {
-//     //     cx_queue_name_(_grow_)(a, n, 0);
-//     // }
-// }
 
 #endif
 
