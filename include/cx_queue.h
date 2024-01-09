@@ -226,7 +226,6 @@ cx_queue_api_ int cx_queue_name_(_is_closed)(cx_queue_name* q, bool* closed);
 //
 // Implementation
 //
-#define cx_queue_implement // TODO ONLY IN DEV.....................
 #ifdef cx_queue_implement
     #include <assert.h>
     #include <pthread.h>
