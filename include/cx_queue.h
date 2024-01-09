@@ -295,7 +295,7 @@ cx_queue_api_ bool cx_queue_name_(_empty)(cx_queue_name* q) {
     return empty;
 }
 
-cx_queue_api_ int cx_queue_name_(_putn)(cx_queue_name* q, const cx_queue_type* v, size_t n) {
+cx_queue_api_ int cx_queue_name_(_putn)(cx_queue_name* q, const cx_queue_type* src, size_t n) {
 
     assert(n <= q->cap_);
     // Waits for space in the queue
@@ -318,10 +318,10 @@ cx_queue_api_ int cx_queue_name_(_putn)(cx_queue_name* q, const cx_queue_type* v
     // Copy data to queue
     size_t space = q->cap_ - q->in_;
     if (n <= space) {
-        memcpy(&q->data_[q->in_], v, n* sizeof(*q->data_));
+        memcpy(&q->data_[q->in_], src, n* sizeof(*q->data_));
     } else {
-        memcpy(&q->data_[q->in_], v, space * sizeof(*q->data_));
-        memcpy(&q->data_, v+space, (n-space) * sizeof(*q->data_));
+        memcpy(&q->data_[q->in_], src, space * sizeof(*q->data_));
+        memcpy(q->data_, src+space, (n-space) * sizeof(*q->data_));
     }
     q->in_ = (q->in_ + n) % q->cap_;
     q->len_ += n;

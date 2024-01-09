@@ -29,11 +29,18 @@ int main() {
     {
         uint64_t bufin[] = {0,1,2,3,4,5};
         assert(qu64_putn(&q, bufin, 6) == 0);
-        assert(qu64_close(&q) == 0);
+        assert(qu64_len(&q) == 6);
 
         uint64_t bufout[cap];
-        assert(qu64_getn(&q, bufout, 6) == 0);
-        assert(qu64_get(&q, &bufout[0]) == ECANCELED);
+        assert(qu64_getn(&q, bufout, 3) == 0);
+        assert(bufout[0] == 0);
+        assert(bufout[1] == 1);
+        assert(bufout[2] == 2);
+        assert(qu64_len(&q) == 3);
+
+        uint64_t bufin2[] = {6,7,8,9};
+        assert(qu64_putn(&q, bufin2, 4) == 0);
+        assert(qu64_len(&q) == 7);
     }
 
     // cxAllocPoolTests();
