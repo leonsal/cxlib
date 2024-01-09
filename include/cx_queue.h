@@ -1,7 +1,7 @@
 /*
 Concurrent Queue Implementation
 
-Implements a concurrent fixed size queue (LIFO) which supports
+Implements a concurrent fixed size queue (FIFO) which supports
 multiple producers and multiple consumers.
  
 Example
@@ -9,10 +9,10 @@ Example
 
 // Defines queue of 'ints'
 #define cx_queue_name qint
-#define cx_array_type int
-#define cx_array_static
-#define cx_array_inline
-#define cx_array_implement
+#define cx_queue_type int
+#define cx_queue_static
+#define cx_queue_inline
+#define cx_queue_implement
 #include "cx_queue.h"
 
 int main() {
@@ -45,7 +45,7 @@ Define optional queue maximum capacity (default = 32):
 
 Define optional custom allocator pointer or function which return pointer to allocator.
 Uses default allocator if not defined.
-This allocator will be used for all instances of this array type.
+This allocator will be used for all instances of this queue type.
     #define cx_queue_allocator <allocator>
 
 Sets if queue uses custom allocator per instance.
@@ -195,7 +195,7 @@ Returns if the queue is closed.
 // Declarations
 //
 typedef struct cx_queue_name {
-    cx_queue_alloc_field_
+    cx_queue_alloc_field_           // Optional instance allocator
     pthread_mutex_t     lock_;      // For exclusive access to this struct
     pthread_cond_t      hasData_;   // Cond var signaled when data is available
     pthread_cond_t      hasSpace_;  // Cond var signaled when space is available
@@ -204,7 +204,7 @@ typedef struct cx_queue_name {
     cx_queue_cap_type_  len_;       // current length in number of elements
     cx_queue_cap_type_  in_;        // input index
     cx_queue_cap_type_  out_;       // output index
-    cx_queue_type*      data_;
+    cx_queue_type*      data_;      // pointer to queue data
 } cx_queue_name;
 
 #ifdef cx_queue_instance_allocator
@@ -411,7 +411,6 @@ cx_queue_api_ int cx_queue_name_(_is_closed)(cx_queue_name* q, bool* closed) {
 #undef cx_queue_name
 #undef cx_queue_type
 #undef cx_queue_cap
-#undef cx_queue_error_handler
 #undef cx_queue_allocator
 #undef cx_queue_instance_allocator
 #undef cx_queue_static
@@ -430,9 +429,8 @@ cx_queue_api_ int cx_queue_name_(_is_closed)(cx_queue_name* q, bool* closed) {
 #undef cx_queue_max_cap_
 #undef cx_queue_api_
 #undef cx_queue_alloc_field_
-#undef cx_queue_alloc_global_
 #undef cx_queue_alloc_
-#undef cx_queue_freec_
+#undef cx_queue_free_
 
 
 
