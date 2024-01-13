@@ -20,12 +20,21 @@
 #include "cx_hmap2.h"
 #include "hmap.h"
 
+typedef struct arrkey_{char data[32];} arrkey;
+#define cx_hmap_name mapt3
+#define cx_hmap_key  arrkey
+#define cx_hmap_val  double
+#define cx_hmap_instance_allocator
+#define cx_hmap_implement
+#include "cx_hmap.h"
+
 #include "logger.h"
 
 void cxHmapTests(void) {
 
     cxHmapTest1(100, 40, NULL);
     cxHmapTest2(100, 40, NULL);
+    cxHmapTest3(100, 40, NULL);
 }
 
 void cxHmapTest1(size_t size, size_t nbuckets, const CxAllocator* alloc) {
@@ -276,6 +285,164 @@ void cxHmapTest2(size_t size, size_t nbuckets, const CxAllocator* alloc) {
         assert(mapt2_get(&m2, i) == NULL);
     }
     mapt2_free(&m2);
+}
+
+void cxHmapTest3(size_t size, size_t nbuckets, const CxAllocator* alloc) {
+
+    LOGI("hmap3. size=%lu nbuckets=%lu alloc=%p", size, nbuckets, alloc);
+    // Initializes map type 1 and sets entries
+    mapt3 m1 = mapt3_init(alloc, nbuckets);
+    for (size_t  i = 0; i < size; i++) {
+        arrkey k = {0};
+        sprintf(k.data, "%zu", i);
+        mapt3_set(&m1, k, i*2.0);
+    }
+    assert(mapt3_count(&m1) == size);
+
+    // Checks entries directly
+    for (size_t  i = 0; i < size; i++) {
+        arrkey k = {0};
+        sprintf(k.data, "%zu", i);
+        assert(*mapt3_get(&m1, k) == i * 2.0);
+    }
+
+    // Checks entries using iterator
+    mapt3_iter iter1 = {};
+    size_t m1Count = 0;
+    while (true) {
+        mapt3_entry* e = mapt3_next(&m1, &iter1);
+        if (e == NULL) {
+            break;
+        }
+        m1Count++;
+        assert(e->val == atoi(e->key.data) * 2.0);
+    }
+    assert(m1Count == size);
+
+    // Overwrites all keys
+    for (size_t i = 0; i < size; i++) {
+        arrkey k={0};
+        sprintf(k.data, "%zu", i);
+        mapt3_set(&m1, k, i*3.0);
+    }
+    // Checks entries directly
+    for (size_t  i = 0; i < size; i++) {
+        arrkey k={0};
+        sprintf(k.data, "%zu", i);
+        assert(*mapt3_get(&m1, k) == i * 3.0);
+    }
+
+    // Delete even keys
+    for (size_t i = 0; i < size; i++) {
+        if (i % 2 == 0) {
+            arrkey k={0};
+            sprintf(k.data, "%zu", i);
+            mapt3_del(&m1, k);
+        }
+    }
+    // Checks entries
+    for (size_t  i = 0; i < size; i++) {
+        arrkey k={0};
+        sprintf(k.data, "%zu", i);
+        if (i % 2 == 0) {
+            assert(mapt3_get(&m1, k) == NULL);
+        }
+        else {
+            assert(*mapt3_get(&m1, k) == i * 3.0);
+        }
+    }
+
+    // Overwrites all keys
+    for (size_t i = 0; i < size; i++) {
+        arrkey k={0};
+        sprintf(k.data, "%zu", i);
+        mapt3_set(&m1, k, i*4.0);
+    }
+    // Checks entries directly
+    for (size_t  i = 0; i < size; i++) {
+        arrkey k={0};
+        sprintf(k.data, "%zu", i);
+        assert(*mapt3_get(&m1, k) == i * 4.0);
+    }
+
+    // Delete odd keys
+    for (size_t i = 0; i < size; i++) {
+        arrkey k={0};
+        sprintf(k.data, "%zu", i);
+        if (i % 2) {
+            mapt3_del(&m1, k);
+        }
+    }
+    // Checks entries
+    for (size_t  i = 0; i < size; i++) {
+        arrkey k={0};
+        sprintf(k.data, "%zu", i);
+        if (i % 2) {
+            assert(mapt3_get(&m1, k) == NULL);
+        }
+        else {
+            assert(*mapt3_get(&m1, k) == i * 4.0);
+        }
+    }
+
+    // Overwrites all keys
+    for (size_t i = 0; i < size; i++) {
+        arrkey k={0};
+        sprintf(k.data, "%zu", i);
+        mapt3_set(&m1, k, i*5.0);
+    }
+    // Checks entries directly
+    for (size_t  i = 0; i < size; i++) {
+        arrkey k={0};
+        sprintf(k.data, "%zu", i);
+        assert(*mapt3_get(&m1, k) == i * 5.0);
+    }
+
+    // Clones map and checks entries of cloned map
+    mapt3 m2 = mapt3_clone(&m1, nbuckets*2);
+    iter1 = (mapt3_iter){};
+    while (true) {
+        mapt3_entry* e = mapt3_next(&m2, &iter1);
+        if (e == NULL) {
+            break;
+        }
+        assert(*mapt3_get(&m2, e->key) == *mapt3_get(&m1, e->key));
+    }
+    // Frees mapt3 1
+    mapt3_free(&m1);
+    assert(mapt3_count(&m1) == 0);
+
+    // Removes all the keys from map 2
+    for (size_t  i = 0; i < size; i++) {
+        arrkey k={0};
+        sprintf(k.data, "%zu", i);
+        mapt3_del(&m2, k);
+    }
+    assert(mapt3_count(&m2) == 0);
+
+    // Fill again
+    for (size_t i = 0; i < size; i++) {
+        arrkey k={0};
+        sprintf(k.data, "%zu", i);
+        mapt3_set(&m2, k, i*6.0);
+    }
+    // Checks entries directly
+    for (size_t  i = 0; i < size; i++) {
+        arrkey k={0};
+        sprintf(k.data, "%zu", i);
+        assert(*mapt3_get(&m2, k) == i * 6.0);
+    }
+
+    // Clears the map
+    mapt3_clear(&m2);
+    assert(mapt3_count(&m2) == 0);
+    // Checks entries directly
+    for (size_t  i = 0; i < size; i++) {
+        arrkey k={0};
+        sprintf(k.data, "%zu", i);
+        assert(mapt3_get(&m2, k) == NULL);
+    }
+    mapt3_free(&m2);
 }
 
 
