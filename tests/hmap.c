@@ -5,6 +5,9 @@
 #include <assert.h>
 #include <stdio.h>
 
+//
+// Map of int key -> double
+//
 #define cx_hmap_name mapt1
 #define cx_hmap_key int
 #define cx_hmap_val double
@@ -13,15 +16,20 @@
 #define cx_hmap_implement
 #include "cx_hmap.h"
 
+//
+// Map of uint64_t key -> double
+//
 #define cx_hmap_name mapt2
-#define cx_hmap_key int
+#define cx_hmap_key uint64_t
 #define cx_hmap_val double
 #define cx_hmap_instance_allocator
 #define cx_hmap_stats
 #define cx_hmap_implement
 #include "cx_hmap2.h"
 
-// Fixed size C string key
+//
+// Map of fixed size C string key -> double
+//
 static int cmp_fixedstr_keys(const void* k1, const void* k2, size_t size) {
     return strcmp(k1, k2);
 }
@@ -38,7 +46,10 @@ typedef struct strkey_{char data[32];} strkey;
 #define cx_hmap_implement
 #include "cx_hmap.h"
 
-// Allocated C string key
+//
+// Map of allocated C string key -> double
+// Must use custom allocator for clone to work
+//
 static int cmp_str_keys(const void* k1, const void* k2, size_t size) {
     return strcmp(*(char**)k1, *(char**)k2);
 }
