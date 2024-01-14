@@ -76,7 +76,7 @@ which, if exceeded, will imply in the rehash of the hash map
     #define cx_hmap_load_factor <lf>
 
 Define the key comparison function with type:
-void (*cmp)(const void* k1, const void* k2, size_t size);
+int (*cmp)(const void* k1, const void* k2, size_t size);
     #define cx_hmap_cmp_key <cmp_func>
 
 Define the key hash function with type:
