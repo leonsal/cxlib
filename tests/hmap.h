@@ -6,5 +6,6 @@ void cxHmapTests(void);
 void cxHmapTest1(size_t size, size_t nbuckets, const CxAllocator* alloc);
 void cxHmapTest2(size_t size, size_t nbuckets, const CxAllocator* alloc);
 void cxHmapTest3(size_t size, size_t nbuckets, const CxAllocator* alloc);
+void cxHmapTest4(size_t size, size_t nbuckets, const CxAllocator* alloc);
 
 
