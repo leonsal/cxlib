@@ -1,10 +1,10 @@
 #include <stdlib.h>
-#include <assert.h>
 #include <stdint.h>
 #include <pthread.h>
 
 #include "cx_alloc_pool.h"
 #include "logger.h"
+#include "util.h"
 
 #define cx_queue_name qu64
 #define cx_queue_type uint64_t
@@ -30,13 +30,13 @@ static void *writer(void* arg) {
     size_t start = t->wstart;
     size_t count = t->wcount;
     while (count) {
-        assert(qu64_put(t->q, start) == 0);
+        CHK(qu64_put(t->q, start) == 0);
         t->wsum += start;
         start++;
         count--;
     }
     if (t->wclose) {
-        assert(qu64_close(t->q) == 0);
+        CHK(qu64_close(t->q) ==  0);
     }
     return NULL;
 }
@@ -50,7 +50,7 @@ static void* reader(void* arg) {
         if (res == ECANCELED) {
             break;
         }
-        assert(res == 0);
+        CHK(res ==  0);
         t->rcount++;
         t->rsum += v;
     }
@@ -69,34 +69,34 @@ void cxQueueTests(void) {
         LOGI("queue 1T");
         const size_t cap = 8;
         qu64 q = qu64_init(alloc, cap);
-        assert(qu64_cap(&q) == cap);
-        assert(qu64_len(&q) == 0);
+        CHK(qu64_cap(&q) == cap);
+        CHK(qu64_len(&q) == 0);
 
         uint64_t bufin[] = {0,1,2,3,4,5};
-        assert(qu64_putn(&q, bufin, 6) == 0);
-        assert(qu64_len(&q) == 6);
+        CHK(qu64_putn(&q, bufin, 6) == 0);
+        CHK(qu64_len(&q) == 6);
 
         uint64_t bufout[cap];
-        assert(qu64_getn(&q, bufout, 3) == 0);
-        assert(bufout[0] == 0);
-        assert(bufout[1] == 1);
-        assert(bufout[2] == 2);
-        assert(qu64_len(&q) == 3);
+        CHK(qu64_getn(&q, bufout, 3) == 0);
+        CHK(bufout[0] == 0);
+        CHK(bufout[1] == 1);
+        CHK(bufout[2] == 2);
+        CHK(qu64_len(&q) == 3);
 
         uint64_t bufin2[] = {6,7,8,9};
-        assert(qu64_putn(&q, bufin2, 4) == 0);
-        assert(qu64_len(&q) == 7);
-        assert(qu64_close(&q) == 0);
+        CHK(qu64_putn(&q, bufin2, 4) == 0);
+        CHK(qu64_len(&q) == 7);
+        CHK(qu64_close(&q) == 0);
         bool closed;
-        assert(qu64_is_closed(&q, &closed) == 0 && closed);
-        assert(qu64_put(&q, 0) == ECANCELED);
+        CHK(qu64_is_closed(&q, &closed) == 0 && closed);
+        CHK(qu64_put(&q, 0) == ECANCELED);
 
-        assert(qu64_getn(&q, bufout, 7) == 0);
-        assert(qu64_len(&q) == 0);
+        CHK(qu64_getn(&q, bufout, 7) == 0);
+        CHK(qu64_len(&q) == 0);
         for (size_t i = 0; i <= 6; i++) {
-            assert(bufout[i] == i + 3);
+            CHK(bufout[i] == i + 3);
         }
-        assert(qu64_get(&q, &bufout[0]) == ECANCELED);
+        CHK(qu64_get(&q, &bufout[0]) == ECANCELED);
     }
 
     // 1 Writer and 1 reader
@@ -104,7 +104,7 @@ void cxQueueTests(void) {
         LOGI("queue 1WT/1RT");
         const size_t cap = 50;
         qu64 q = qu64_init(alloc, cap);
-        assert(qu64_cap(&q) == cap);
+        CHK(qu64_cap(&q) == cap);
 
         // Creates and starts writer thread
         Test wdata = {.q = &q, .wstart = 1, .wcount = 1000, .wclose = true};
@@ -119,8 +119,8 @@ void cxQueueTests(void) {
         pthread_join(write_id, NULL);
         pthread_join(read_id, NULL);
 
-        assert(wdata.wcount == rdata.rcount);
-        assert(wdata.wsum == rdata.rsum);
+        CHK(wdata.wcount == rdata.rcount);
+        CHK(wdata.wsum == rdata.rsum);
 
         qu64_free(&q);
     }
@@ -130,7 +130,7 @@ void cxQueueTests(void) {
         LOGI("queue 2WT/1RT");
         const size_t cap = 50;
         qu64 q = qu64_init(alloc, cap);
-        assert(qu64_cap(&q) == cap);
+        CHK(qu64_cap(&q) == cap);
 
         // Creates and starts writer1 thread
         Test wdata1 = {.q = &q, .wstart = 1, .wcount = 1000};
@@ -151,11 +151,11 @@ void cxQueueTests(void) {
         pthread_join(writer1_id, NULL);
         pthread_join(writer2_id, NULL);
         // Closes the queue and waits for reader
-        assert(qu64_close(&q) == 0);
+        CHK(qu64_close(&q) == 0);
         pthread_join(reader_id, NULL);
 
-        assert(rdata.rcount == wdata1.wcount + wdata2.wcount);
-        assert(rdata.rsum == wdata1.wsum + wdata2.wsum);
+        CHK(rdata.rcount == wdata1.wcount + wdata2.wcount);
+        CHK(rdata.rsum == wdata1.wsum + wdata2.wsum);
 
         qu64_free(&q);
     }
@@ -165,7 +165,7 @@ void cxQueueTests(void) {
         LOGI("queue 2WT/2RT");
         const size_t cap = 50;
         qu64 q = qu64_init(alloc, cap);
-        assert(qu64_cap(&q) == cap);
+        CHK(qu64_cap(&q) == cap);
 
         // Creates and starts writer1 thread
         Test wdata1 = {.q = &q, .wstart = 1, .wcount = 1000};
@@ -191,12 +191,12 @@ void cxQueueTests(void) {
         pthread_join(writer1_id, NULL);
         pthread_join(writer2_id, NULL);
         // Closes the queue and waits for readers
-        assert(qu64_close(&q) == 0);
+        CHK(qu64_close(&q) == 0);
         pthread_join(reader1_id, NULL);
         pthread_join(reader2_id, NULL);
 
-        assert(rdata1.rcount + rdata2.rcount == wdata1.wcount + wdata2.wcount);
-        assert(rdata1.rsum + rdata2.rsum == wdata1.wsum + wdata2.wsum);
+        CHK(rdata1.rcount + rdata2.rcount == wdata1.wcount + wdata2.wcount);
+        CHK(rdata1.rsum + rdata2.rsum == wdata1.wsum + wdata2.wsum);
 
         qu64_free(&q);
     }

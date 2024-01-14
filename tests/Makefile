@@ -125,7 +125,7 @@ clean:
 #
 .PHONY: pp
 pp:
-> clang -P -E -I ../include main.c | clang-format
+> clang -O2 -P -E -I ../include main.c | clang-format
 
 #
 # Debug target
