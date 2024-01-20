@@ -31,18 +31,12 @@
 //
 // Map of fixed size C string key -> double
 //
-static int cmp_fixedstr_keys(const void* k1, const void* k2, size_t size) {
-    return strcmp(k1, k2);
-}
-static size_t hash_fixedstr_key(void* key, size_t keySize) {
-    return cxHashFNV1a32(key, strlen((char*)key));
-}
 typedef struct strkey_{char data[32];} strkey;
 #define cx_hmap_name mapt3
 #define cx_hmap_key  strkey
 #define cx_hmap_val  double
-#define cx_hmap_cmp_key  cmp_fixedstr_keys
-#define cx_hmap_hash_key hash_fixedstr_key
+#define cx_hmap_cmp_key  cx_hmap_cmp_key_str_arr
+#define cx_hmap_hash_key cx_hmap_hash_key_str_arr
 #define cx_hmap_instance_allocator
 #define cx_hmap_implement
 #include "cx_hmap.h"
@@ -51,17 +45,11 @@ typedef struct strkey_{char data[32];} strkey;
 // Map of allocated C string key -> double
 // Must use custom allocator for clone to work
 //
-static int cmp_str_keys(const void* k1, const void* k2, size_t size) {
-    return strcmp(*(char**)k1, *(char**)k2);
-}
-static size_t hash_str_key(void* key, size_t keySize) {
-    return cxHashFNV1a32(*((char**)key), strlen(*(char**)key));
-}
 #define cx_hmap_name mapt4
 #define cx_hmap_key  char*
 #define cx_hmap_val  double
-#define cx_hmap_cmp_key  cmp_str_keys
-#define cx_hmap_hash_key hash_str_key
+#define cx_hmap_cmp_key  cx_hmap_cmp_key_str_ptr
+#define cx_hmap_hash_key cx_hmap_hash_key_str_ptr
 #define cx_hmap_instance_allocator
 #define cx_hmap_implement
 #include "cx_hmap2.h"

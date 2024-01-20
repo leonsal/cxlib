@@ -31,3 +31,19 @@ uint32_t cxHashFNV1a32(const void *buf, size_t len) {
     return hval;
 }
 
+int cx_hmap_cmp_key_str_arr(const void* k1, const void* k2, size_t size) {
+    return strcmp(k1, k2);
+}
+
+size_t cx_hmap_hash_key_str_arr(void* key, size_t keySize) {
+    return cxHashFNV1a32(key, strlen((char*)key));
+}
+
+int cx_hmap_cmp_key_str_ptr(const void* k1, const void* k2, size_t size) {
+    return strcmp(*(char**)k1, *(char**)k2);
+}
+
+size_t cx_hmap_hash_key_str_ptr(void* key, size_t keySize) {
+    return cxHashFNV1a32(*((char**)key), strlen(*(char**)key));
+}
+
