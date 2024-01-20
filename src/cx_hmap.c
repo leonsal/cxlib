@@ -19,7 +19,7 @@
 #define FNV_32_INIT     ((uint32_t)0x811c9dc5)
 #define FNV_32_PRIME    ((uint32_t)0x01000193)
 
-uint32_t cxHashFNV1a32(const void *buf, size_t len) {
+uint32_t cx_hmap_hash_fnv1a32(const void *buf, size_t len) {
 
     const uint8_t *bp = buf;
     const uint8_t *be = bp + len;
@@ -36,7 +36,7 @@ int cx_hmap_cmp_key_str_arr(const void* k1, const void* k2, size_t size) {
 }
 
 size_t cx_hmap_hash_key_str_arr(void* key, size_t keySize) {
-    return cxHashFNV1a32(key, strlen((char*)key));
+    return cx_hmap_hash_fnv1a32(key, strlen((char*)key));
 }
 
 int cx_hmap_cmp_key_str_ptr(const void* k1, const void* k2, size_t size) {
@@ -44,6 +44,6 @@ int cx_hmap_cmp_key_str_ptr(const void* k1, const void* k2, size_t size) {
 }
 
 size_t cx_hmap_hash_key_str_ptr(void* key, size_t keySize) {
-    return cxHashFNV1a32(*((char**)key), strlen(*(char**)key));
+    return cx_hmap_hash_fnv1a32(*((char**)key), strlen(*(char**)key));
 }
 

@@ -69,7 +69,7 @@ static int cmp_cxstr_keys(const void* k1, const void* k2, size_t size) {
     return cxstr_cmps((cxstr*)k1, (cxstr*)k2);
 }
 static size_t hash_cxstr_key(void* key, size_t keySize) {
-    return cxHashFNV1a32(((cxstr*)key)->data, cxstr_len((cxstr*)key));
+    return cx_hmap_hash_fnv1a32(((cxstr*)key)->data, cxstr_len((cxstr*)key));
 }
 
 #define cx_hmap_name mapt5
