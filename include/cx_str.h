@@ -132,6 +132,9 @@ Appends 'n' bytes from 'src' to 's'
 Appends nul terminated string 'src' to 's'
     void cxstr_cat(cx_str_name* s, const char* src);
 
+Appends character to the string
+    void cxstr_catc(cx_str_name* s, int c);
+
 Appends cxstr 'src' to 's'
     void cxstr_cats(cx_str_name* s, const cx_str_name* src);
 
@@ -271,6 +274,7 @@ cx_str_api_ void cx_str_name_(_cpy)(cx_str_name* s, const char* src);
 cx_str_api_ void cx_str_name_(_cpys)(cx_str_name* s, const cx_str_name* src);
 cx_str_api_ void cx_str_name_(_catn)(cx_str_name* s, const char* src, size_t n);
 cx_str_api_ void cx_str_name_(_cat)(cx_str_name* s, const char* src);
+cx_str_api_ void cx_str_name_(_catc)(cx_str_name* s, int c);
 cx_str_api_ void cx_str_name_(_cats)(cx_str_name* s, const cx_str_name* src);
 cx_str_api_ void cx_str_name_(_catcp)(cx_str_name* s, int32_t cp);
 cx_str_api_ void cx_str_name_(_insn)(cx_str_name* s, const char* src, size_t n, size_t idx);
@@ -509,6 +513,12 @@ cx_str_api_ void cx_str_name_(_catn)(cx_str_name* s, const char* src, size_t n) 
 cx_str_api_ void cx_str_name_(_cat)(cx_str_name* s, const char* src) {
 
     cx_str_name_(_catn)(s, src, strlen(src));
+}
+
+cx_str_api_ void cx_str_name_(_catc)(cx_str_name* s, int c) {
+
+    const char cc = (char)c;
+    cx_str_name_(_catn)(s, &cc, 1);
 }
 
 cx_str_api_ void cx_str_name_(_cats)(cx_str_name* s, const cx_str_name* src) {
