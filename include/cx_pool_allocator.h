@@ -4,55 +4,55 @@
 #include "cx_alloc.h"
 
 // Pool allocator opaque type
-typedef struct CxAllocPool CxAllocPool;
+typedef struct CxPoolAllocator CxPoolAllocator;
 
 // Pool allocator stats
-typedef struct CxAllocPoolStats {
+typedef struct CxPoolAllocatorStats {
     size_t nallocs;     // Number of individual allocations
     size_t nbytes;      // Total number of requested bytes
     size_t usedBlocks;  // Number of allocated used blocks
     size_t freeBlocks;  // Number of allocated blocks in free list
-} CxAllocPoolStats;
+} CxPoolAllocatorStats;
 
 // Creates an block allocator using the specified minimum blocksize and
 // using the specified memory allocator. If NULL is passed as the allocator,
 // the default global allocator (malloc/free) will be used.
 // This allocator is used to allocate the block control state and new blocks
 // as required.
-CxAllocPool* cxAllocPoolCreate(size_t blockSize, const CxAllocator* ca);
+CxPoolAllocator* cx_pool_allocator_create(size_t blockSize, const CxAllocator* ca);
 
-// Destroy a previously create block allocator.
-void cxAllocPoolDestroy(CxAllocPool* a);
+// Destroy a previously created block allocator freeing all allocated memory.
+void cx_destroy_pool_allocator(CxPoolAllocator* a);
 
 //
 // Allocates size bytes using standard alignment and return its pointer
 //
-void* cxAllocPoolAlloc(CxAllocPool* a, size_t size);
+void* cx_pool_allocator_alloc(CxPoolAllocator* a, size_t size);
 
 //
 // Allocates size bytes using specified alignment and return its pointer
 //
-void* cxAllocPoolAlloc2(CxAllocPool* a, size_t size, size_t align);
+void* cx_pool_allocator_alloc2(CxPoolAllocator* a, size_t size, size_t align);
 
 //
 // Clears the allocator keeping the memory allocated from parent allocator
 //
-void cxAllocPoolClear(CxAllocPool* a);
+void cx_pool_allocator_clear(CxPoolAllocator* a);
 
 //
 // Free all allocated memory
 //
-void cxAllocPoolFree(CxAllocPool* a);
+void cx_pool_allocator_free(CxPoolAllocator* a);
 
 //
-// Returns allocator struct
+// Returns allocator interface 
 //
-const CxAllocator* cxAllocPoolGetAllocator(CxAllocPool* a);
+const CxAllocator* cx_pool_allocator_iface(CxPoolAllocator* a);
 
 //
 // Returns allocator statistics
 //
-CxAllocPoolStats cxAllocPoolGetStats(const CxAllocPool* a);
+CxPoolAllocatorStats cx_pool_allocator_stats(const CxPoolAllocator* a);
 
 #endif
 

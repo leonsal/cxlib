@@ -1,5 +1,5 @@
 #include "cx_alloc.h"
-#include "cx_alloc_pool.h"
+#include "cx_pool_allocator.h"
 #include <stdlib.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -91,14 +91,14 @@ void cxHmapTests(void) {
     cxHmapTest3(100, 40, cxDefaultAllocator());
 
     // Use pool allocator because the keys are dynamically allocated
-    CxAllocPool* pa = cxAllocPoolCreate(4*1024, NULL);
-    cxHmapTest4(100, 40, cxAllocPoolGetAllocator(pa));
-    cxAllocPoolDestroy(pa);
+    CxPoolAllocator* pa = cx_pool_allocator_create(4*1024, NULL);
+    cxHmapTest4(100, 40, cx_pool_allocator_iface(pa));
+    cx_destroy_pool_allocator(pa);
 
     // Use pool allocator because the keys are dynamically allocated
-    pa = cxAllocPoolCreate(4*1024, NULL);
-    cxHmapTest5(100, 40, cxAllocPoolGetAllocator(pa));
-    cxAllocPoolDestroy(pa);
+    pa = cx_pool_allocator_create(4*1024, NULL);
+    cxHmapTest5(100, 40, cx_pool_allocator_iface(pa));
+    cx_destroy_pool_allocator(pa);
 }
 
 void cxHmapTest1(size_t size, size_t nbuckets, const CxAllocator* alloc) {

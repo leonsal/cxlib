@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <time.h>
 
-#include "cx_alloc_pool.h"
+#include "cx_pool_allocator.h"
 #include "alloc.h"
 #include "logger.h"
 
@@ -18,8 +18,8 @@ void cxAllocPoolTest(size_t allocs, size_t blockSize, size_t ncycles) {
     LOGI("alloc pool test. allocs=%lu blockSize=%lu cycles:%lu ", allocs, blockSize, ncycles);
 
     // Creates pool allocator
-    CxAllocPool* pa = cxAllocPoolCreate(blockSize, NULL);
-    const CxAllocator* alloc = cxAllocPoolGetAllocator(pa);
+    CxPoolAllocator* pa = cx_pool_allocator_create(blockSize, NULL);
+    const CxAllocator* alloc = cx_pool_allocator_iface(pa);
 
     // Allocation group
     typedef struct Group {
@@ -60,16 +60,16 @@ void cxAllocPoolTest(size_t allocs, size_t blockSize, size_t ncycles) {
         }
         // Clear the allocator before restarting the cycle
         //cxAllocPoolTestPrint(pa);
-        cxAllocPoolClear(pa);
+        cx_pool_allocator_clear(pa);
     }
 
-    cxAllocPoolDestroy(pa);
+    cx_destroy_pool_allocator(pa);
     free(groups);
 }
 
-void cxAllocPoolTestPrint(CxAllocPool* pa) {
+void cxAllocPoolTestPrint(CxPoolAllocator* pa) {
 
-    CxAllocPoolStats stats = cxAllocPoolGetStats(pa);
+    CxPoolAllocatorStats stats = cx_pool_allocator_stats(pa);
     printf("nallocs:%lu "
             "nbytes:%lu "
             "usedBlocks: %lu "

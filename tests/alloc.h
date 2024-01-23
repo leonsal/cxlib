@@ -3,4 +3,4 @@
 
 void cxAllocPoolTests();
 void cxAllocPoolTest(size_t allocs, size_t blockSize, size_t ncycles);
-void cxAllocPoolTestPrint(CxAllocPool* pa);
+void cxAllocPoolTestPrint(CxPoolAllocator* pa);

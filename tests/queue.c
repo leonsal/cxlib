@@ -2,7 +2,7 @@
 #include <stdint.h>
 #include <pthread.h>
 
-#include "cx_alloc_pool.h"
+#include "cx_pool_allocator.h"
 #include "logger.h"
 #include "util.h"
 
@@ -61,8 +61,8 @@ static void* reader(void* arg) {
 void cxQueueTests(void) {
 
     // Use pool allocator
-    CxAllocPool* pa = cxAllocPoolCreate(4*1024, NULL);
-    CxAllocator* alloc = (CxAllocator*)cxAllocPoolGetAllocator(pa);
+    CxPoolAllocator* pa = cx_pool_allocator_create(4*1024, NULL);
+    CxAllocator* alloc = (CxAllocator*)cx_pool_allocator_iface(pa);
 
     // Single thread
     {
@@ -201,7 +201,7 @@ void cxQueueTests(void) {
         qu64_free(&q);
     }
 
-    cxAllocPoolDestroy(pa);
+    cx_destroy_pool_allocator(pa);
 }
 
 

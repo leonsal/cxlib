@@ -2,7 +2,7 @@
 #include <time.h>
 
 #include "cx_alloc.h"
-#include "cx_alloc_pool.h"
+#include "cx_pool_allocator.h"
 #include "array.h"
 #include "util.h"
 
@@ -30,9 +30,9 @@ void cxArrayTests(void) {
     cxArrayTest(size, cxDefaultAllocator());
 
     // Use pool allocator
-    CxAllocPool* ba = cxAllocPoolCreate(4*1024, NULL);
-    cxArrayTest(size, cxAllocPoolGetAllocator(ba));
-    cxAllocPoolDestroy(ba);
+    CxPoolAllocator* ba = cx_pool_allocator_create(4*1024, NULL);
+    cxArrayTest(size, cx_pool_allocator_iface(ba));
+    cx_destroy_pool_allocator(ba);
 }
 
 void cxArrayTest(size_t size, const CxAllocator* alloc) {

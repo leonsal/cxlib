@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.16 FATAL_ERROR)
 project(cxlibproj C)
 
-# Visources
 set(SOURCES
     include/cx_alloc.h
     include/cx_array.h
@@ -9,7 +8,7 @@ set(SOURCES
     include/cx_hmap.h
     include/cx_queue.h
     src/cx_alloc.c
-    src/cx_alloc_pool.c
+    src/cx_pool_allocator.c
     src/cx_str.c
     src/cx_hmap.c
 )

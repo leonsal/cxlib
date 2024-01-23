@@ -2,7 +2,7 @@
  #include <asm-generic/errno.h>
  #include <stdio.h>
  #include "cx_alloc.h"
- #include "cx_alloc_pool.h"
+ #include "cx_pool_allocator.h"
 
  #include "logger.h"
  #include "alloc.h"
