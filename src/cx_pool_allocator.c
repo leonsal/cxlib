@@ -58,7 +58,7 @@ CxPoolAllocator* cx_pool_allocator_create(size_t blockSize, const CxAllocator* a
     return a;
 }
 
-void cx_destroy_pool_allocator(CxPoolAllocator* a) {
+void cx_pool_allocator_destroy(CxPoolAllocator* a) {
 
     cx_pool_allocator_free(a);
     cx_alloc_free(a->alloc, a, sizeof(CxPoolAllocator));

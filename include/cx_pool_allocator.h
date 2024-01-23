@@ -22,7 +22,7 @@ typedef struct CxPoolAllocatorStats {
 CxPoolAllocator* cx_pool_allocator_create(size_t blockSize, const CxAllocator* ca);
 
 // Destroy a previously created block allocator freeing all allocated memory.
-void cx_destroy_pool_allocator(CxPoolAllocator* a);
+void cx_pool_allocator_destroy(CxPoolAllocator* a);
 
 //
 // Allocates size bytes using standard alignment and return its pointer

@@ -63,7 +63,7 @@ void cxAllocPoolTest(size_t allocs, size_t blockSize, size_t ncycles) {
         cx_pool_allocator_clear(pa);
     }
 
-    cx_destroy_pool_allocator(pa);
+    cx_pool_allocator_destroy(pa);
     free(groups);
 }
 

@@ -93,12 +93,12 @@ void cxHmapTests(void) {
     // Use pool allocator because the keys are dynamically allocated
     CxPoolAllocator* pa = cx_pool_allocator_create(4*1024, NULL);
     cxHmapTest4(100, 40, cx_pool_allocator_iface(pa));
-    cx_destroy_pool_allocator(pa);
+    cx_pool_allocator_destroy(pa);
 
     // Use pool allocator because the keys are dynamically allocated
     pa = cx_pool_allocator_create(4*1024, NULL);
     cxHmapTest5(100, 40, cx_pool_allocator_iface(pa));
-    cx_destroy_pool_allocator(pa);
+    cx_pool_allocator_destroy(pa);
 }
 
 void cxHmapTest1(size_t size, size_t nbuckets, const CxAllocator* alloc) {

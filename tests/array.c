@@ -32,7 +32,7 @@ void cxArrayTests(void) {
     // Use pool allocator
     CxPoolAllocator* ba = cx_pool_allocator_create(4*1024, NULL);
     cxArrayTest(size, cx_pool_allocator_iface(ba));
-    cx_destroy_pool_allocator(ba);
+    cx_pool_allocator_destroy(ba);
 }
 
 void cxArrayTest(size_t size, const CxAllocator* alloc) {

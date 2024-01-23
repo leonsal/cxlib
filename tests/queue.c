@@ -201,7 +201,7 @@ void cxQueueTests(void) {
         qu64_free(&q);
     }
 
-    cx_destroy_pool_allocator(pa);
+    cx_pool_allocator_destroy(pa);
 }
 
 
