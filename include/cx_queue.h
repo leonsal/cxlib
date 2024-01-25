@@ -114,6 +114,9 @@ After the queue is closed any operation of the queue returns error.
 Returns if the queue is closed.
     bool cxqueue_closed(cxqueue* q);
 
+Resets the queue, enabling the reuse of a previously closed queue.
+    int cxqueue_reset(cxqueue* q);
+
 */ 
 #include <stdint.h>
 #include <stdbool.h>
@@ -222,6 +225,7 @@ cx_queue_api_ int cx_queue_name_(_getn)(cx_queue_name* q, cx_queue_type* v, size
 cx_queue_api_ int cx_queue_name_(_get)(cx_queue_name* q, cx_queue_type* v);
 cx_queue_api_ int cx_queue_name_(_close)(cx_queue_name* q);
 cx_queue_api_ int cx_queue_name_(_is_closed)(cx_queue_name* q, bool* closed);
+cx_queue_api_ int cx_queue_name_(_reset)(cx_queue_name* q);
 
 //
 // Implementation
@@ -392,8 +396,8 @@ cx_queue_api_ int cx_queue_name_(_close)(cx_queue_name* q) {
     int error2 = pthread_cond_broadcast(&q->hasSpace_);
     int error3 = pthread_mutex_unlock(&q->lock_);
     if (error1) { return error1; }
-    if (error2) { return error1; }
-    if (error3) { return error1; }
+    if (error2) { return error2; }
+    if (error3) { return error3; }
     return 0;
 }
 
@@ -402,6 +406,19 @@ cx_queue_api_ int cx_queue_name_(_is_closed)(cx_queue_name* q, bool* closed) {
     int error = pthread_mutex_lock(&q->lock_);
     if (error) { return error; }
     *closed = q->closed;
+    return pthread_mutex_unlock(&q->lock_);
+}
+
+cx_queue_api_ int cx_queue_name_(_reset)(cx_queue_name* q) {
+
+    int error = pthread_mutex_lock(&q->lock_);
+    if (error) {
+        return error;
+    }
+    q->closed = false;
+    q->len_ = 0;
+    q->in_ = 0;
+    q->out_ = 0;
     return pthread_mutex_unlock(&q->lock_);
 }
 

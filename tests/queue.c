@@ -64,11 +64,12 @@ void cxQueueTests(void) {
     CxPoolAllocator* pa = cx_pool_allocator_create(4*1024, NULL);
     CxAllocator* alloc = (CxAllocator*)cx_pool_allocator_iface(pa);
 
+    const size_t cap = 8;
+    qu64 q = qu64_init(alloc, cap);
+
     // Single thread
     {
         LOGI("queue 1T");
-        const size_t cap = 8;
-        qu64 q = qu64_init(alloc, cap);
         CHK(qu64_cap(&q) == cap);
         CHK(qu64_len(&q) == 0);
 
@@ -97,13 +98,12 @@ void cxQueueTests(void) {
             CHK(bufout[i] == i + 3);
         }
         CHK(qu64_get(&q, &bufout[0]) == ECANCELED);
+        qu64_reset(&q);
     }
 
     // 1 Writer and 1 reader
     {
         LOGI("queue 1WT/1RT");
-        const size_t cap = 50;
-        qu64 q = qu64_init(alloc, cap);
         CHK(qu64_cap(&q) == cap);
 
         // Creates and starts writer thread
@@ -122,14 +122,12 @@ void cxQueueTests(void) {
         CHK(wdata.wcount == rdata.rcount);
         CHK(wdata.wsum == rdata.rsum);
 
-        qu64_free(&q);
+        qu64_reset(&q);
     }
 
     // 2 Writers and 1 reader
     {
         LOGI("queue 2WT/1RT");
-        const size_t cap = 50;
-        qu64 q = qu64_init(alloc, cap);
         CHK(qu64_cap(&q) == cap);
 
         // Creates and starts writer1 thread
@@ -157,14 +155,12 @@ void cxQueueTests(void) {
         CHK(rdata.rcount == wdata1.wcount + wdata2.wcount);
         CHK(rdata.rsum == wdata1.wsum + wdata2.wsum);
 
-        qu64_free(&q);
+        qu64_reset(&q);
     }
 
     // 2 Writers and 2 readers
     {
         LOGI("queue 2WT/2RT");
-        const size_t cap = 50;
-        qu64 q = qu64_init(alloc, cap);
         CHK(qu64_cap(&q) == cap);
 
         // Creates and starts writer1 thread
@@ -198,7 +194,7 @@ void cxQueueTests(void) {
         CHK(rdata1.rcount + rdata2.rcount == wdata1.wcount + wdata2.wcount);
         CHK(rdata1.rsum + rdata2.rsum == wdata1.wsum + wdata2.wsum);
 
-        qu64_free(&q);
+        qu64_reset(&q);
     }
 
     cx_pool_allocator_destroy(pa);
