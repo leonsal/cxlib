@@ -89,23 +89,50 @@ Returns it the queue is empty (length == 0)
 
 Puts 'n' elements from 'src' at the input (front) of the queue.
 Blocks till there is space in the queue to insert all elements.
-Returns error if the queue is closed.
+Returns ECANCELED if the queue is closed.
     int cxqueue_putn(cxqueue* q, const cxtype* src, size_t n);
+
+Puts 'n' elements from 'src' at the input (front) of the queue.
+Blocks till there is space in the queue to insert all elements or
+the specified relative timeout expires.
+Returns ECANCELED if the queue is closed.
+Returns ETIMEDOUT if timeout expires.
+    int cx_queue_putnw)(cxqueue* q, const cxtype* src, size_t n, struct timespec reltime);
 
 Inserts one element at the input (front) of the queue.
 Blocks till there is space in the queue to insert the element.
-Returns error if the queue is closed.
+Returns ECANCELED if the queue is closed.
     int cxqueue_put(cxqueue* q, cxtype v);
+
+Inserts one element at the input (front) of the queue.
+Blocks till there is space in the queue to insert the element or
+the specified relative timeout expires.
+Returns ECANCELED if the queue is closed.
+Returns ETIMEDOUT if timeout expires.
+    int cxqueue_putw(cxqueue* q, cxtype v, struct timespec reltime);
 
 Get 'n' elements from the output (back) of the queue.
 Blocks till there is the specified number of elements to remove.
-Returns error if the queue is closed.
+Returns ECANCELED if the queue is closed.
     int cxqueue_getn(cxqueue* q, cxtype* src, size_t n);
+
+Get 'n' elements from the output (back) of the queue.
+Blocks till there is the specified number of elements to remove or
+the specified relative timeout expires.
+Returns ECANCELED if the queue is closed.
+Returns ETIMEDOUT if timeout expires.
+    int cxqueue_getnw(cxqueue* q, cxtype* src, size_t n, struct timespec reltime);
 
 Get one element from output (back) of the queue.
 Blocks till there is element to remove.
-Returns error if the queue is closed
+Returns ECANCELED if the queue is closed.
     int cxqueue_get(cxqueue* q, cxtype* src);
+
+Get one element from output (back) of the queue.
+Blocks till there is element to remove or the specified timeout expires.
+Returns ECANCELED if the queue is closed.
+Returns ETIMEDOUT if timeout expires.
+    int cxqueue_getw(cxqueue* q, cxtype* src);
 
 Closes the queue, unblocking other threads which are trying to put or get data.
 After the queue is closed any operation of the queue returns error.
@@ -219,10 +246,14 @@ cx_queue_api_ void cx_queue_name_(_free)(cx_queue_name* q);
 cx_queue_api_ size_t cx_queue_name_(_cap)(cx_queue_name* q);
 cx_queue_api_ size_t cx_queue_name_(_len)(cx_queue_name* q);
 cx_queue_api_ bool cx_queue_name_(_empty)(cx_queue_name* q);
-cx_queue_api_ int cx_queue_name_(_putn)(cx_queue_name* q, const cx_queue_type* v, size_t n);
+cx_queue_api_ int cx_queue_name_(_putn)(cx_queue_name* q, const cx_queue_type* src, size_t n);
+cx_queue_api_ int cx_queue_name_(_putnw)(cx_queue_name* q, const cx_queue_type* src, size_t n, struct timespec reltime);
 cx_queue_api_ int cx_queue_name_(_put)(cx_queue_name* q, const cx_queue_type v);
-cx_queue_api_ int cx_queue_name_(_getn)(cx_queue_name* q, cx_queue_type* v, size_t n);
+cx_queue_api_ int cx_queue_name_(_putw)(cx_queue_name* q, const cx_queue_type v, struct timespec reltime);
+cx_queue_api_ int cx_queue_name_(_getn)(cx_queue_name* q, cx_queue_type* dst, size_t n);
+cx_queue_api_ int cx_queue_name_(_getnw)(cx_queue_name* q, cx_queue_type* dst, size_t n, struct timespec reltime);
 cx_queue_api_ int cx_queue_name_(_get)(cx_queue_name* q, cx_queue_type* v);
+cx_queue_api_ int cx_queue_name_(_getw)(cx_queue_name* q, cx_queue_type* v, struct timespec reltime);
 cx_queue_api_ int cx_queue_name_(_close)(cx_queue_name* q);
 cx_queue_api_ int cx_queue_name_(_is_closed)(cx_queue_name* q, bool* closed);
 cx_queue_api_ int cx_queue_name_(_reset)(cx_queue_name* q);
@@ -336,9 +367,60 @@ cx_queue_api_ int cx_queue_name_(_putn)(cx_queue_name* q, const cx_queue_type* s
     return pthread_mutex_unlock(&q->lock_);
 }
 
+cx_queue_api_ int cx_queue_name_(_putnw)(cx_queue_name* q, const cx_queue_type* src, size_t n, struct timespec reltime) {
+
+    assert(n <= q->cap_);
+
+    // Calculates absolute time from specified relative time
+    struct timespec abstime;
+    clock_gettime(CLOCK_REALTIME, &abstime);
+    abstime.tv_sec += reltime.tv_nsec;
+    abstime.tv_nsec += reltime.tv_nsec;
+
+    // Waits for space in the queue or timeout
+    int error = pthread_mutex_lock(&q->lock_);
+    if (error) {
+        return error;
+    }
+    while (n > q->cap_ - q->len_ && !error && !q->closed) {
+        error = pthread_cond_timedwait(&q->hasSpace_, &q->lock_, &abstime);
+    }
+    if (error) {
+        pthread_mutex_unlock(&q->lock_);
+        return error;
+    }
+    if (q->closed) {
+        pthread_mutex_unlock(&q->lock_);
+        return ECANCELED;
+    }
+
+    // Copy data to queue
+    size_t space = q->cap_ - q->in_;
+    if (n <= space) {
+        memcpy(&q->data_[q->in_], src, n* sizeof(*q->data_));
+    } else {
+        memcpy(&q->data_[q->in_], src, space * sizeof(*q->data_));
+        memcpy(q->data_, src+space, (n-space) * sizeof(*q->data_));
+    }
+    q->in_ = (q->in_ + n) % q->cap_;
+    q->len_ += n;
+
+    // Signal that there is data in the queue
+    if ((error = pthread_cond_signal(&q->hasData_))) {
+        return error;
+    }
+    return pthread_mutex_unlock(&q->lock_);
+}
+
+
 cx_queue_api_ int cx_queue_name_(_put)(cx_queue_name* q, const cx_queue_type v) {
 
     return cx_queue_name_(_putn)(q, &v, 1);
+}
+
+cx_queue_api_ int cx_queue_name_(_putw)(cx_queue_name* q, const cx_queue_type v, struct timespec reltime) {
+
+    return cx_queue_name_(_putnw)(q, &v, 1, reltime);
 }
 
 cx_queue_api_ int cx_queue_name_(_getn)(cx_queue_name* q, cx_queue_type* dst, size_t n) {
@@ -379,9 +461,58 @@ cx_queue_api_ int cx_queue_name_(_getn)(cx_queue_name* q, cx_queue_type* dst, si
     return pthread_mutex_unlock(&q->lock_);
 }
 
-cx_queue_api_ int cx_queue_name_(_get)(cx_queue_name* q, cx_queue_type* dst) {
+cx_queue_api_ int cx_queue_name_(_getnw)(cx_queue_name* q, cx_queue_type* dst, size_t n, struct timespec reltime) {
 
-    return cx_queue_name_(_getn)(q, dst, 1);
+    assert(n <= q->cap_);
+
+    // Calculates absolute time from specified relative time
+    struct timespec abstime;
+    clock_gettime(CLOCK_REALTIME, &abstime);
+    abstime.tv_sec += reltime.tv_nsec;
+    abstime.tv_nsec += reltime.tv_nsec;
+
+    int error = pthread_mutex_lock(&q->lock_);
+    if (error) {
+        return error;
+    }
+    while (n > q->len_ && !error && !q->closed) {
+        error = pthread_cond_timedwait(&q->hasData_, &q->lock_, &abstime);
+    }
+    if (error) {
+        pthread_mutex_unlock(&q->lock_);
+        return error;
+    }
+    if (n > q->len_ && q->closed) {
+        pthread_mutex_unlock(&q->lock_);
+        return ECANCELED;
+    }
+
+    // Copy data from queue
+    size_t space = q->cap_ - q->out_;
+    if (n <= space) {
+        memcpy(dst, &q->data_[q->out_], n* sizeof(*q->data_));
+    } else {
+        memcpy(dst, &q->data_[q->out_], space * sizeof(*q->data_));
+        memcpy(dst + space, q->data_, (n-space) * sizeof(*q->data_));
+    }
+    q->out_ = (q->out_ + n) % q->cap_;
+    q->len_ -= n;
+
+    // Signal that there is free space in the queue
+    if ((error = pthread_cond_signal(&q->hasSpace_))) {
+        return error;
+    }
+    return pthread_mutex_unlock(&q->lock_);
+}
+
+cx_queue_api_ int cx_queue_name_(_get)(cx_queue_name* q, cx_queue_type* v) {
+
+    return cx_queue_name_(_getn)(q, v, 1);
+}
+
+cx_queue_api_ int cx_queue_name_(_getw)(cx_queue_name* q, cx_queue_type* v, struct timespec reltime) {
+
+    return cx_queue_name_(_getnw)(q, v, 1, reltime);
 }
 
 cx_queue_api_ int cx_queue_name_(_close)(cx_queue_name* q) {
