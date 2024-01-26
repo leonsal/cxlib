@@ -374,7 +374,7 @@ cx_queue_api_ int cx_queue_name_(_putnw)(cx_queue_name* q, const cx_queue_type* 
     // Calculates absolute time from specified relative time
     struct timespec abstime;
     clock_gettime(CLOCK_REALTIME, &abstime);
-    abstime.tv_sec += reltime.tv_nsec;
+    abstime.tv_sec += reltime.tv_sec;
     abstime.tv_nsec += reltime.tv_nsec;
 
     // Waits for space in the queue or timeout
@@ -468,7 +468,7 @@ cx_queue_api_ int cx_queue_name_(_getnw)(cx_queue_name* q, cx_queue_type* dst, s
     // Calculates absolute time from specified relative time
     struct timespec abstime;
     clock_gettime(CLOCK_REALTIME, &abstime);
-    abstime.tv_sec += reltime.tv_nsec;
+    abstime.tv_sec += reltime.tv_sec;
     abstime.tv_nsec += reltime.tv_nsec;
 
     int error = pthread_mutex_lock(&q->lock_);
