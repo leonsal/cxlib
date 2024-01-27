@@ -376,6 +376,11 @@ cx_queue_api_ int cx_queue_name_(_putnw)(cx_queue_name* q, const cx_queue_type* 
     clock_gettime(CLOCK_REALTIME, &abstime);
     abstime.tv_sec += reltime.tv_sec;
     abstime.tv_nsec += reltime.tv_nsec;
+    const long long nanosecs_persec = 1000000000;
+    if (abstime.tv_nsec > nanosecs_persec) {
+        abstime.tv_sec++;
+        abstime.tv_nsec -= nanosecs_persec;
+    }
 
     // Waits for space in the queue or timeout
     int error = pthread_mutex_lock(&q->lock_);
@@ -470,6 +475,11 @@ cx_queue_api_ int cx_queue_name_(_getnw)(cx_queue_name* q, cx_queue_type* dst, s
     clock_gettime(CLOCK_REALTIME, &abstime);
     abstime.tv_sec += reltime.tv_sec;
     abstime.tv_nsec += reltime.tv_nsec;
+    const long long nanosecs_persec = 1000000000;
+    if (abstime.tv_nsec > nanosecs_persec) {
+        abstime.tv_sec++;
+        abstime.tv_nsec -= nanosecs_persec;
+    }
 
     int error = pthread_mutex_lock(&q->lock_);
     if (error) {
