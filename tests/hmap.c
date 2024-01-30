@@ -106,6 +106,8 @@ void cxHmapTest1(size_t size, size_t nbuckets, const CxAllocator* alloc) {
     LOGI("hmap1 int->double, size=%lu nbuckets=%lu alloc=%p", size, nbuckets, alloc);
     // Initializes map type 1 and sets entries
     mapt1 m1 = mapt1_init(alloc, nbuckets);
+    // Tests clearing empty map
+    mapt1_clear(&m1);
     for (size_t  i = 0; i < size; i++) {
         mapt1_set(&m1, i, i*2.0);
     }
@@ -231,6 +233,8 @@ void cxHmapTest2(size_t size, size_t nbuckets, const CxAllocator* alloc) {
     LOGI("hmap2 uint32_t->double, size=%lu nbuckets=%lu alloc=%p", size, nbuckets, alloc);
     // Initializes map type 1 and sets entries
     mapt2 m1 = mapt2_init(alloc, nbuckets);
+    // Tests clearing empty map
+    mapt2_clear(&m1);
     for (size_t  i = 0; i < size; i++) {
         mapt2_set(&m1, i, i*2.0);
     }
@@ -365,6 +369,8 @@ void cxHmapTest3(size_t size, size_t nbuckets, const CxAllocator* alloc) {
     LOGI("hmap3 char[32]->double, size=%lu nbuckets=%lu alloc=%p", size, nbuckets, alloc);
     // Initializes map type 1 and sets entries
     mapt3 m1 = mapt3_init(alloc, nbuckets);
+    // Tests clearing empty map
+    mapt3_clear(&m1);
     for (size_t  i = 0; i < size; i++) {
         mapt3_set(&m1, num2key(i), i*2.0);
     }
@@ -501,6 +507,8 @@ void cxHmapTest4(size_t size, size_t nbuckets, const CxAllocator* alloc) {
     LOGI("hmap4 char*->double, size=%lu nbuckets=%lu alloc=%p", size, nbuckets, alloc);
     // Initializes map and sets entries
     mapt4 m1 = mapt4_init(alloc, nbuckets);
+    // Tests clearing empty map
+    mapt4_clear(&m1);
     for (size_t  i = 0; i < size; i++) {
         mapt4_set(&m1, num2str(i,alloc), i*2.0);
     }
@@ -636,6 +644,8 @@ void cxHmapTest5(size_t size, size_t nbuckets, const CxAllocator* alloc) {
     LOGI("hmap5 cxstr->double, size=%lu nbuckets=%lu alloc=%p", size, nbuckets, alloc);
     // Initializes map and sets entries
     mapt5 m1 = mapt5_init(alloc, nbuckets);
+    // Tests clearing empty map
+    mapt5_clear(&m1);
     for (size_t  i = 0; i < size; i++) {
         mapt5_set(&m1, num2cxstr(i,alloc), i*2.0);
     }

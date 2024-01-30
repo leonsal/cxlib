@@ -469,6 +469,9 @@ cx_hmap_api_ bool cx_hmap_name_(_del)(cx_hmap_name* m, cx_hmap_key k) {
 cx_hmap_api_ void cx_hmap_name_(_clear)(cx_hmap_name* m) {
 
     assert(m);
+    if (m->count_ == 0) {
+        return;
+    }
     memset(m->status_, cx_hmap_empty_, m->nbuckets_ * sizeof(*m->status_));
     m->count_ = 0;
     m->deleted_ = 0;
