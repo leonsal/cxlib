@@ -220,6 +220,11 @@ typedef struct cx_list_name {
     size_t count_;
 } cx_list_name;
 
+typedef struct cx_list_name_(_iter) {
+    cx_list_name* l;
+    cx_list_name_(_el)* curr;
+} cx_list_name_(_iter);
+
 #ifdef cx_list_instance_allocator
     cx_list_api_ cx_list_name cx_list_name_(_init)(const CxAllocator*);
 #else
@@ -227,20 +232,21 @@ typedef struct cx_list_name {
 #endif
 cx_list_api_ void cx_list_name_(_free)(cx_list_name* l);
 // cx_list_api_ cx_list_name cx_list_name_(_clone)(cx_list_name* a);
-cx_list_api_ bool cx_list_name_(_empty)(cx_list_name* a);
-cx_list_api_ void cx_list_name_(_push)(cx_list_name* a, cx_list_type v);
-// cx_list_api_ void cx_list_name_(_pusha)(cx_list_name* a, const cx_list_name* src);
-// cx_list_api_ cx_list_type cx_list_name_(_pop)(cx_list_name* a);
+cx_list_api_ bool cx_list_name_(_empty)(cx_list_name* l);
+cx_list_api_ size_t cx_list_name_(_count)(cx_list_name* l);
+cx_list_api_ void cx_list_name_(_push)(cx_list_name* l, cx_list_type v);
+cx_list_api_ cx_list_type cx_list_name_(_pop)(cx_list_name* l);
+cx_list_api_ void cx_list_name_(_pushf)(cx_list_name* l, cx_list_type v);
+cx_list_api_ cx_list_type cx_list_name_(_popf)(cx_list_name* l);
+
+cx_list_api_ cx_list_name_(_iter) cx_list_name_(_get_iter)(cx_list_name* l);
+cx_list_api_ cx_list_type* cx_list_name_(_next)(cx_list_name_(_iter)* iter);
+
 // cx_list_api_ cx_list_type* cx_list_name_(_at)(cx_list_name* a, size_t idx);
 // cx_list_api_ cx_list_type cx_list_name_(_last)(const cx_list_name* a);
-// cx_list_api_ void cx_list_name_(_reserve)(cx_list_name* a, size_t n);
-// cx_list_api_ void cx_list_name_(_insn)(cx_list_name* a, cx_list_type* src, size_t n, size_t idx);
 // cx_list_api_ void cx_list_name_(_ins)(cx_list_name* a, cx_list_type v, size_t idx);
 // cx_list_api_ void cx_list_name_(_insa)(cx_list_name* a, const cx_list_name* src, size_t idx);
-// cx_list_api_ void cx_list_name_(_deln)(cx_list_name* a, size_t idx, size_t n);
 // cx_list_api_ void cx_list_name_(_del)(cx_list_name* a, size_t idx);
-// cx_list_api_ void cx_list_name_(_delswap)(cx_list_name* a, size_t i);
-// cx_list_api_ void cx_list_name_(_sort)(cx_list_name* a, int (*f)(const cx_list_type*, const cx_list_type*));
 // cx_list_api_ ssize_t cx_list_name_(_find)(cx_list_name* a, cx_list_type v);
 
 //
@@ -278,20 +284,107 @@ cx_list_api_ bool cx_list_name_(_empty)(cx_list_name* l) {
     return l->count_ == 0;
 }
 
+cx_list_api_ size_t cx_list_name_(_count)(cx_list_name* l) {
+
+    return l->count_;
+}
+
 cx_list_api_ void cx_list_name_(_push)(cx_list_name* l, cx_list_type v) {
 
     cx_list_name_(_el)* el = cx_list_alloc_(l, sizeof(cx_list_name_(_el)));
     el->data = v;
     if (l->last_) {
         el->prev_ = l->last_;
+        el->next_ = NULL;
         l->last_->next_ = el;
         l->last_ = el;
     } else {
+        el->prev_ = NULL;
+        el->next_ = NULL;
         l->first_ = el;
         l->last_ = el;
     }
     l->count_++;
 }
+
+cx_list_api_ cx_list_type cx_list_name_(_pop)(cx_list_name* l) {
+
+    if (l->count_) {
+        cx_list_name_(_el)* prev = l->last_->prev_;
+        if (prev) {
+            prev->next_ = NULL;
+        }
+        cx_list_type last = l->last_->data;
+        cx_list_free_(l, l->last_, sizeof(cx_list_name_(_el)));
+        l->last_ = prev;
+        l->count_--;
+        if (l->count_ == 0) {
+            l->first_ = NULL;
+        }
+        return last;
+    }
+
+    const cx_list_type last = {0};
+#ifdef cx_list_error_handler
+    cx_list_error_handler("list empty",__func__);
+#endif
+    return last;
+}
+
+cx_list_api_ void cx_list_name_(_pushf)(cx_list_name* l, cx_list_type v) {
+
+    cx_list_name_(_el)* el = cx_list_alloc_(l, sizeof(cx_list_name_(_el)));
+    el->data = v;
+    if (l->first_) {
+        el->next_ = l->first_;
+        el->prev_ = NULL;
+        l->first_->prev_ = el;
+        l->first_ = el;
+    } else {
+        el->next_ = NULL;
+        el->prev_ = NULL;
+        l->first_ = el;
+        l->last_ = el;
+    }
+    l->count_++;
+}
+
+cx_list_api_ cx_list_type cx_list_name_(_popf)(cx_list_name* l) {
+
+    if (l->count_) {
+        cx_list_name_(_el)* next = l->first_->next_;
+        if (next) {
+            next->prev_ = NULL;
+        }
+        cx_list_type first = l->first_->data;
+        cx_list_free_(l, l->first_, sizeof(cx_list_name_(_el)));
+        l->first_ = next;
+        l->count_--;
+        if (l->count_ == 0) {
+            l->last_ = NULL;
+        }
+        return first;
+    }
+
+    const cx_list_type first = {0};
+#ifdef cx_list_error_handler
+    cx_list_error_handler("list empty",__func__);
+#endif
+    return first;
+}
+
+cx_list_api_ cx_list_name_(_iter) cx_list_name_(_get_iter)(cx_list_name* l) {
+
+    return (cx_list_name_(_iter)){.l = l, .curr = l->first_};
+}
+
+cx_list_api_ cx_list_type* cx_list_name_(_next)(cx_list_name_(_iter)* iter) {
+
+    
+
+}
+
+
 
 
 #endif // cx_list_implement
