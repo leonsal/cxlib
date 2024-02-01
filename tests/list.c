@@ -16,14 +16,20 @@
 #define cx_list_instance_allocator
 #include "cx_list.h"
 
-
 void cx_list_tests(void) {
+
+    // Use default 'malloc/free' allocator
+    cx_list_test(cxDefaultAllocator());
 
     // Use pool allocator
     CxPoolAllocator* pa = cx_pool_allocator_create(4*1024, NULL);
-    CxAllocator* alloc = (CxAllocator*)cx_pool_allocator_iface(pa);
+    cx_list_test(cx_pool_allocator_iface(pa));
+    cx_pool_allocator_destroy(pa);
+}
 
-    LOGI("list");
+void cx_list_test(const CxAllocator* alloc) {
+
+    LOGI("list. alloc:%p", alloc);
     list l1 = list_init(alloc);
     CHK(list_empty(&l1));
     CHK(list_count(&l1) == 0);
@@ -233,7 +239,7 @@ void cx_list_tests(void) {
     curr = list_find(&l1, size*10, &iter);
     CHK(curr == NULL);
 
-    cx_pool_allocator_destroy(pa);
+    list_free(&l1);
 }
 
 

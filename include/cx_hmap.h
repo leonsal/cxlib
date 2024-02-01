@@ -458,7 +458,7 @@ cx_hmap_api_ cx_hmap_name cx_hmap_name_(_clone)(cx_hmap_name* src, size_t nbucke
 
 cx_hmap_api_ void cx_hmap_name_(_free_internal_)(cx_hmap_name* m, bool all) {
 
-    if (m == NULL || m->count_ == 0) {
+    if (m == NULL || m->buckets_ == NULL) {
          return;
     }
     for (size_t i = 0; i < m->nbuckets_; i++) {
