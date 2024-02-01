@@ -22,8 +22,8 @@ int main() {
     // cxHmapTests();
     // cxStrTests();
     // cxQueueTests();
-    // cx_list_tests();
-    cx_timer_tests();
+    cx_list_tests();
+    // cx_timer_tests();
     LOGW("END");
 }
 
