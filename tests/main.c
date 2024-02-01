@@ -11,7 +11,7 @@
 #include "string.h"
 #include "queue.h"
 #include "list.h"
-
+#include "timer.h"
 
 int main() {
 
@@ -23,6 +23,7 @@ int main() {
     cxStrTests();
     cxQueueTests();
     cx_list_tests();
+    cx_timer_tests();
     LOGW("END");
 }
 

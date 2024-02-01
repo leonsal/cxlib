@@ -6,7 +6,7 @@
 #include "cx_alloc.h"
 
 // Creates timer manager using optional allocator.
-// Pass NULL to use default 'malloc' allocator.
+// Pass NULL to use default 'malloc/free' allocator.
 typedef struct CxTimerMan CxTimerMan;
 CxTimerMan* cx_timer_man_create(const CxAllocator* alloc);
 

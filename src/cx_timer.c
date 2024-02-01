@@ -1,7 +1,7 @@
 #include <assert.h>
 #include <pthread.h>
 
-#include "cx_timer_man.h"
+#include "cx_timer.h"
 #include "cx_alloc.h"
 
 typedef struct TimerTask {
@@ -44,6 +44,12 @@ CxTimerMan* cx_timer_man_create(const CxAllocator* alloc) {
     assert(pthread_create(&tm->tid, NULL, cx_timer_man_thread, tm) == 0);
     tm->tasks = arr_task_init(alloc);
     return tm;
+}
+
+void  cx_timer_man_destroy(CxTimerMan* tm) {
+
+
+
 }
 
 int cx_timer_man_set(CxTimerMan* tm, struct timespec reltime, CxTimerFunc fn, void* arg, size_t* task_id) {

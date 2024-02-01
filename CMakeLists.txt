@@ -11,6 +11,7 @@ set(SOURCES
     src/cx_pool_allocator.c
     src/cx_str.c
     src/cx_hmap.c
+    src/cx_timer.c
 )
 
 add_library(cxlib ${SOURCES})
