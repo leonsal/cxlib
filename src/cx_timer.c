@@ -125,6 +125,7 @@ static void* cx_timer_thread(void* arg) {
     printf("cx_timer_thread started\n");
     CxTimerMan* tm = arg;
     CHKPT(pthread_mutex_lock(&tm->lock));
+    TimerTask task = {0};
     while (1) {
         // Wait for initial command
         while (tm->cmd == CmdWait) {
@@ -144,7 +145,7 @@ static void* cx_timer_thread(void* arg) {
                 printf("cx_timer_thread NO FIRST TASK");
                 break;
             }
-            TimerTask task = *ptask;
+            task = *ptask;
             printf("cx_timer_thread WAIT for timeout or command\n");
             tm->cmd = CmdWait;
             while (tm->cmd == CmdWait) {
