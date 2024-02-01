@@ -10,6 +10,7 @@
 #include "hmap.h"
 #include "string.h"
 #include "queue.h"
+#include "list.h"
 
 
 int main() {
@@ -21,6 +22,7 @@ int main() {
     cxHmapTests();
     cxStrTests();
     cxQueueTests();
+    cx_list_tests();
     LOGW("END");
 }
 
