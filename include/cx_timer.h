@@ -11,7 +11,7 @@ typedef struct CxTimerMan CxTimer;
 CxTimer* cx_timer_create(const CxAllocator* alloc);
 
 // Destroys previously created timer manager
-void cx_timer_destroy(CxTimer*);
+int cx_timer_destroy(CxTimer*);
 
 // Sets a timer function to be executed at the specified relative time from now.
 // Sets the 'task_id' with 
