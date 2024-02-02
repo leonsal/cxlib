@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <errno.h>
+#include <math.h>
 #include <pthread.h>
 
 #include "cx_alloc.h"
@@ -31,14 +32,16 @@ typedef enum {
 } TCommand;
 
 // Timer state
-typedef struct CxTimerMan {
-    pthread_mutex_t lock;
-    pthread_cond_t  cond;
-    int             cmd;
-    size_t          next_id;
-    pthread_t       tid;
-    list_task       tasks;
-} CxTimerMan;
+typedef struct CxTimer {
+    const CxAllocator*  alloc;
+    pthread_mutex_t     lock;
+    pthread_cond_t      cond;
+    int                 cmd;
+    size_t              next_id;
+    pthread_t           tid;
+    list_task           tasks;
+    void*               userdata;
+} CxTimer;
 
 #define NANOSECS_PER_SEC    (1000000000)
 
@@ -48,35 +51,51 @@ typedef struct CxTimerMan {
 // Forward declarations of local functions
 static void* cx_timer_thread(void* arg);
 static bool cx_timer_del_task(CxTimer* tm, size_t task_id);
-static int cx_timer_cmp_timespec(struct timespec t1, struct timespec t2);
 
 
-CxTimerMan* cx_timer_create(const CxAllocator* alloc) {
+CxTimer* cx_timer_create(const CxAllocator* alloc) {
 
     if (alloc == NULL) {
         alloc = cxDefaultAllocator();
     }
-    CxTimerMan* tm = cx_alloc_malloc(alloc, sizeof(CxTimerMan));
+    CxTimer* tm = cx_alloc_malloc(alloc, sizeof(CxTimer));
     if (tm == NULL) {
         return NULL;
     }
+    tm->alloc = alloc;
     CHKPTN(pthread_mutex_init(&tm->lock, NULL));
     CHKPTN(pthread_cond_init(&tm->cond, NULL));
     tm->cmd = CmdWait;
     tm->next_id = 1;
     tm->tasks = list_task_init(alloc);
+    tm->userdata = NULL;
     CHKPTN(pthread_create(&tm->tid, NULL, cx_timer_thread, tm));
     return tm;
 }
 
-int cx_timer_destroy(CxTimerMan* tm) {
+int cx_timer_destroy(CxTimer* tm) {
 
+    CHKPTI(pthread_mutex_lock(&tm->lock));
     tm->cmd = CmdExit;
     CHKPTI(pthread_cond_signal(&tm->cond));
+    CHKPTI(pthread_mutex_unlock(&tm->lock));
     CHKPTI(pthread_join(tm->tid, NULL));
+
+    list_task_free(&tm->tasks);
+    cx_alloc_free(tm->alloc, tm, sizeof(CxTimer));
 }
 
-int cx_timer_set(CxTimerMan* tm, struct timespec reltime, CxTimerFunc fn, void* arg, size_t* ptid) {
+void cx_timer_set_userdata(CxTimer* tm, void* userdata) {
+
+    tm->userdata = userdata;
+}
+
+void* cx_timer_get_userdata(CxTimer* tm) {
+
+    return tm->userdata;
+}
+
+int cx_timer_set(CxTimer* tm, struct timespec reltime, CxTimerFunc fn, void* arg, size_t* ptid) {
 
     CHKPTI(pthread_mutex_lock(&tm->lock));
 
@@ -105,7 +124,7 @@ int cx_timer_set(CxTimerMan* tm, struct timespec reltime, CxTimerFunc fn, void* 
         list_task_iter iter;
         TimerTask* ct = list_task_first(&tm->tasks, &iter);
         while (ct) {
-            if (cx_timer_cmp_timespec(abstime, ct->abstime) <= 0) {
+            if (cx_timer_cmp_ts(abstime, ct->abstime) <= 0) {
                 list_task_ins_before(&iter, task);
                 break;
             }
@@ -115,15 +134,6 @@ int cx_timer_set(CxTimerMan* tm, struct timespec reltime, CxTimerFunc fn, void* 
             list_task_push(&tm->tasks, task);
         }
     }
-
-    list_task_iter iter;
-    TimerTask* ct = list_task_first(&tm->tasks, &iter);
-    while (ct) {
-        printf("count:%zu task_id:%zu abstime:%zu.%zu\n", list_task_count(&tm->tasks), ct->task_id, ct->abstime.tv_sec, ct->abstime.tv_nsec);
-        ct = list_task_next(&iter);
-    }
-    printf("---------------------------------\n");
-
 
     if (ptid) {
         *ptid = task_id;
@@ -141,12 +151,47 @@ int cx_timer_unset(CxTimer* tm, size_t task_id) {
     CHKPTI(pthread_mutex_unlock(&tm->lock));
 }
 
+size_t cx_timer_count(CxTimer* tm) {
+
+    size_t count;
+    CHKPTI(pthread_mutex_lock(&tm->lock));
+    count = list_task_count(&tm->tasks);
+    CHKPTI(pthread_mutex_unlock(&tm->lock));
+    return count;
+}
+
+struct timespec cx_timer_ts_from_secs(double secs) {
+
+    double intpart;
+    const double fracpart = modf(secs, &intpart);
+    return (struct timespec){.tv_sec = intpart, .tv_nsec = fracpart * NANOSECS_PER_SEC};
+}
+
+double cx_timer_secs_from_ts(struct timespec ts) {
+
+    return (double)ts.tv_sec + (double)ts.tv_nsec / (double)NANOSECS_PER_SEC;
+}
+
+int cx_timer_cmp_ts(struct timespec t1, struct timespec t2) {
+    
+    if (t1.tv_sec < t2.tv_sec) {
+        return -1;
+    }
+    if (t1.tv_sec > t2.tv_sec) {
+        return 1;
+    }
+    if (t1.tv_nsec < t2.tv_nsec) {
+        return -1;
+    }
+    if (t1.tv_nsec > t2.tv_nsec) {
+        return 1;
+    }
+    return 0;
+}
 
 static void* cx_timer_thread(void* arg) {
 
-
-    printf("cx_timer_thread started\n");
-    CxTimerMan* tm = arg;
+    CxTimer* tm = arg;
     TimerTask task = {0};       // Current task
     list_task_iter iter;
     int res;
@@ -154,7 +199,7 @@ static void* cx_timer_thread(void* arg) {
     CHKPTN(pthread_mutex_lock(&tm->lock));
     while (1) {
 
-        // Wait for command or task timeout
+        // Wait for command or task wait time expired
         while (tm->cmd == CmdWait) {
             // If no current task, waits for command
             if (task.fn == NULL) {
@@ -187,13 +232,13 @@ static void* cx_timer_thread(void* arg) {
             }
         }
 
-        //printf("cx_timer_thread cmd: %d\n", tm->cmd);
         // Checks for exit command
         if (tm->cmd == CmdExit) {
             goto exit;
         }
 
-        // Task command
+        // Task command: get next task (first) from the list
+        // NOTE: could be the same task it was waiting before.
         if (tm->cmd == CmdTask) {
             TimerTask* ptask = list_task_first(&tm->tasks, &iter);
             if (ptask == NULL) {
@@ -210,7 +255,6 @@ static void* cx_timer_thread(void* arg) {
 
 exit:
     CHKPTN(pthread_mutex_unlock(&tm->lock));
-    printf("cx_timer_thread finished\n");
     return NULL;
 }
 
@@ -227,20 +271,4 @@ static bool cx_timer_del_task(CxTimer* tm, size_t task_id) {
     return false;
 }
 
-static int cx_timer_cmp_timespec(struct timespec t1, struct timespec t2) {
-    
-    if (t1.tv_sec < t2.tv_sec) {
-        return -1;
-    }
-    if (t1.tv_sec > t2.tv_sec) {
-        return 1;
-    }
-    if (t1.tv_nsec < t2.tv_nsec) {
-        return -1;
-    }
-    if (t1.tv_nsec > t2.tv_nsec) {
-        return 1;
-    }
-    return 0;
-}
 
