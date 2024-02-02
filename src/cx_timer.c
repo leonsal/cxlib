@@ -151,7 +151,6 @@ static void* cx_timer_thread(void* arg) {
     list_task_iter iter;
     int res;
 
-    sleep(2);
     CHKPTN(pthread_mutex_lock(&tm->lock));
     while (1) {
 
@@ -159,18 +158,15 @@ static void* cx_timer_thread(void* arg) {
         while (tm->cmd == CmdWait) {
             // If no current task, waits for command
             if (task.fn == NULL) {
-                printf("cx_timer_thread COND WAIT\n");
                 res = pthread_cond_wait(&tm->cond, &tm->lock);
             // Waits for command or task timeout
             } else {
-                printf("cx_timer_thread COND TIMED WAIT\n");
                 res = pthread_cond_timedwait(&tm->cond, &tm->lock, &task.abstime);
             }
-            printf("RES ------------------------>%d\n", res);
 
             // If timeout, excutes the task function
             if (res == ETIMEDOUT) {
-                printf("cx_timer_thread TASK TIMEOUT\n");
+                //printf("cx_timer_thread TASK TIMEOUT\n");
                 CHKPTN(pthread_mutex_unlock(&tm->lock));
                 task.fn(tm, task.arg);
                 CHKPTN(pthread_mutex_lock(&tm->lock));
@@ -201,12 +197,12 @@ static void* cx_timer_thread(void* arg) {
         if (tm->cmd == CmdTask) {
             TimerTask* ptask = list_task_first(&tm->tasks, &iter);
             if (ptask == NULL) {
-                printf("cx_timer_thread NO MORE TASKS\n");
+                //printf("cx_timer_thread NO MORE TASKS\n");
                 tm->cmd = CmdWait;
                 continue;
             }
             task = *ptask;
-            printf("cx_timer_thread WAIT: %zu.%zu\n", task.abstime.tv_sec, task.abstime.tv_nsec);
+            //printf("cx_timer_thread WAIT: %zu.%zu\n", task.abstime.tv_sec, task.abstime.tv_nsec);
             tm->cmd = CmdWait;
             continue;
         }

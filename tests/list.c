@@ -183,6 +183,35 @@ void cx_list_test(const CxAllocator* alloc) {
         idx++;
     }
 
+    // Clears the list (keeps allocated memory)
+    list_clear(&l1);
+    CHK(list_empty(&l1));
+    CHK(list_count(&l1) == 0);
+
+    // Push elements at back
+    for (size_t i = 0; i < size; i++) {
+        list_push(&l1, i);
+    }
+    CHK(list_count(&l1) == size);
+    // Insert elements after
+    curr = list_first(&l1, &iter);
+    while (curr) {
+        list_ins_after(&iter, *curr * 2);
+        list_next(&iter); // skip inserted element
+        curr = list_next(&iter);
+    }
+    CHK(list_count(&l1) == size*2);
+    // Checks
+    curr = list_first(&l1, &iter);
+    idx = 0;
+    while (curr) {
+        CHK(*curr == idx);
+        curr = list_next(&iter);
+        CHK(*curr == idx * 2);
+        curr = list_next(&iter);
+        idx++;
+    }
+    CHK(idx == size);
 
     // Clears the list (keeps allocated memory)
     list_clear(&l1);

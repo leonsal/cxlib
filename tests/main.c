@@ -17,13 +17,13 @@ int main() {
 
     LOG_INIT();
     LOGW("START");
-    // cxAllocPoolTests();
-    // cxArrayTests();
-    // cxHmapTests();
-    // cxStrTests();
-    // cxQueueTests();
+    cxAllocPoolTests();
+    cxArrayTests();
+    cxHmapTests();
+    cxStrTests();
+    cxQueueTests();
     cx_list_tests();
-    // cx_timer_tests();
+    cx_timer_tests();
     LOGW("END");
 }
 

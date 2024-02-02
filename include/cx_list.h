@@ -469,6 +469,8 @@ cx_list_api_ void cx_list_name_(_ins_before)( cx_list_name_(_iter)* iter, cx_lis
     el->next_ = iter->curr;
     if (iter->curr->prev_ == NULL) {
         iter->l->first_ = el;
+    } else {
+        iter->curr->prev_->next_ = el;
     }
     iter->curr->prev_ = el;
     iter->l->count_++; 
@@ -486,6 +488,8 @@ cx_list_api_ void cx_list_name_(_ins_after)( cx_list_name_(_iter)* iter, cx_list
     el->next_ = iter->curr->next_;
     if (iter->curr->next_ == NULL) {
         iter->l->last_ = el;
+    } else {
+        iter->curr->next_->prev_ = el;
     }
     iter->curr->next_ = el;
     iter->l->count_++; 
