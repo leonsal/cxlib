@@ -9,7 +9,7 @@
 
 // Type for timer task
 typedef struct TimerTask {
-    size_t          task_id;
+    size_t          id;
     struct timespec abstime;
     CxTimerFunc     fn;
     void*           arg;
@@ -27,7 +27,6 @@ typedef struct TimerTask {
 typedef enum {
     CmdWait,
     CmdTask,
-    CmdTime,
     CmdExit,
 } TCommand;
 
@@ -62,6 +61,7 @@ CxTimer* cx_timer_create(const CxAllocator* alloc) {
     if (tm == NULL) {
         return NULL;
     }
+
     tm->alloc = alloc;
     CHKPTN(pthread_mutex_init(&tm->lock, NULL));
     CHKPTN(pthread_cond_init(&tm->cond, NULL));
@@ -69,20 +69,26 @@ CxTimer* cx_timer_create(const CxAllocator* alloc) {
     tm->next_id = 1;
     tm->tasks = list_task_init(alloc);
     tm->userdata = NULL;
+
     CHKPTN(pthread_create(&tm->tid, NULL, cx_timer_thread, tm));
     return tm;
 }
 
 int cx_timer_destroy(CxTimer* tm) {
 
+    // Signals thread to exit and waits for it to finish
     CHKPTI(pthread_mutex_lock(&tm->lock));
     tm->cmd = CmdExit;
     CHKPTI(pthread_cond_signal(&tm->cond));
     CHKPTI(pthread_mutex_unlock(&tm->lock));
     CHKPTI(pthread_join(tm->tid, NULL));
 
+    // Destroy allocated resources
+    CHKPTI(pthread_mutex_destroy(&tm->lock));
+    CHKPTI(pthread_cond_destroy(&tm->cond));
     list_task_free(&tm->tasks);
     cx_alloc_free(tm->alloc, tm, sizeof(CxTimer));
+    return 0;
 }
 
 void cx_timer_set_userdata(CxTimer* tm, void* userdata) {
@@ -95,7 +101,7 @@ void* cx_timer_get_userdata(CxTimer* tm) {
     return tm->userdata;
 }
 
-int cx_timer_set(CxTimer* tm, struct timespec reltime, CxTimerFunc fn, void* arg, size_t* ptid) {
+int cx_timer_set(CxTimer* tm, struct timespec reltime, CxTimerFunc fn, void* arg, size_t* tid) {
 
     CHKPTI(pthread_mutex_lock(&tm->lock));
 
@@ -110,14 +116,15 @@ int cx_timer_set(CxTimer* tm, struct timespec reltime, CxTimerFunc fn, void* arg
     }
 
     // Prepare new task to saves in the tasks array
-    size_t task_id = tm->next_id++;
+    const size_t task_id = tm->next_id++;
     TimerTask task = {
-        .task_id = task_id,
+        .id = task_id,
         .abstime = abstime,
         .fn = fn,
         .arg = arg,
     };
 
+    // Adds new task to the list
     if (list_task_count(&tm->tasks) == 0) {
         list_task_push(&tm->tasks, task);
     } else {
@@ -135,20 +142,32 @@ int cx_timer_set(CxTimer* tm, struct timespec reltime, CxTimerFunc fn, void* arg
         }
     }
 
-    if (ptid) {
-        *ptid = task_id;
+    // Saves task id if requested
+    if (tid) {
+        *tid = task_id;
     }
+
+    // Prepare command to send to timer thread
     tm->cmd = CmdTask;
     CHKPTI(pthread_cond_signal(&tm->cond));
     CHKPTI(pthread_mutex_unlock(&tm->lock));
     return 0;
 }
 
-int cx_timer_unset(CxTimer* tm, size_t task_id) {
+int cx_timer_clear(CxTimer* tm, size_t task_id) {
 
     CHKPTI(pthread_mutex_lock(&tm->lock));
-    bool found = cx_timer_del_task(tm, task_id);
+    cx_timer_del_task(tm, task_id);
     CHKPTI(pthread_mutex_unlock(&tm->lock));
+    CHKPTI(pthread_cond_signal(&tm->cond));
+}
+
+int cx_timer_clear_all(CxTimer* tm) {
+
+    CHKPTI(pthread_mutex_lock(&tm->lock));
+    list_task_clear(&tm->tasks);
+    CHKPTI(pthread_mutex_unlock(&tm->lock));
+    CHKPTI(pthread_cond_signal(&tm->cond));
 }
 
 size_t cx_timer_count(CxTimer* tm) {
@@ -211,21 +230,17 @@ static void* cx_timer_thread(void* arg) {
 
             // If timeout, excutes the task function
             if (res == ETIMEDOUT) {
-                //printf("cx_timer_thread TASK TIMEOUT\n");
                 CHKPTN(pthread_mutex_unlock(&tm->lock));
                 task.fn(tm, task.arg);
                 CHKPTN(pthread_mutex_lock(&tm->lock));
                 // Deletes task if still exists
-                bool found = cx_timer_del_task(tm, task.task_id);
-                if (!found) {
-                    printf("cx_timer_thread TASK TO DELETE NOT FOUND:%zu\n", task.task_id);
-                }
+                cx_timer_del_task(tm, task.id);
                 // Get next task
                 task.fn = NULL; // No current task
                 tm->cmd = CmdTask;
                 break;
             }
-            // Other pthread error
+            // Other pthread errors
             if (res) {
                 printf("cx_timer_thread PTHREAD ERROR:%d\n", res);
                 goto exit;
@@ -242,12 +257,10 @@ static void* cx_timer_thread(void* arg) {
         if (tm->cmd == CmdTask) {
             TimerTask* ptask = list_task_first(&tm->tasks, &iter);
             if (ptask == NULL) {
-                //printf("cx_timer_thread NO MORE TASKS\n");
                 tm->cmd = CmdWait;
                 continue;
             }
             task = *ptask;
-            //printf("cx_timer_thread WAIT: %zu.%zu\n", task.abstime.tv_sec, task.abstime.tv_nsec);
             tm->cmd = CmdWait;
             continue;
         }
@@ -263,7 +276,7 @@ static bool cx_timer_del_task(CxTimer* tm, size_t task_id) {
     list_task_iter iter;
     TimerTask* ptask = list_task_first(&tm->tasks, &iter);
     while (ptask) {
-        if (ptask->task_id == task_id) {
+        if (ptask->id == task_id) {
             list_task_del(&iter, true);
             return true;
         }
