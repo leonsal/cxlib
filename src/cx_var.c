@@ -37,18 +37,6 @@ CxVar* cx_var_create(const CxAllocator* alloc, CxVarType vt) {
 #undef CHKNULL
 }
 
-// CxVar* cx_var_create_null(const CxAllocator* alloc) {
-//
-//     return cx_var_create(alloc, CxVarNull);
-// }
-//
-// CxVar* cx_var_create_bool(const CxAllocator* alloc, bool vb) {
-//
-//     CxVar* var = cx_var_create(alloc, CxVarBool);
-//     var->v.boolean = vb;
-//     return var;
-// }
-
 void cx_var_destroy(const CxAllocator* alloc, CxVar* var) {
 
     if (var->type == CxVarStr) {
@@ -57,7 +45,7 @@ void cx_var_destroy(const CxAllocator* alloc, CxVar* var) {
     } else if (var->type == CxVarArr) {
         cxarr_free(var->v.arr);
         for (size_t i = 0; i < cxarr_len(var->v.arr); i++) {
-            cx_var_destroy(alloc, var->v.arr->data[i]);
+            cx_var_destroy(alloc, &var->v.arr->data[i]);
         }
     } else if (var->type == CxVarMap) {
         // TODO iter allocator
@@ -67,7 +55,7 @@ void cx_var_destroy(const CxAllocator* alloc, CxVar* var) {
 }
 
 
-int cx_var_set_bool(CxVar* var, bool vb) {
+int cx_set_bool_var(CxVar* var, bool vb) {
 
     if (var->type == CxVarBool) {
         var->v.boolean = vb;
@@ -76,7 +64,7 @@ int cx_var_set_bool(CxVar* var, bool vb) {
     return 1;
 }
 
-int cx_var_set_int(CxVar* var, int64_t vi) {
+int cx_set_int_var(CxVar* var, int64_t vi) {
 
     if (var->type == CxVarInt) {
         var->v.integer = vi;
@@ -85,7 +73,25 @@ int cx_var_set_int(CxVar* var, int64_t vi) {
     return 1;
 }
 
-int cx_var_arr_push(CxVar* var, const CxVar* kvar) {
+int cx_set_f32_var(CxVar* var, float vf) {
+
+    if (var->type == CxVarF32) {
+        var->v.f32 = vf;
+        return 0;
+    }
+    return 1;
+}
+
+int cx_set_f64_var(CxVar* var, double vd) {
+
+    if (var->type == CxVarF64) {
+        var->v.f64 = vd;
+        return 0;
+    }
+    return 1;
+}
+
+int cx_push_arr_var(CxVar* var, const CxVar* kvar) {
 
     return 0;
 }
@@ -95,7 +101,7 @@ int cx_var_map_set(CxVar* var, const char* key, const CxVar* kvar) {
     return 0;
 }
 
-int cx_var_get_null(const CxVar* var) {
+int cx_var_null_get(const CxVar* var) {
 
     if (var->type == CxVarNull) {
         return 0;
@@ -103,12 +109,15 @@ int cx_var_get_null(const CxVar* var) {
     return 1;
 }
 
+CxVarType cx_var_get_type(const CxVar* var) {
+
+    return var->type;
+}
+
 int cx_var_get_bool(const CxVar* var, bool *pb) {
 
     if (var->type == CxVarBool) {
-        if (pb) {
-            *pb = var->v.boolean;
-        }
+        *pb = var->v.boolean;
         return 0;
     }
     return 1;
@@ -117,9 +126,32 @@ int cx_var_get_bool(const CxVar* var, bool *pb) {
 int cx_var_get_int(const CxVar* var, int64_t* pi) {
 
     if (var->type == CxVarInt) {
-        if (pi) {
-            *pi = var->v.integer;
+        *pi = var->v.integer;
+        return 0;
+    }
+    return 1;
+}
+
+int cx_var_get_arr_val(const CxVar* var, size_t index, CxVar* pval) {
+
+    if (var->type == CxVarArr) {
+        if (index >= cxarr_len(var->v.arr)) {
+            return 1;
         }
+        *pval = var->v.arr->data[index];
+        return 0;
+    }
+    return 1;
+}
+
+int cx_var_get_map_val(const CxVar* var, const char* key, CxVar* kv) {
+
+    if (var->type == CxVarMap) {
+        CxVar* x = cxmap_get(var->v.map, key);
+        if (x == NULL) {
+            return 1;
+        }
+        *kv = *x;
         return 0;
     }
     return 1;

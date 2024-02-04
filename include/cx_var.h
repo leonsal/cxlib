@@ -15,24 +15,6 @@
 #endif
 #include "cx_str.h"
 
-typedef struct CxVar CxVar;
-#define cx_array_name cxarr
-#define cx_array_type CxVar*
-#define cx_array_instance_allocator
-#ifdef CX_VAR_IMPLEMENT
-#   define cx_array_implement
-#endif
-#include "cx_array.h"
-
-#define cx_hmap_name cxmap
-#define cx_hmap_key char*
-#define cx_hmap_val CxVar*
-#define cx_hmap_instance_allocator
-#ifdef CX_VAR_IMPLEMENT
-#   define cx_hmap_implement
-#endif
-#include "cx_hmap.h"
-
 typedef enum {
     CxVarNone,
     CxVarNull,
@@ -45,6 +27,8 @@ typedef enum {
     CxVarMap,
 } CxVarType;
 
+typedef struct cxarr cxarr;
+typedef struct cxmap cxmap;
 typedef struct CxVar {
     CxVarType type;    
     union {
@@ -57,6 +41,29 @@ typedef struct CxVar {
         cxmap*      map;
     } v;
 } CxVar;
+
+#define cx_array_name cxarr
+#define cx_array_type CxVar
+#define cx_array_instance_allocator
+#ifdef CX_VAR_IMPLEMENT
+#   define cx_array_implement
+#endif
+#include "cx_array.h"
+
+#define cx_hmap_name cxmap
+#define cx_hmap_key char*
+#define cx_hmap_val CxVar
+#define cx_hmap_instance_allocator
+#ifdef CX_VAR_IMPLEMENT
+#   define cx_hmap_implement
+#endif
+#include "cx_hmap.h"
+
+// Creates and returns pointer to CxVar with the specified type
+CxVar* cx_var_create(const CxAllocator* alloc, CxVarType vt);
+
+// Destroy previously created CxVar.
+void cx_var_destroy(const CxAllocator* alloc, CxVar* var);
 
 #endif
 
