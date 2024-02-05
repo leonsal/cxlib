@@ -14,7 +14,7 @@ set(SOURCES
     queue.c
     list.c
     timer.c 
-    json.c
+    json_build.c
 )
 
 add_subdirectory(.. cxlib)

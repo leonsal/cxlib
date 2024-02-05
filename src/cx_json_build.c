@@ -5,7 +5,7 @@
 
 #include "cx_var.h"
 #include "cx_writer.h"
-#include "cx_json.h"
+#include "cx_json_build.h"
 
 typedef struct BuildState {
     CxJsonBuildCfg* cfg;

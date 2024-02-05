@@ -12,7 +12,7 @@
 #include "queue.h"
 #include "list.h"
 #include "timer.h"
-#include "json.h"
+#include "json_build.h"
 
 int main() {
 
@@ -25,7 +25,7 @@ int main() {
     // cxQueueTests();
     // cx_list_tests();
     // cx_timer_tests();
-    json_tests();
+    json_build_tests();
     LOGW("END");
 }
 
