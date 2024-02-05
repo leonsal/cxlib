@@ -16,7 +16,6 @@ typedef enum {
     CxVarMap,
 } CxVarType;
 
-
 // Creates CxVar using the specified allocator and with the specified type.
 // Once created the type of the CxVar cannot be changed.
 // Returns NULL if error.
@@ -71,10 +70,18 @@ int cx_var_get_int(const CxVar* var, int64_t* pval);
 // Returns non-zero error if 'var' is not of string type
 int cx_var_get_str(const CxVar* var, const char** pval);
 
+// Returns the number of elements of the CxVar array.
+// Returns non-zero error if CxVar is not of array type.
+int cx_var_get_arr_len(CxVar* var, size_t* len);
+
 // Get value at the specified index from CxVar array
 // Returns non-zero error if 'var' is not of array type
 // or the index is invalid.
 int cx_var_get_arr_val(const CxVar* var, size_t index, CxVar** pval);
+
+// Returns the number of entries from the CxVar map.
+// Returns non-zero error if CxVar is not of map type.
+int cx_var_get_map_count(CxVar* var, size_t* len);
 
 // Get value with the specified key from CxVar map
 // Returns non-zero error if 'var' is not of map type

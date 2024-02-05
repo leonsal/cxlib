@@ -196,6 +196,15 @@ int cx_var_get_str(const CxVar* var, const char** pval) {
     return 1;
 }
 
+int cx_var_get_arr_len(CxVar* var, size_t* len) {
+
+    if (var->type == CxVarArr) {
+        *len = cxarr_len(var->v.arr);
+        return 0;
+    }
+    return 1;
+}
+
 int cx_var_get_arr_val(const CxVar* var, size_t index, CxVar** pval) {
 
     if (var->type == CxVarArr) {
@@ -203,6 +212,15 @@ int cx_var_get_arr_val(const CxVar* var, size_t index, CxVar** pval) {
             return 1;
         }
         *pval = &var->v.arr->data[index];
+        return 0;
+    }
+    return 1;
+}
+
+int cx_var_get_map_count(CxVar* var, size_t* len) {
+
+    if (var->type == CxVarMap) {
+        *len = cxmap_count(var->v.map);
         return 0;
     }
     return 1;
