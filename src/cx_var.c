@@ -1,101 +1,83 @@
 #include <assert.h>
 #include <stdio.h>
-#include <errno.h>
-#include <math.h>
 #include <stdint.h>
 
+#define CX_VAR_IMPLEMENT
 #include "cx_var.h"
+#define CHKNULL(V) if (V == NULL) { return (CxVar){0}; } 
 
-#define cx_str_name cxstr
-#define cx_str_static
-#define cx_str_instance_allocator
-#define cx_str_implement
-#define cx_str_static
-#include "cx_str.h"
+CxVar cx_var_new_null(void) {
 
-typedef struct cxarr cxarr;
-typedef struct cxmap cxmap;
-typedef struct CxVar {
-    CxVarType type;    
-    union {
-        bool        boolean;
-        int64_t     i64;
-        double      f64;
-        cxstr*      str;
-        cxarr*      arr;
-        cxmap*      map;
-    } v;
-} CxVar;
+    return (CxVar){.type = CxVarNull};
+}
 
-#define cx_array_name cxarr
-#define cx_array_type CxVar
-#define cx_array_instance_allocator
-#define cx_array_static
-#define cx_array_implement
-#include "cx_array.h"
+CxVar cx_var_new_bool(bool v) {
 
-#define cx_hmap_name cxmap
-#define cx_hmap_key char*
-#define cx_hmap_val CxVar
-#define cx_hmap_instance_allocator
-#define cx_hmap_static
-#define cx_hmap_implement
-#include "cx_hmap.h"
+    return (CxVar){.type = CxVarBool, .v.boolean = v};
+}
 
-CxVar* cx_var_create(const CxAllocator* alloc, CxVarType vt) {
+CxVar cx_var_new_int(int64_t v) {
 
-#   define CHKNULL(V) if (V == NULL) { return NULL; } 
-    CxVar* var = cx_alloc_malloc(alloc, sizeof(CxVar));
-    CHKNULL(var);
-    *var = (CxVar){.type = vt};
+    return (CxVar){.type = CxVarInt, .v.i64 = v};
+}
 
-    if (vt == CxVarStr) {
-        var->v.str = cx_alloc_malloc(alloc, sizeof(cxstr));
-        CHKNULL(var->v.str);
-        *(var->v.str) = cxstr_init(alloc);
-        return var;
-    }
-    if (vt == CxVarArr) {
-        var->v.arr = cx_alloc_malloc(alloc, sizeof(cxarr));
-        CHKNULL(var->v.arr);
-        *(var->v.arr) = cxarr_init(alloc);
-        return var;
-    }
-    if (vt == CxVarMap) {
-        var->v.map = cx_alloc_malloc(alloc, sizeof(cxmap));
-        CHKNULL(var->v.map);
-        *(var->v.map) = cxmap_init(alloc, 0);
-        return var;
-    }
+CxVar cx_var_new_float(double v) {
+
+    return (CxVar){.type = CxVarFloat, .v.f64 = v};
+}
+
+CxVar cx_var_new_str(const char* str, const CxAllocator* alloc) {
+
+    CxVar var = {.type = CxVarStr };
+    var.v.str = cx_alloc_malloc(alloc, sizeof(cxvar_str));
+    CHKNULL(var.v.str);
+    *(var.v.str) = cxvar_str_init(alloc);
     return var;
-#   undef CHKNULL
 }
 
-void cx_var_destroy(const CxAllocator* alloc, CxVar* var) {
+CxVar cx_var_new_arr(const CxAllocator* alloc) {
 
-    if (var->type == CxVarStr) {
-        cxstr_free(var->v.str);
-        cx_alloc_free(alloc, var->v.str, sizeof(cxstr));
-    } else if (var->type == CxVarArr) {
-        cxarr_free(var->v.arr);
-        for (size_t i = 0; i < cxarr_len(var->v.arr); i++) {
-            cx_var_destroy(alloc, &var->v.arr->data[i]);
-        }
-    } else if (var->type == CxVarMap) {
-        cxmap_iter iter = {0};
-        while (true) {
-            cxmap_entry* e = cxmap_next(var->v.map, &iter);
-            if (e == NULL) {
-                break;
-            }
-            cx_alloc_free(alloc, e->key, strlen(e->key)+1);
-            cx_var_destroy(alloc, &e->val);
-        }
-        cxmap_free(var->v.map);
-    }
-    cx_alloc_free(alloc, var, sizeof(CxVar));
+    CxVar var = {.type = CxVarArr };
+    var.v.arr = cx_alloc_malloc(alloc, sizeof(cxvar_arr));
+    CHKNULL(var.v.arr);
+    *(var.v.arr) = cxvar_arr_init(alloc);
+    return var;
 }
 
+CxVar cx_var_new_map(const CxAllocator* alloc) {
+
+    CxVar var = {.type = CxVarMap };
+    var.v.map = cx_alloc_malloc(alloc, sizeof(cxvar_map));
+    CHKNULL(var.v.map);
+    *(var.v.map) = cxvar_map_init(alloc, 0);
+    return var;
+}
+
+// void cx_var_destroy(const CxAllocator* alloc, CxVar* var) {
+//
+//     if (var->type == CxVarStr) {
+//         cxstr_free(var->v.str);
+//         cx_alloc_free(alloc, var->v.str, sizeof(cxstr));
+//     } else if (var->type == CxVarArr) {
+//         cxarr_free(var->v.arr);
+//         for (size_t i = 0; i < cxarr_len(var->v.arr); i++) {
+//             cx_var_destroy(alloc, &var->v.arr->data[i]);
+//         }
+//     } else if (var->type == CxVarMap) {
+//         cxmap_iter iter = {0};
+//         while (true) {
+//             cxmap_entry* e = cxmap_next(var->v.map, &iter);
+//             if (e == NULL) {
+//                 break;
+//             }
+//             cx_alloc_free(alloc, e->key, strlen(e->key)+1);
+//             cx_var_destroy(alloc, &e->val);
+//         }
+//         cxmap_free(var->v.map);
+//     }
+//     cx_alloc_free(alloc, var, sizeof(CxVar));
+// }
+//
 
 int cx_var_set_bool(CxVar* var, bool vb) {
 
@@ -127,7 +109,7 @@ int cx_var_set_float(CxVar* var, double vd) {
 int cx_var_set_str(CxVar* var, const char* str) {
 
     if (var->type == CxVarStr) {
-        cxstr_cpy(var->v.str, str);
+        cxvar_str_cpy(var->v.str, str);
         return 0;
     }
     return 1;
@@ -136,30 +118,31 @@ int cx_var_set_str(CxVar* var, const char* str) {
 int cx_var_set_strn(CxVar* var, const char* str, size_t len) {
 
     if (var->type == CxVarStr) {
-        cxstr_cpyn(var->v.str, str, len);
+        cxvar_str_cpyn(var->v.str, str, len);
         return 0;
     }
     return 1;
 }
 
-int cx_var_arr_push(CxVar* var, const CxVar* el) {
+int cx_var_arr_push(CxVar* var, const CxVar el) {
 
     if (var->type == CxVarStr) {
-        cxarr_push(var->v.arr, *el);
+        cxvar_arr_push(var->v.arr, el);
         return 0;
     }
-    return 0;
+    return 1;
 }
 
-int cx_var_map_set(CxVar* var, const char* key, CxVar* v) {
+int cx_var_map_set(CxVar* var, const char* key, CxVar v) {
 
     if (var->type == CxVarMap) {
         const CxAllocator* alloc = var->v.map->alloc_;
         char* kcopy = cx_alloc_malloc(alloc, strlen(key)+1);
-        cxmap_set(var->v.map, kcopy, *v);
+        strcpy(kcopy, key);
+        cxvar_map_set(var->v.map, kcopy, v);
         return 0;
     }
-    return 0;
+    return 1;
 }
 
 CxVarType cx_var_get_type(const CxVar* var) {
@@ -203,31 +186,31 @@ int cx_var_get_str(const CxVar* var, const char** pval) {
     return 1;
 }
 
-int cx_var_get_arr_len(CxVar* var, size_t* len) {
+int cx_var_get_arr_len(const CxVar* var, size_t* len) {
 
     if (var->type == CxVarArr) {
-        *len = cxarr_len(var->v.arr);
+        *len = cxvar_arr_len(var->v.arr);
         return 0;
     }
     return 1;
 }
 
-int cx_var_get_arr_val(const CxVar* var, size_t index, CxVar** pval) {
+int cx_var_get_arr_val(const CxVar* var, size_t index, CxVar* pval) {
 
     if (var->type == CxVarArr) {
-        if (index >= cxarr_len(var->v.arr)) {
+        if (index >= cxvar_arr_len(var->v.arr)) {
             return 1;
         }
-        *pval = &var->v.arr->data[index];
+        *pval = var->v.arr->data[index];
         return 0;
     }
     return 1;
 }
 
-int cx_var_get_map_count(CxVar* var, size_t* len) {
+int cx_var_get_map_count(const CxVar* var, size_t* len) {
 
     if (var->type == CxVarMap) {
-        *len = cxmap_count(var->v.map);
+        *len = cxvar_map_count(var->v.map);
         return 0;
     }
     return 1;
@@ -236,7 +219,7 @@ int cx_var_get_map_count(CxVar* var, size_t* len) {
 int cx_var_get_map_val(const CxVar* var, const char* key, CxVar* pval) {
 
     if (var->type == CxVarMap) {
-        CxVar* val = cxmap_get(var->v.map, (char*)key);
+        CxVar* val = cxvar_map_get(var->v.map, (char*)key);
         if (val == NULL) {
             return 1;
         }
@@ -246,9 +229,9 @@ int cx_var_get_map_val(const CxVar* var, const char* key, CxVar* pval) {
     return 1;
 }
 
-/*
-CxVar* map = cx_var_create(alloc, CxVarMap);
-CxVar* vi = cx_var_create(alloc, CxVarInt);
-cx_var_set_int(vi, 3);
-cx_var_set_map_key(map, "key", vi);
-*/
+// /*
+// CxVar* map = cx_var_create(alloc, CxVarMap);
+// CxVar* vi = cx_var_create(alloc, CxVarInt);
+// cx_var_set_int(vi, 3);
+// cx_var_set_map_key(map, "key", vi);
+// */
