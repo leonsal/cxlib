@@ -5,7 +5,16 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR})
 
 set(SOURCES
-    main.c alloc.c logger.c array.c hmap.c string.c queue.c list.c timer.c
+    main.c
+    alloc.c
+    logger.c
+    array.c
+    hmap.c
+    string.c
+    queue.c
+    list.c
+    timer.c 
+    json.c
 )
 
 add_subdirectory(.. cxlib)
