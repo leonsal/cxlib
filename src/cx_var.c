@@ -42,7 +42,6 @@ typedef struct CxVar {
 #define cx_hmap_implement
 #include "cx_hmap.h"
 
-
 CxVar* cx_var_create(const CxAllocator* alloc, CxVarType vt) {
 
 #   define CHKNULL(V) if (V == NULL) { return NULL; } 

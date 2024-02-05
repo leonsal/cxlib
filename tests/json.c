@@ -31,7 +31,7 @@ void json_tests(void) {
 void json_test(const CxAllocator* alloc) {
 
 
-    // CxVar* vmap = cx_var_create(alloc, CxVarMap);
+    CxVar* vmap = cx_var_create(alloc, CxVarMap);
     // cx_var_map_set(vmap, "k1", cx_var_create_null(alloc));
     // cx_var_map_set(vmap, "k2", cx_var_create_bool(alloc, false));
     // cx_var_map_set(vmap, "k3", cx_var_create_bool(alloc, true));
@@ -40,7 +40,7 @@ void json_test(const CxAllocator* alloc) {
     // Creates CxWriter using a string to store the json build output 
     cxstr out = cxstr_init(alloc);
     CxWriter writer = {.ctx = &out, .write = (CxWriterWrite)cxstring_write};
-    CHK(cx_json_build(vnull, NULL, &writer) == 0);
+    CHK(cx_json_build(vmap, NULL, &writer) == 0);
 }
 
 static int cxstring_write(cxstr* str, void* data, size_t len) {
