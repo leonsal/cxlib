@@ -19,8 +19,13 @@ static int cx_json_build_int(BuildState* bs, const CxVar* var);
 static int cx_json_build_float(BuildState* bs, const CxVar* var);
 static int cx_json_build_str(BuildState* bs, const CxVar* var);
 static int cx_json_build_arr(BuildState* bs, const CxVar* var);
+static int cx_json_build_map(BuildState* bs, const CxVar* var);
 
-#define CHKRES(CALL) {int res = CALL; if (res) { return res; }}
+// Checks writer function call result, returning 1 if write result was negative
+#define CHKW(CALL)      {int res = CALL; if (res <= 0) { return 1; }}
+
+// Checks normal call result
+#define CHKRES(CALL)    {int res = CALL; if (res) { return res; }}
 
 
 int cx_json_build(const CxVar* var, CxJsonBuildCfg* cfg, CxWriter* out) {
@@ -51,6 +56,9 @@ static int cx_json_build_val(BuildState* bs, const CxVar* var) {
             break;
         case CxVarArr:
             res = cx_json_build_arr(bs, var);
+            break;
+        case CxVarMap:
+            res = cx_json_build_map(bs, var);
             break;
         default:
             return 1;
@@ -106,17 +114,16 @@ static int cx_json_build_arr(BuildState* bs, const CxVar* var) {
 
     size_t len;
     cx_var_get_arr_len(var, &len);
-    CHKRES(cx_writer_write_str(bs->out, "["));
+    CHKW(cx_writer_write_str(bs->out, "["));
     for (size_t i = 0; i < len; i++) {
         CxVar el;
         cx_var_get_arr_val(var, i, &el);
-        int res = cx_json_build_val(bs, var);
-        if (res) { return res; }
+        CHKRES(cx_json_build_val(bs, &el));
         if (i < len - 1) {
-            CHKRES(cx_writer_write_str(bs->out, ","));
+            CHKW(cx_writer_write_str(bs->out, ","));
         }
     }
-    CHKRES(cx_writer_write_str(bs->out, "]"));
+    CHKW(cx_writer_write_str(bs->out, "]"));
 }
 
 static int cx_json_build_map(BuildState* bs, const CxVar* var) {
@@ -124,22 +131,23 @@ static int cx_json_build_map(BuildState* bs, const CxVar* var) {
     size_t count;
     cx_var_get_map_count(var, &count);
 
-    CHKRES(cx_writer_write_str(bs->out, "{"));
     size_t idx = 0;
     cxvar_map_iter iter = {0};
+    CHKW(cx_writer_write_str(bs->out, "{"));
     while (true) {
         cxvar_map_entry* e = cxvar_map_next(var->v.map, &iter);
         if (e == NULL) {
             break;
         }
-        CHKRES(cx_writer_write_str(bs->out, "\""));
-        CHKRES(cx_writer_write_str(bs->out, e->key));
-        CHKRES(cx_writer_write_str(bs->out, "\":"));
+        CHKW(cx_writer_write_str(bs->out, "\""));
+        CHKW(cx_writer_write_str(bs->out, e->key));
+        CHKW(cx_writer_write_str(bs->out, "\":"));
         CHKRES(cx_json_build_val(bs, &e->val));
         if (idx < count - 1) {
-            CHKRES(cx_writer_write_str(bs->out, ","));
+            CHKW(cx_writer_write_str(bs->out, ","));
         }
+        idx++;
     }
-    return cx_writer_write_str(bs->out, "}");
+    CHKW(cx_writer_write_str(bs->out, "}"));
 }
 

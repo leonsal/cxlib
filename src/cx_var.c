@@ -32,6 +32,7 @@ CxVar cx_var_new_str(const char* str, const CxAllocator* alloc) {
     var.v.str = cx_alloc_malloc(alloc, sizeof(cxvar_str));
     CHKNULL(var.v.str);
     *(var.v.str) = cxvar_str_init(alloc);
+    cxvar_str_cpy(var.v.str, str);
     return var;
 }
 
@@ -126,7 +127,7 @@ int cx_var_set_strn(CxVar* var, const char* str, size_t len) {
 
 int cx_var_arr_push(CxVar* var, const CxVar el) {
 
-    if (var->type == CxVarStr) {
+    if (var->type == CxVarArr) {
         cxvar_arr_push(var->v.arr, el);
         return 0;
     }
