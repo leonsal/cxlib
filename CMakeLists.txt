@@ -13,6 +13,7 @@ set(SOURCES
     src/cx_hmap.c
     src/cx_timer.c
     src/cx_var.c
+    src/cx_json.c
 )
 
 add_library(cxlib ${SOURCES})

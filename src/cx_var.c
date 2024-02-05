@@ -83,7 +83,15 @@ void cx_var_destroy(const CxAllocator* alloc, CxVar* var) {
             cx_var_destroy(alloc, &var->v.arr->data[i]);
         }
     } else if (var->type == CxVarMap) {
-        // TODO iter allocator
+        cxmap_iter iter = {0};
+        while (true) {
+            cxmap_entry* e = cxmap_next(var->v.map, &iter);
+            if (e == NULL) {
+                break;
+            }
+            cx_alloc_free(alloc, e->key, strlen(e->key)+1);
+            cx_var_destroy(alloc, &e->val);
+        }
         cxmap_free(var->v.map);
     }
     cx_alloc_free(alloc, var, sizeof(CxVar));
