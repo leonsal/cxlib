@@ -9,7 +9,7 @@
 
 typedef struct BuildState {
     CxJsonBuildCfg* cfg;
-    CxWriter*       out;
+    const CxWriter* out;
 } BuildState;
 
 static int cx_json_build_val(BuildState* bs, const CxVar* var);
@@ -28,7 +28,7 @@ static int cx_json_build_map(BuildState* bs, const CxVar* var);
 #define CHKRES(CALL)    {int res = CALL; if (res) { return res; }}
 
 
-int cx_json_build(const CxVar* var, CxJsonBuildCfg* cfg, CxWriter* out) {
+int cx_json_build(const CxVar* var, CxJsonBuildCfg* cfg, const CxWriter* out) {
 
     BuildState bs = {.cfg = cfg, .out = out};
     return cx_json_build_val(&bs, var);
@@ -107,7 +107,39 @@ static int cx_json_build_str(BuildState* bs, const CxVar* var) {
 
     const char* str;
     cx_var_get_str(var, &str);
-    return cx_writer_write_str(bs->out, str);
+
+    size_t len = strlen(str);
+    CHKW(cx_writer_write_str(bs->out, "\""));
+    for (size_t i = 0; i < len; i++) {
+        int c = str[i];
+        switch (c) {
+            case '"':
+                cx_writer_write_str(bs->out, "\\\"");
+                break;
+            case '\\':
+                cx_writer_write_str(bs->out, "\\\\");
+                break;
+            case '\b':
+                cx_writer_write_str(bs->out, "\\b");
+                break;
+            case '\f':
+                cx_writer_write_str(bs->out, "\\f");
+                break;
+            case '\n':
+                cx_writer_write_str(bs->out, "\\n");
+                break;
+            case '\r':
+                cx_writer_write_str(bs->out, "\\r");
+                break;
+            case '\t':
+                cx_writer_write_str(bs->out, "\\t");
+                break;
+            default:
+                cx_writer_write(bs->out, &c, 1);
+                break;
+        }
+    }
+    return cx_writer_write_str(bs->out, "\"");
 }
 
 static int cx_json_build_arr(BuildState* bs, const CxVar* var) {

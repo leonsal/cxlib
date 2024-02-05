@@ -12,7 +12,7 @@ typedef struct CxJsonBuildCfg {
 // Builds JSON string from the specified CxVar using the specified configuration.
 // The generated JSON is written using the supplied CxWriter interface.
 // Return non-zero error if CxVar cannot be encoded in JSON format.
-int cx_json_build(const CxVar* var, CxJsonBuildCfg* cfg, CxWriter* out); 
+int cx_json_build(const CxVar* var, CxJsonBuildCfg* cfg, const CxWriter* out); 
 
 #endif
 

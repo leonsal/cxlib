@@ -15,10 +15,10 @@ typedef struct CxWriter {
 } CxWriter;
 
 // Writer function helpers
-static inline int cx_writer_write(CxWriter* w, const void* data, size_t len) {
+static inline int cx_writer_write(const CxWriter* w, const void* data, size_t len) {
     return w->write(w->ctx, data, len);
 }
-static inline int cx_writer_write_str(CxWriter* w, const char* data) {
+static inline int cx_writer_write_str(const CxWriter* w, const char* data) {
     return w->write(w->ctx, data, strlen(data));
 }
 #endif

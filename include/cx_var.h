@@ -16,6 +16,7 @@ typedef enum {
     CxVarMap,
 } CxVarType;
 
+// Declare/define dynamic string used in CxVar
 #define cx_str_name cxvar_str
 #define cx_str_static
 #define cx_str_instance_allocator
@@ -38,6 +39,7 @@ typedef struct CxVar {
     } v;
 } CxVar;
 
+// Declare/define dynamic array used in CxVar
 #define cx_array_name cxvar_arr
 #define cx_array_type CxVar
 #define cx_array_instance_allocator
@@ -46,6 +48,7 @@ typedef struct CxVar {
 #endif
 #include "cx_array.h"
 
+// Declare/define hash map used in CxVar
 #define cx_hmap_name cxvar_map
 #define cx_hmap_key char*
 #define cx_hmap_val CxVar
@@ -56,22 +59,28 @@ typedef struct CxVar {
 #include "cx_hmap.h"
 
 
-CxVar cx_var_new(CxVarType vt, const CxAllocator* alloc);
-
+// Returns CxVar of null type
 CxVar cx_var_new_null(void);
 
+// Returns CxVar of bool type
 CxVar cx_var_new_bool(bool val);
 
+// Returns CxVar of integer type
 CxVar cx_var_new_int(int64_t val);
 
+// Returns CxVar of floating point type
 CxVar cx_var_new_float(double val);
 
+// Returns CxVar of string type
 CxVar cx_var_new_str(const char* str, const CxAllocator* alloc);
 
+// Returns CxVar of array type
 CxVar cx_var_new_arr(const CxAllocator* alloc);
 
+// Returns CxVar of map type
 CxVar cx_var_new_map(const CxAllocator* alloc);
 
+// Deletes allocated memory from previously create CxVar.
 CxVar cx_var_del(CxVar* var);
 
 // Sets value of boolean CxVar.
@@ -84,17 +93,17 @@ int cx_var_set_int(CxVar* var, int64_t vi);
 
 // Set value of floating point CxVar
 // Returns non-zero error if CxVar has not floating point type
-int cx_set_set_float(CxVar* var, double vd);
+int cx_var_set_float(CxVar* var, double vd);
 
 // Set value of string CxVar.
 // The specified nul terminated string is copied into the CxVar.
 // Returns non-zero error if CxVar has not floating point type
-int cx_set_set_str(CxVar* var, const char* str);
+int cx_var_set_str(CxVar* var, const char* str);
 //
 // Set value of string CxVar.
 // The specified string is copied into the CxVar.
 // Returns non-zero error if CxVar has not floating point type
-int cx_set_set_strn(CxVar* var, const char* str, size_t len);
+int cx_var_set_strn(CxVar* var, const char* str, size_t len);
 
 // Push CxVar into an array CxVar.
 // Returns non-zero error if 'var' has not array type

@@ -18,13 +18,13 @@ int main() {
 
     LOG_INIT();
     LOGW("START");
-    // cxAllocPoolTests();
-    // cxArrayTests();
-    // cxHmapTests();
-    // cxStrTests();
-    // cxQueueTests();
-    // cx_list_tests();
-    // cx_timer_tests();
+    cxAllocPoolTests();
+    cxArrayTests();
+    cxHmapTests();
+    cxStrTests();
+    cxQueueTests();
+    cx_list_tests();
+    cx_timer_tests();
     json_build_tests();
     LOGW("END");
 }
