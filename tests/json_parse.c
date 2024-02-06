@@ -143,6 +143,21 @@ void json_parse_test(const CxAllocator* alloc) {
         CHK(cx_var_get_map_val(&res, "k1", &el) == 0);
         CHK(cx_var_get_type(&el) == CxVarNull);
 
+        bool vbool;
+        CHK(cx_var_get_map_val(&res, "k2", &el) == 0);
+        CHK(cx_var_get_bool(&el, &vbool) == 0 && !vbool);
+
+        int64_t vint;
+        CHK(cx_var_get_map_val(&res, "k3", &el) == 0);
+        CHK(cx_var_get_int(&el, &vint) == 0 && vint == -124);
+
+        double vfloat;
+        CHK(cx_var_get_map_val(&res, "k4", &el) == 0);
+        CHK(cx_var_get_float(&el, &vfloat) == 0 && vfloat == -0.8);
+
+        const char* vstr;
+        CHK(cx_var_get_map_val(&res, "k5", &el) == 0);
+        CHK(cx_var_get_str(&el, &vstr) == 0 && strcmp(vstr, "strel") == 0);
     }
 }
 
