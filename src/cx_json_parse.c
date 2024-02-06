@@ -15,6 +15,8 @@ typedef struct ParseState {
     int         count;      // Number of tokens
     jsmntok_t*  tok;        // Pointer to current token
     jsmntok_t*  tok_last;   // Pointer to last token
+    cxvar_str   sprim;      // Temporary aux string for primitives
+    cxvar_str   skey;       // Temporary aux string for keys
 } ParseState;
 
 static int cx_json_parse_token(ParseState* ps, CxVar* var);
@@ -53,6 +55,8 @@ int cx_json_parse(const char* data, size_t len, CxVar* var, const CxAllocator* a
         .count = count,
         .tok = &tokens[0],
         .tok_last = &tokens[count-1],
+        .sprim = cxvar_str_init(alloc),
+        .skey = cxvar_str_init(alloc),
     };
 
     while (ps.tok <= ps.tok_last) {
@@ -62,7 +66,8 @@ int cx_json_parse(const char* data, size_t len, CxVar* var, const CxAllocator* a
         }
     }
 
-exit:
+    cxvar_str_free(&ps.sprim);
+    cxvar_str_free(&ps.skey);
     cx_alloc_free(alloc, tokens, nalloc); 
     return res;
 }
@@ -94,26 +99,24 @@ static int cx_json_parse_token(ParseState* ps, CxVar* var) {
 
 static int cx_json_parse_prim(ParseState* ps, CxVar* var) {
 
-    // Creates temporary string with primitive text
-    // NO NEED to deallocate created string as it uses the same
-    // allocator of the parser and will be freed at the end.
-    cxvar_str prim = cxvar_str_init(ps->alloc);
+    // Copy current primitive to auxiliary string
+    cxvar_str_clear(&ps->sprim);
     const char* pstart = &ps->data[ps->tok->start];
-    cxvar_str_cpyn(&prim, pstart, ps->tok->end - ps->tok->start);
+    cxvar_str_cpyn(&ps->sprim, pstart, ps->tok->end - ps->tok->start);
 
-    if (cxvar_str_cmp(&prim, "null") == 0) {
+    if (cxvar_str_cmp(&ps->sprim, "null") == 0) {
         *var = cx_var_new_null();
         ps->tok++;
         return 0;
     }
 
-    if (cxvar_str_cmp(&prim, "true") == 0) {
+    if (cxvar_str_cmp(&ps->sprim, "true") == 0) {
         *var = cx_var_new_bool(true);
         ps->tok++;
         return 0;
     }
 
-    if (cxvar_str_cmp(&prim, "false") == 0) {
+    if (cxvar_str_cmp(&ps->sprim, "false") == 0) {
         *var = cx_var_new_bool(false);
         ps->tok++;
         return 0;
@@ -125,16 +128,16 @@ static int cx_json_parse_prim(ParseState* ps, CxVar* var) {
         // Otherwise try to convert to long int.
         char* pend;
         errno = 0;
-        if (cxvar_str_find(&prim, ".") >= 0) {
-            const double v = strtod(prim.data, &pend);
+        if (cxvar_str_find(&ps->sprim, ".") >= 0) {
+            const double v = strtod(ps->sprim.data, &pend);
             *var = cx_var_new_float(v);
         } else {
-            const int64_t v = strtod(prim.data, &pend);
+            const int64_t v = strtod(ps->sprim.data, &pend);
             *var = cx_var_new_int(v);
         }
 
         // Checks for invalid number chars
-        if (prim.data + cxvar_str_len(&prim) != pend) {
+        if (ps->sprim.data + cxvar_str_len(&ps->sprim) != pend) {
             return 1;
         }
         // Checks for overflow/underflow
@@ -151,7 +154,6 @@ static int cx_json_parse_prim(ParseState* ps, CxVar* var) {
 
 static int cx_json_parse_str_token(ParseState* ps, cxvar_str* str) {
 
-    *str = cxvar_str_init(ps->alloc);
     const char* pnext = &ps->data[ps->tok->start];
     const char* pend = pnext + ps->tok->end - ps->tok->start;
     enum {Normal, Escape, Ucode} ;
@@ -232,9 +234,9 @@ static int cx_json_parse_str_token(ParseState* ps, cxvar_str* str) {
 
 static int cx_json_parse_str(ParseState* ps, CxVar* var) {
 
-    cxvar_str str;
-    CHK(cx_json_parse_str_token(ps, &str));
-    *var = cx_var_new_str(str.data, ps->alloc);
+    cxvar_str_clear(&ps->sprim);
+    CHK(cx_json_parse_str_token(ps, &ps->sprim));
+    *var = cx_var_new_str(ps->sprim.data, ps->alloc);
     ps->tok++;
     return 0;
 }
@@ -260,148 +262,14 @@ static int cx_json_parse_obj(ParseState* ps, CxVar* var) {
     ps->tok++;
     for (; obj_len > 0; obj_len--) {
         // Key
-        cxvar_str key;
-        CHK(cx_json_parse_str_token(ps, &key));
+        cxvar_str_clear(&ps->skey);
+        CHK(cx_json_parse_str_token(ps, &ps->skey));
         ps->tok++;
         // Value
         CxVar value;
         CHK(cx_json_parse_token(ps, &value));
-        CHK(cx_var_map_setn(var, key.data, cxvar_str_len(&key), value));
+        CHK(cx_var_map_setn(var, ps->skey.data, cxvar_str_len(&ps->skey), value));
     }
     return 0;
 }
 
-// #include "../jsmn.h"
-// #include <errno.h>
-// #include <stdio.h>
-// #include <stdlib.h>
-// #include <string.h>
-// #include <unistd.h>
-//
-// /* Function realloc_it() is a wrapper function for standard realloc()
-//  * with one difference - it frees old memory pointer in case of realloc
-//  * failure. Thus, DO NOT use old data pointer in anyway after call to
-//  * realloc_it(). If your code has some kind of fallback algorithm if
-//  * memory can't be re-allocated - use standard realloc() instead.
-//  */
-// static inline void *realloc_it(void *ptrmem, size_t size) {
-//   void *p = realloc(ptrmem, size);
-//   if (!p) {
-//     free(ptrmem);
-//     fprintf(stderr, "realloc(): errno=%d\n", errno);
-//   }
-//   return p;
-// }
-//
-// /*
-//  * An example of reading JSON from stdin and printing its content to stdout.
-//  * The output looks like YAML, but I'm not sure if it's really compatible.
-//  */
-//
-// static int dump(const char *js, jsmntok_t *t, size_t count, int indent) {
-//   int i, j, k;
-//   jsmntok_t *key;
-//   if (count == 0) {
-//     return 0;
-//   }
-//   if (t->type == JSMN_PRIMITIVE) {
-//     printf("%.*s", t->end - t->start, js + t->start);
-//     return 1;
-//   } else if (t->type == JSMN_STRING) {
-//     printf("'%.*s'", t->end - t->start, js + t->start);
-//     return 1;
-//   } else if (t->type == JSMN_OBJECT) {
-//     printf("\n");
-//     j = 0;
-//     for (i = 0; i < t->size; i++) {
-//       for (k = 0; k < indent; k++) {
-//         printf("  ");
-//       }
-//       key = t + 1 + j;
-//       j += dump(js, key, count - j, indent + 1);
-//       if (key->size > 0) {
-//         printf(": ");
-//         j += dump(js, t + 1 + j, count - j, indent + 1);
-//       }
-//       printf("\n");
-//     }
-//     return j + 1;
-//   } else if (t->type == JSMN_ARRAY) {
-//     j = 0;
-//     printf("\n");
-//     for (i = 0; i < t->size; i++) {
-//       for (k = 0; k < indent - 1; k++) {
-//         printf("  ");
-//       }
-//       printf("   - ");
-//       j += dump(js, t + 1 + j, count - j, indent + 1);
-//       printf("\n");
-//     }
-//     return j + 1;
-//   }
-//   return 0;
-// }
-//
-// int main() {
-//   int r;
-//   int eof_expected = 0;
-//   char *js = NULL;
-//   size_t jslen = 0;
-//   char buf[BUFSIZ];
-//
-//   jsmn_parser p;
-//   jsmntok_t *tok;
-//   size_t tokcount = 2;
-//
-//   /* Prepare parser */
-//   jsmn_init(&p);
-//
-//   /* Allocate some tokens as a start */
-//   tok = malloc(sizeof(*tok) * tokcount);
-//   if (tok == NULL) {
-//     fprintf(stderr, "malloc(): errno=%d\n", errno);
-//     return 3;
-//   }
-//
-//   for (;;) {
-//     /* Read another chunk */
-//     r = fread(buf, 1, sizeof(buf), stdin);
-//     if (r < 0) {
-//       fprintf(stderr, "fread(): %d, errno=%d\n", r, errno);
-//       return 1;
-//     }
-//     if (r == 0) {
-//       if (eof_expected != 0) {
-//         return 0;
-//       } else {
-//         fprintf(stderr, "fread(): unexpected EOF\n");
-//         return 2;
-//       }
-//     }
-//
-//     js = realloc_it(js, jslen + r + 1);
-//     if (js == NULL) {
-//       return 3;
-//     }
-//     strncpy(js + jslen, buf, r);
-//     jslen = jslen + r;
-//
-//   again:
-//     r = jsmn_parse(&p, js, jslen, tok, tokcount);
-//     if (r < 0) {
-//       if (r == JSMN_ERROR_NOMEM) {
-//         tokcount = tokcount * 2;
-//         tok = realloc_it(tok, sizeof(*tok) * tokcount);
-//         if (tok == NULL) {
-//           return 3;
-//         }
-//         goto again;
-//       }
-//     } else {
-//       dump(js, tok, p.toknext, 0);
-//       eof_expected = 1;
-//     }
-//   }
-//
-//   return EXIT_SUCCESS;
-// }
