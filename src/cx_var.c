@@ -1,3 +1,10 @@
+/*
+    Implementation notes
+    - CxVar consists of a type and value (union)
+    - For primitive types the value is the primitive.
+    - For container types: cxvar_str, cxvar_arr, cxvar_map
+      the value contains pointer to allocated container
+*/
 #include <assert.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -54,31 +61,36 @@ CxVar cx_var_new_map(const CxAllocator* alloc) {
     return var;
 }
 
-// void cx_var_destroy(const CxAllocator* alloc, CxVar* var) {
-//
-//     if (var->type == CxVarStr) {
-//         cxstr_free(var->v.str);
-//         cx_alloc_free(alloc, var->v.str, sizeof(cxstr));
-//     } else if (var->type == CxVarArr) {
-//         cxarr_free(var->v.arr);
-//         for (size_t i = 0; i < cxarr_len(var->v.arr); i++) {
-//             cx_var_destroy(alloc, &var->v.arr->data[i]);
-//         }
-//     } else if (var->type == CxVarMap) {
-//         cxmap_iter iter = {0};
-//         while (true) {
-//             cxmap_entry* e = cxmap_next(var->v.map, &iter);
-//             if (e == NULL) {
-//                 break;
-//             }
-//             cx_alloc_free(alloc, e->key, strlen(e->key)+1);
-//             cx_var_destroy(alloc, &e->val);
-//         }
-//         cxmap_free(var->v.map);
-//     }
-//     cx_alloc_free(alloc, var, sizeof(CxVar));
-// }
-//
+void cx_var_del(CxVar* var) {
+
+    if (var->type == CxVarStr) {
+        const CxAllocator* alloc = var->v.str->alloc_;
+        cxvar_str_free(var->v.str);
+        cx_alloc_free(alloc, var->v.str, sizeof(cxvar_str));
+    } else if (var->type == CxVarArr) {
+        for (size_t i = 0; i < cxvar_arr_len(var->v.arr); i++) {
+            cx_var_del(&var->v.arr->data[i]);
+        }
+        const CxAllocator* alloc = var->v.arr->alloc_;
+        cxvar_arr_free(var->v.arr);
+        cx_alloc_free(alloc, var->v.arr, sizeof(cxvar_arr));
+    } else if (var->type == CxVarMap) {
+        const CxAllocator* alloc = var->v.map->alloc_;
+        cxvar_map_iter iter = {0};
+        while (true) {
+            cxvar_map_entry* e = cxvar_map_next(var->v.map, &iter);
+            if (e == NULL) {
+                break;
+            }
+            cx_alloc_free(alloc, e->key, strlen(e->key)+1);
+            cx_var_del(&e->val);
+        }
+        cxvar_map_free(var->v.map);
+        cx_alloc_free(alloc, var->v.map, sizeof(cxvar_map));
+    }
+    var->type = CxVarNone;
+    var->v.str = NULL;
+}
 
 int cx_var_set_bool(CxVar* var, bool vb) {
 
@@ -230,9 +242,3 @@ int cx_var_get_map_val(const CxVar* var, const char* key, CxVar* pval) {
     return 1;
 }
 
-// /*
-// CxVar* map = cx_var_create(alloc, CxVarMap);
-// CxVar* vi = cx_var_create(alloc, CxVarInt);
-// cx_var_set_int(vi, 3);
-// cx_var_set_map_key(map, "key", vi);
-// */

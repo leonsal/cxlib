@@ -22,10 +22,10 @@ void json_build_tests(void) {
     // Use default 'malloc/free' allocator
     json_build_test(cxDefaultAllocator());
 
-    // // Use pool allocator
-    // CxPoolAllocator* pa = cx_pool_allocator_create(4*1024, NULL);
-    // json_test(cx_pool_allocator_iface(pa));
-    // cx_pool_allocator_destroy(pa);
+    // Use pool allocator
+    CxPoolAllocator* pa = cx_pool_allocator_create(4*1024, NULL);
+    json_build_test(cx_pool_allocator_iface(pa));
+    cx_pool_allocator_destroy(pa);
 }
 
 void json_build_test(const CxAllocator* alloc) {
@@ -60,6 +60,8 @@ void json_build_test(const CxAllocator* alloc) {
     CxWriter writer = {.ctx = &out, .write = (CxWriterWrite)cxstring_write};
     CHK(cx_json_build(&vmap, NULL, &writer) == 0);
     printf("json:%s\n", out.data);
+    cxstr_free(&out);
+    cx_var_del(&vmap);
 }
 
 static int cxstring_write(cxstr* str, void* data, size_t len) {

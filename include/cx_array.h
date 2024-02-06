@@ -215,12 +215,12 @@ Finds element in the array returning its index or -1 if not found.
 // Use custom instance allocator
 #ifdef cx_array_instance_allocator
     #define cx_array_alloc_field_\
-        const CxAllocator* alloc;
+        const CxAllocator* alloc_;
     #define cx_array_alloc_global_
     #define cx_array_alloc_(s,n)\
-        cx_alloc_malloc(s->alloc, n)
+        cx_alloc_malloc(s->alloc_, n)
     #define cx_array_free_(s,p,n)\
-        cx_alloc_free(s->alloc, p, n)
+        cx_alloc_free(s->alloc_, p, n)
 // Use global type allocator
 #else
     #define cx_array_alloc_field_
@@ -321,7 +321,7 @@ static void cx_array_name_(_grow_)(cx_array_name* a, size_t addLen, size_t minCa
 
     cx_array_api_ cx_array_name cx_array_name_(_init)(const CxAllocator* alloc) {
         return (cx_array_name) {
-            .alloc = alloc == NULL ? cxDefaultAllocator() : alloc,
+            .alloc_ = alloc == NULL ? cxDefaultAllocator() : alloc,
         };
     }
 #else

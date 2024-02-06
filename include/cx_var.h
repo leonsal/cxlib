@@ -25,6 +25,7 @@ typedef enum {
 #endif
 #include "cx_str.h"
 
+// Declare CxVar state
 typedef struct cxvar_arr cxvar_arr;
 typedef struct cxvar_map cxvar_map;
 typedef struct CxVar {
@@ -80,8 +81,8 @@ CxVar cx_var_new_arr(const CxAllocator* alloc);
 // Returns CxVar of map type
 CxVar cx_var_new_map(const CxAllocator* alloc);
 
-// Deletes allocated memory from previously create CxVar.
-CxVar cx_var_del(CxVar* var);
+// Deletes allocated memory from previously created CxVar.
+void cx_var_del(CxVar* var);
 
 // Sets value of boolean CxVar.
 // Returns non-zero error if CxVar has not boolean type

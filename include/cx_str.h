@@ -225,11 +225,11 @@ Return 0 if equal, -1 or 1 (as memcmp())
 // Use custom instance allocator
 #ifdef cx_str_instance_allocator
     #define cx_str_alloc_field_\
-        const CxAllocator* alloc;
+        const CxAllocator* alloc_;
     #define cx_str_alloc_(s,n)\
-        cx_alloc_malloc(s->alloc, n)
+        cx_alloc_malloc(s->alloc_, n)
     #define cx_str_free_(s,p,n)\
-        cx_alloc_free(s->alloc, p, n)
+        cx_alloc_free(s->alloc_, p, n)
 // Use global type allocator
 #else
     #define cx_str_alloc_field_
@@ -367,26 +367,26 @@ static void cx_str_name_(_grow_)(cx_str_name* s, size_t addLen, size_t minCap) {
 
     cx_str_api_ cx_str_name cx_str_name_(_init)(const CxAllocator* a) {
 
-        return (cx_str_name) {.alloc = a};
+        return (cx_str_name) {.alloc_ = a};
     }
 
     cx_str_api_ cx_str_name cx_str_name_(_initn)(const CxAllocator* a, const char* src, size_t n) {
 
-        cx_str_name s = {.alloc = a};
+        cx_str_name s = {.alloc_ = a};
         cx_str_name_(_cpyn)(&s, src, n);
         return s;
     }
 
     cx_str_api_ cx_str_name cx_str_name_(_initc)(const CxAllocator* a, const char* src) {
 
-        cx_str_name s = {.alloc = a};
+        cx_str_name s = {.alloc_ = a};
         cx_str_name_(_cpy)(&s, src);
         return s;
     }
 
     cx_str_api_ cx_str_name cx_str_name_(_inits)(const CxAllocator* a, const cx_str_name* src) {
 
-        cx_str_name s = {.alloc = a};
+        cx_str_name s = {.alloc_ = a};
         cx_str_name_(_cpys)(&s, src);
         return s;
     }
