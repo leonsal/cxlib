@@ -151,12 +151,12 @@ static int cx_json_parse_str(ParseState* ps, CxVar* var) {
     cxvar_str str = cxvar_str_init(ps->alloc);
     const char* pnext = &ps->data[ps->tok->start];
     const char* pend = pnext + ps->tok->end - 1;
-    enum {NoEscape, Escape, Ucode} ;
-    int state = NoEscape;
+    enum {Normal, Escape, Ucode} ;
+    int state = Normal;
     int ucount = 0;
     char xdigits[5];
     while (pnext < pend) {
-        if (state == NoEscape) {
+        if (state == Normal) {
             if (*pnext == '\\') {
                 state = Escape;
                 pnext++;
@@ -167,7 +167,7 @@ static int cx_json_parse_str(ParseState* ps, CxVar* var) {
             continue;
         }
         if (state == Escape) {
-            state = NoEscape;
+            state = Normal;
             switch (*pnext) {
                 case '"':
                     cxvar_str_catc(&str, '"');
@@ -212,10 +212,14 @@ static int cx_json_parse_str(ParseState* ps, CxVar* var) {
             }
             xdigits[ucount++] = *pnext;
             pnext++;
-            if (ucount == 4) {
-                xdigits[5] = 0;
-                state = NoEscape;
+            if (ucount < 4) {
+                continue;
             }
+
+            xdigits[5] = 0;
+            long int cp = strtol(xdigits, NULL, 16);
+            cxvar_str_catcp(&str, cp);
+            state = Normal;
             continue;
         }
         assert(0);

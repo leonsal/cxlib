@@ -86,11 +86,11 @@ void json_parse_test(const CxAllocator* alloc) {
     }
 
     {
-        const char* json = "\"_\\u1234__\"";
+        const char* json = "\"_\\u00A2_\\u0107_\"";
         CxVar res;
         CHK(cx_json_parse(json, strlen(json), &res, alloc) == 0);
         const char* v;
-        CHK(cx_var_get_str(&res, &v) == 0 && (strcmp(v, "__") == 0));
+        CHK(cx_var_get_str(&res, &v) == 0 && (strcmp(v, "_\u00A2_\u0107_") == 0));
         cx_var_del(&res);
     }
 }
