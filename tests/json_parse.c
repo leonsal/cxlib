@@ -134,6 +134,15 @@ void json_parse_test(const CxAllocator* alloc) {
         const char* json = "{\"k1\":null, \"k2\":false, \"k3\": -124, \"k4\": -0.8, \"k5\": \"strel\" }";
         CxVar res;
         CHK(cx_json_parse(json, strlen(json), &res, alloc) == 0);
+
+        size_t count;
+        CHK(cx_var_get_map_count(&res, &count) == 0);
+        CHK(count == 5);
+
+        CxVar el;
+        CHK(cx_var_get_map_val(&res, "k1", &el) == 0);
+        CHK(cx_var_get_type(&el) == CxVarNull);
+
     }
 }
 
