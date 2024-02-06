@@ -19,9 +19,12 @@ typedef struct ParseState {
 
 static int cx_json_parse_token(ParseState* ps, CxVar* var);
 static int cx_json_parse_prim(ParseState* ps, CxVar* var);
+static int cx_json_parse_str_token(ParseState* ps, cxvar_str* str);
 static int cx_json_parse_str(ParseState* ps, CxVar* var);
 static int cx_json_parse_arr(ParseState* ps, CxVar* var);
 static int cx_json_parse_obj(ParseState* ps, CxVar* var);
+
+#define CHK(CALL) {int res = CALL; if (res) {return res;}}
 
 int cx_json_parse(const char* data, size_t len, CxVar* var, const CxAllocator* alloc) {
 
@@ -71,19 +74,15 @@ static int cx_json_parse_token(ParseState* ps, CxVar* var) {
     switch (ps->tok->type) {
         case JSMN_PRIMITIVE:
             res = cx_json_parse_prim(ps, var);
-            ps->tok++;
             break;
         case JSMN_STRING:
             res = cx_json_parse_str(ps, var);
-            ps->tok++;
             break;
         case JSMN_ARRAY:
             res = cx_json_parse_arr(ps, var);
-            ps->tok++;
             break;
         case JSMN_OBJECT:
             res = cx_json_parse_obj(ps, var);
-            ps->tok++;
             break;
         default:
             res = 1;
@@ -95,49 +94,54 @@ static int cx_json_parse_token(ParseState* ps, CxVar* var) {
 
 static int cx_json_parse_prim(ParseState* ps, CxVar* var) {
 
+    // Creates temporary string with primitive text
+    // NO NEED to deallocate created string as it uses the same
+    // allocator of the parser and will be freed at the end.
+    cxvar_str prim = cxvar_str_init(ps->alloc);
     const char* pstart = &ps->data[ps->tok->start];
-    if (strcmp(pstart, "null") == 0) {
+    cxvar_str_cpyn(&prim, pstart, ps->tok->end - ps->tok->start);
+
+    if (cxvar_str_cmp(&prim, "null") == 0) {
         *var = cx_var_new_null();
+        ps->tok++;
         return 0;
     }
 
-    if (strcmp(pstart, "true") == 0) {
+    if (cxvar_str_cmp(&prim, "true") == 0) {
         *var = cx_var_new_bool(true);
+        ps->tok++;
         return 0;
     }
 
-    if (strcmp(pstart, "false") == 0) {
+    if (cxvar_str_cmp(&prim, "false") == 0) {
         *var = cx_var_new_bool(false);
+        ps->tok++;
         return 0;
     }
 
     int start = pstart[0];
     if (start == '-' || start >= '0' && start <= '9') {
-        // Creates string with number text
-        cxvar_str nstr = cxvar_str_init(ps->alloc);
-        const char* pstart = &ps->data[ps->tok->start];
-        cxvar_str_cpyn(&nstr, pstart, ps->tok->end - ps->tok->size);
-
         // If number string contains '.' try to convert to double,
         // Otherwise try to convert to long int.
         char* pend;
         errno = 0;
-        if (cxvar_str_find(&nstr, ".") >= 0) {
-            *var = cx_var_new_float(strtod(nstr.data, &pend));
+        if (cxvar_str_find(&prim, ".") >= 0) {
+            const double v = strtod(prim.data, &pend);
+            *var = cx_var_new_float(v);
         } else {
-            *var = cx_var_new_int(strtoll(nstr.data, &pend, 10));
+            const int64_t v = strtod(prim.data, &pend);
+            *var = cx_var_new_int(v);
         }
-        // NO NEED to deallocate created string as it uses the same
-        // allocator of the parser and will be freed at the end.
 
         // Checks for invalid number chars
-        if (nstr.data + ps->tok->end != pend) {
+        if (prim.data + cxvar_str_len(&prim) != pend) {
             return 1;
         }
         // Checks for overflow/underflow
         if (errno) {
             return 1;
         }
+        ps->tok++;
         return 0;
     }
 
@@ -145,12 +149,11 @@ static int cx_json_parse_prim(ParseState* ps, CxVar* var) {
     return 1;
 }
 
-static int cx_json_parse_str(ParseState* ps, CxVar* var) {
+static int cx_json_parse_str_token(ParseState* ps, cxvar_str* str) {
 
-    // Unescapes string
-    cxvar_str str = cxvar_str_init(ps->alloc);
+    *str = cxvar_str_init(ps->alloc);
     const char* pnext = &ps->data[ps->tok->start];
-    const char* pend = pnext + ps->tok->end - 1;
+    const char* pend = pnext + ps->tok->end - ps->tok->start;
     enum {Normal, Escape, Ucode} ;
     int state = Normal;
     int ucount = 0;
@@ -162,7 +165,7 @@ static int cx_json_parse_str(ParseState* ps, CxVar* var) {
                 pnext++;
                 continue;
             }
-            cxvar_str_catc(&str, *pnext);
+            cxvar_str_catc(str, *pnext);
             pnext++;
             continue;
         }
@@ -170,28 +173,28 @@ static int cx_json_parse_str(ParseState* ps, CxVar* var) {
             state = Normal;
             switch (*pnext) {
                 case '"':
-                    cxvar_str_catc(&str, '"');
+                    cxvar_str_catc(str, '"');
                     break;
                 case '\\':
-                    cxvar_str_catc(&str, '\\');
+                    cxvar_str_catc(str, '\\');
                     break;
                 case '/':
-                    cxvar_str_catc(&str, '/');
+                    cxvar_str_catc(str, '/');
                     break;
                 case 'b':
-                    cxvar_str_catc(&str, '\b');
+                    cxvar_str_catc(str, '\b');
                     break;
                 case 'f':
-                    cxvar_str_catc(&str, '\f');
+                    cxvar_str_catc(str, '\f');
                     break;
                 case 'n':
-                    cxvar_str_catc(&str, '\n');
+                    cxvar_str_catc(str, '\n');
                     break;
                 case 'r':
-                    cxvar_str_catc(&str, '\r');
+                    cxvar_str_catc(str, '\r');
                     break;
                 case 't':
-                    cxvar_str_catc(&str, '\t');
+                    cxvar_str_catc(str, '\t');
                     break;
                 case 'u':
                     if (pend - pnext < 4) {
@@ -218,41 +221,52 @@ static int cx_json_parse_str(ParseState* ps, CxVar* var) {
 
             xdigits[5] = 0;
             long int cp = strtol(xdigits, NULL, 16);
-            cxvar_str_catcp(&str, cp);
+            cxvar_str_catcp(str, cp);
             state = Normal;
             continue;
         }
         assert(0);
     }
+    return 0;
+}
+
+static int cx_json_parse_str(ParseState* ps, CxVar* var) {
+
+    cxvar_str str;
+    CHK(cx_json_parse_str_token(ps, &str));
     *var = cx_var_new_str(str.data, ps->alloc);
+    ps->tok++;
     return 0;
 }
 
 static int cx_json_parse_arr(ParseState* ps, CxVar* var) {
 
+    size_t arr_len = ps->tok->size;
     *var = cx_var_new_arr(ps->alloc);
-    for (size_t idx = 0; idx < ps->tok->size; idx++) {
-        ps->tok++;
+    ps->tok++;
+    while (arr_len) {
         CxVar el;
-        cx_json_parse_token(ps, &el);
-        cx_var_arr_push(var, el);
-        ps->tok++;
+        CHK(cx_json_parse_token(ps, &el));
+        CHK(cx_var_arr_push(var, el));
+        arr_len--;
     }
     return 0;
 }
 
 static int cx_json_parse_obj(ParseState* ps, CxVar* var) {
 
+    size_t obj_len = ps->tok->size;
     *var = cx_var_new_map(ps->alloc);
-    for (size_t idx = 0; idx < ps->tok->size; idx++) {
-        // Saves key token
+    ps->tok++;
+    for (; obj_len > 0; obj_len--) {
+        // Key
+        cxvar_str key;
+        CHK(cx_json_parse_str_token(ps, &key));
         ps->tok++;
-        jsmntok_t* tkey = ps->tok;
         // Value
-        ps->tok++;
         CxVar value;
-        cx_json_parse_token(ps, &value);
-        cx_var_map_setn(var, &ps->data[tkey->start], tkey->end - tkey->start, value);
+        CHK(cx_json_parse_token(ps, &value));
+        CHK(cx_var_map_setn(var, key.data, cxvar_str_len(&key), value));
     }
     return 0;
 }
