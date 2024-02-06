@@ -13,19 +13,21 @@
 #include "list.h"
 #include "timer.h"
 #include "json_build.h"
+#include "json_parse.h"
 
 int main() {
 
     LOG_INIT();
     LOGW("START");
-    cxAllocPoolTests();
-    cxArrayTests();
-    cxHmapTests();
-    cxStrTests();
-    cxQueueTests();
-    cx_list_tests();
-    cx_timer_tests();
-    json_build_tests();
+    // cxAllocPoolTests();
+    // cxArrayTests();
+    // cxHmapTests();
+    // cxStrTests();
+    // cxQueueTests();
+    // cx_list_tests();
+    // cx_timer_tests();
+    // json_build_tests();
+    json_parse_tests();
     LOGW("END");
 }
 

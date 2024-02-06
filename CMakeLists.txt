@@ -14,6 +14,7 @@ set(SOURCES
     src/cx_timer.c
     src/cx_var.c
     src/cx_json_build.c
+    src/cx_json_parse.c
 )
 
 add_library(cxlib ${SOURCES})
