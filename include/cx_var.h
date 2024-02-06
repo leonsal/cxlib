@@ -150,10 +150,18 @@ int cx_var_get_str(const CxVar* var, const char** pval);
 // Returns non-zero error if CxVar is not of array type.
 int cx_var_get_arr_len(const CxVar* var, size_t* len);
 
-// Get value at the specified index from CxVar array
-// Returns non-zero error if 'var' is not of array type
-// or the index is invalid.
-int cx_var_get_arr_val(const CxVar* var, size_t index, CxVar* pval);
+// Get value at the specified index from CxVar array.
+// Returns non-zero error if 'arr' is not of array type
+// or the index is invalid or the element at the specified index
+// if not of the requested type.
+int cx_var_get_arr_val(const CxVar* arr, size_t index, CxVar* pval);
+int cx_var_get_arr_null(const CxVar* arr, size_t index);
+int cx_var_get_arr_bool(const CxVar* arr, size_t index, bool* pbool);
+int cx_var_get_arr_int(const CxVar* arr, size_t index, int64_t* pint);
+int cx_var_get_arr_float(const CxVar* arr, size_t index, double* pfloat);
+int cx_var_get_arr_str(const CxVar* arr, size_t index, const char** pstr);
+int cx_var_get_arr_arr(const CxVar* arr, size_t index, CxVar* arr_el);
+int cx_var_get_arr_map(const CxVar* arr, size_t index, CxVar* map_el);
 
 // Returns the number of entries from the CxVar map.
 // Returns non-zero error if CxVar is not of map type.

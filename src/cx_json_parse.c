@@ -219,7 +219,7 @@ static int cx_json_parse_str_token(ParseState* ps, cxvar_str* str) {
                 continue;
             }
 
-            xdigits[5] = 0;
+            xdigits[4] = 0;
             long int cp = strtol(xdigits, NULL, 16);
             cxvar_str_catcp(str, cp);
             state = Normal;

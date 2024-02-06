@@ -23,6 +23,7 @@ void json_parse_tests(void) {
 
 void json_parse_test(const CxAllocator* alloc) {
 
+    LOGI("json parse alloc:%p", alloc);
     {
         const char* json = "null";
         CxVar res;
@@ -103,29 +104,16 @@ void json_parse_test(const CxAllocator* alloc) {
         CHK(cx_var_get_arr_len(&res, &len) == 0);
         CHK(len == 6);
 
-        CxVar el;
-        CHK(cx_var_get_arr_val(&res, 0, &el) == 0);
-        CHK(cx_var_get_type(&el) == CxVarNull);
-
+        CHK(cx_var_get_arr_null(&res, 0) == 0);
         bool vbool;
-        CHK(cx_var_get_arr_val(&res, 1, &el) == 0);
-        CHK(cx_var_get_bool(&el, &vbool) == 0 && !vbool);
-
-        CHK(cx_var_get_arr_val(&res, 2, &el) == 0);
-        CHK(cx_var_get_bool(&el, &vbool) == 0 && vbool);
-
+        CHK(cx_var_get_arr_bool(&res, 1, &vbool) == 0 && !vbool);
+        CHK(cx_var_get_arr_bool(&res, 2, &vbool) == 0 && vbool);
         int64_t vint;
-        CHK(cx_var_get_arr_val(&res, 3, &el) == 0);
-        CHK(cx_var_get_int(&el, &vint) == 0 && vint == 42000l);
-
+        CHK(cx_var_get_arr_int(&res, 3, &vint) == 0 && vint == 42000);
         double vfloat;
-        CHK(cx_var_get_arr_val(&res, 4, &el) == 0);
-        CHK(cx_var_get_float(&el, &vfloat) == 0 && vfloat == -0.1);
-
+        CHK(cx_var_get_arr_float(&res, 4, &vfloat) == 0 && vfloat == -0.1);
         const char* vstr;
-        CHK(cx_var_get_arr_val(&res, 5, &el) == 0);
-        char buf[32] = "strel";
-        CHK(cx_var_get_str(&el, &vstr) == 0 && strcmp(vstr, buf) == 0);
+        CHK(cx_var_get_arr_str(&res, 5, &vstr) == 0 && strcmp(vstr, "strel") == 0);
 
         cx_var_del(&res);
     }
@@ -158,6 +146,8 @@ void json_parse_test(const CxAllocator* alloc) {
         const char* vstr;
         CHK(cx_var_get_map_val(&res, "k5", &el) == 0);
         CHK(cx_var_get_str(&el, &vstr) == 0 && strcmp(vstr, "strel") == 0);
+
+        cx_var_del(&res);
     }
 }
 

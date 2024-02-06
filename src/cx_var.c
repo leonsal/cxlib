@@ -12,7 +12,9 @@
 
 #define CX_VAR_IMPLEMENT
 #include "cx_var.h"
+
 #define CHKNULL(V) if (V == NULL) { return (CxVar){0}; } 
+#define CHKR(V)    {int res = V; if (res) {return res;}}
 
 CxVar cx_var_new_null(void) {
 
@@ -229,6 +231,53 @@ int cx_var_get_arr_val(const CxVar* var, size_t index, CxVar* pval) {
         return 0;
     }
     return 1;
+}
+
+int cx_var_get_arr_null(const CxVar* arr, size_t index) {
+
+    CxVar el;
+    CHKR(cx_var_get_arr_val(arr, index, &el));
+    return cx_var_get_type(&el) == CxVarNull ? 0 : 1;
+}
+
+int cx_var_get_arr_bool(const CxVar* arr, size_t index, bool* pbool) {
+
+    CxVar el;
+    CHKR(cx_var_get_arr_val(arr, index, &el));
+    return cx_var_get_bool(&el, pbool);
+}
+
+int cx_var_get_arr_int(const CxVar* arr, size_t index, int64_t* pint) {
+
+    CxVar el;
+    CHKR(cx_var_get_arr_val(arr, index, &el));
+    return cx_var_get_int(&el, pint);
+}
+
+int cx_var_get_arr_float(const CxVar* arr, size_t index, double* pfloat) {
+
+    CxVar el;
+    CHKR(cx_var_get_arr_val(arr, index, &el));
+    return cx_var_get_float(&el, pfloat);
+}
+
+int cx_var_get_arr_str(const CxVar* arr, size_t index, const char** pstr) {
+
+    CxVar el;
+    CHKR(cx_var_get_arr_val(arr, index, &el));
+    return cx_var_get_str(&el, pstr);
+}
+
+int cx_var_get_arr_arr(const CxVar* arr, size_t index, CxVar* arr_el) {
+
+    CHKR(cx_var_get_arr_val(arr, index, arr_el));
+    return cx_var_get_type(arr_el) == CxVarArr ? 0 : 1;
+}
+
+int cx_var_get_arr_map(const CxVar* arr, size_t index, CxVar* map_el) {
+
+    CHKR(cx_var_get_arr_val(arr, index, map_el));
+    return cx_var_get_type(map_el) == CxVarMap ? 0 : 1;
 }
 
 int cx_var_get_map_count(const CxVar* var, size_t* len) {
