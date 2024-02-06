@@ -23,10 +23,76 @@ void json_parse_tests(void) {
 
 void json_parse_test(const CxAllocator* alloc) {
 
-    //const char* test1 = "[null,true]";
-    const char* test1 = "{\"k\":null}";
-    CxVar json;
-    cx_json_parse(test1, strlen(test1), &json, alloc);
+    {
+        const char* json = "null";
+        CxVar res;
+        CHK(cx_json_parse(json, strlen(json), &res, alloc) == 0);
+        CHK(cx_var_get_type(&res) == CxVarNull);
+        cx_var_del(&res);
+    }
+
+    {
+        const char* json = "false";
+        CxVar res;
+        CHK(cx_json_parse(json, strlen(json), &res, alloc) == 0);
+        bool v;
+        CHK(cx_var_get_bool(&res, &v) == 0 && !v);
+        cx_var_del(&res);
+    }
+
+    {
+        const char* json = "true";
+        CxVar res;
+        CHK(cx_json_parse(json, strlen(json), &res, alloc) == 0);
+        bool v;
+        CHK(cx_var_get_bool(&res, &v) == 0 && v);
+        cx_var_del(&res);
+    }
+
+    {
+        const char* json = "-10";
+        CxVar res;
+        CHK(cx_json_parse(json, strlen(json), &res, alloc) == 0);
+        int64_t v;
+        CHK(cx_var_get_int(&res, &v) == 0 && v == -10);
+        cx_var_del(&res);
+    }
+
+    {
+        const char* json = "-0.45";
+        CxVar res;
+        CHK(cx_json_parse(json, strlen(json), &res, alloc) == 0);
+        double  v;
+        CHK(cx_var_get_float(&res, &v) == 0 && v == -0.45);
+        cx_var_del(&res);
+    }
+
+    {
+        const char* json = "\"str\"";
+        CxVar res;
+        CHK(cx_json_parse(json, strlen(json), &res, alloc) == 0);
+        const char* v;
+        CHK(cx_var_get_str(&res, &v) == 0 && (strcmp(v, "str") == 0));
+        cx_var_del(&res);
+    }
+
+    {
+        const char* json = "\"_\\\"_\\\\_\\b_\\f_\\n_\\r_\\t_\"";
+        CxVar res;
+        CHK(cx_json_parse(json, strlen(json), &res, alloc) == 0);
+        const char* v;
+        CHK(cx_var_get_str(&res, &v) == 0 && (strcmp(v, "_\"_\\_\b_\f_\n_\r_\t_") == 0));
+        cx_var_del(&res);
+    }
+
+    {
+        const char* json = "\"_\\u1234__\"";
+        CxVar res;
+        CHK(cx_json_parse(json, strlen(json), &res, alloc) == 0);
+        const char* v;
+        CHK(cx_var_get_str(&res, &v) == 0 && (strcmp(v, "__") == 0));
+        cx_var_del(&res);
+    }
 }
 
 

@@ -7,6 +7,7 @@
 */
 #include <assert.h>
 #include <stdio.h>
+#include <string.h>
 #include <stdint.h>
 
 #define CX_VAR_IMPLEMENT
@@ -35,11 +36,16 @@ CxVar cx_var_new_float(double v) {
 
 CxVar cx_var_new_str(const char* str, const CxAllocator* alloc) {
 
+    return cx_var_new_strn(str, strlen(str), alloc);
+}
+
+CxVar cx_var_new_strn(const char* str, size_t slen, const CxAllocator* alloc) {
+
     CxVar var = {.type = CxVarStr };
     var.v.str = cx_alloc_malloc(alloc, sizeof(cxvar_str));
     CHKNULL(var.v.str);
     *(var.v.str) = cxvar_str_init(alloc);
-    cxvar_str_cpy(var.v.str, str);
+    cxvar_str_cpyn(var.v.str, str, slen);
     return var;
 }
 
@@ -148,9 +154,14 @@ int cx_var_arr_push(CxVar* var, const CxVar el) {
 
 int cx_var_map_set(CxVar* var, const char* key, CxVar v) {
 
+    return cx_var_map_setn(var, key, strlen(key), v);
+}
+
+int cx_var_map_setn(CxVar* var, const char* key, size_t klen, CxVar v) {
+
     if (var->type == CxVarMap) {
         const CxAllocator* alloc = var->v.map->alloc_;
-        char* kcopy = cx_alloc_malloc(alloc, strlen(key)+1);
+        char* kcopy = cx_alloc_malloc(alloc, klen + 1);
         strcpy(kcopy, key);
         cxvar_map_set(var->v.map, kcopy, v);
         return 0;
@@ -241,4 +252,6 @@ int cx_var_get_map_val(const CxVar* var, const char* key, CxVar* pval) {
     }
     return 1;
 }
+
+
 

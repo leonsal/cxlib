@@ -18,7 +18,6 @@ typedef enum {
 
 // Declare/define dynamic string used in CxVar
 #define cx_str_name cxvar_str
-#define cx_str_static
 #define cx_str_instance_allocator
 #ifdef CX_VAR_IMPLEMENT
 #define cx_str_implement
@@ -75,6 +74,9 @@ CxVar cx_var_new_float(double val);
 // Returns CxVar of string type
 CxVar cx_var_new_str(const char* str, const CxAllocator* alloc);
 
+// Returns CxVar of string type
+CxVar cx_var_new_strn(const char* str, size_t slen, const CxAllocator* alloc);
+
 // Returns CxVar of array type
 CxVar cx_var_new_arr(const CxAllocator* alloc);
 
@@ -100,7 +102,12 @@ int cx_var_set_float(CxVar* var, double vd);
 // The specified nul terminated string is copied into the CxVar.
 // Returns non-zero error if CxVar has not floating point type
 int cx_var_set_str(CxVar* var, const char* str);
-//
+
+// Set value of string CxVar.
+// The specified nul terminated string is copied into the CxVar.
+// Returns non-zero error if CxVar has not floating point type
+int cx_var_set_strn(CxVar* var, const char* str, size_t slen);
+
 // Set value of string CxVar.
 // The specified string is copied into the CxVar.
 // Returns non-zero error if CxVar has not floating point type
@@ -110,9 +117,13 @@ int cx_var_set_strn(CxVar* var, const char* str, size_t len);
 // Returns non-zero error if 'var' has not array type
 int cx_var_arr_push(CxVar* var, const CxVar el);
 
-// Sets value associated with key of CxVar map
+// Sets value associated with string key of CxVar map
 // Returns non-zero error if 'var' has not map type
 int cx_var_map_set(CxVar* var, const char* key, CxVar v);
+
+// Sets value associated with string key of specified size of CxVar map
+// Returns non-zero error if 'var' has not map type
+int cx_var_map_setn(CxVar* var, const char* key, size_t klen, CxVar v);
 
 // Returns the type of CxVar.
 CxVarType cx_var_get_type(const CxVar* var);
