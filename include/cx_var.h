@@ -6,7 +6,7 @@
 #include "cx_alloc.h"
 
 typedef enum {
-    CxVarNone,
+    CxVarUndef,
     CxVarNull,
     CxVarBool,
     CxVarInt,

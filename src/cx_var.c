@@ -110,7 +110,7 @@ void cx_var_del(CxVar* var) {
         cxvar_buf_free(var->v.buf);
         cx_alloc_free(alloc, var->v.buf, sizeof(cxvar_buf));
     }
-    var->type = CxVarNone;
+    var->type = CxVarUndef;
     var->v.str = NULL;
 }
 
@@ -243,16 +243,25 @@ int cx_var_set_map_val(CxVar* var, const char* key, CxVar v) {
     return cx_var_set_map_val2(var, key, strlen(key), v);
 }
 
-int cx_var_set_map_val2(CxVar* var, const char* key, size_t klen, CxVar v) {
+int cx_var_set_map_val2(CxVar* map, const char* key, size_t klen, CxVar v) {
 
-    if (var->type == CxVarMap) {
-        const CxAllocator* alloc = var->v.map->alloc_;
-        char* kcopy = cx_alloc_malloc(alloc, klen + 1);
-        strcpy(kcopy, key);
-        cxvar_map_set(var->v.map, kcopy, v);
-        return 0;
+    if (map->type != CxVarMap) {
+        return 1;
     }
-    return 1;
+    CxVar* curr = cxvar_map_get(map->v.map, (char*)key);
+    if (curr != NULL) {
+        if (curr->type != v.type) {
+            return 1;
+        } else {
+            *curr = v;
+            return 0;
+        }
+    }
+    const CxAllocator* alloc = map->v.map->alloc_;
+    char* kcopy = cx_alloc_malloc(alloc, klen + 1);
+    strcpy(kcopy, key);
+    cxvar_map_set(map->v.map, kcopy, v);
+    return 0;
 }
 int cx_var_set_map_null(CxVar* map, const char* key) {
 

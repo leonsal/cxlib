@@ -32,11 +32,12 @@ void json_build_test(const CxAllocator* alloc) {
 
     LOGI("json_build alloc:%p", alloc);
     CxVar vmap = cx_var_new_map(alloc);
-    cx_var_set_map_val(&vmap, "null", cx_var_new_null());
-    cx_var_set_map_val(&vmap, "bool", cx_var_new_bool(true));
-    cx_var_set_map_val(&vmap, "int", cx_var_new_int(10));
-    cx_var_set_map_val(&vmap, "float", cx_var_new_float(3.1415));
-    cx_var_set_map_val(&vmap, "str", cx_var_new_str("string text", alloc));
+    CHKZ(cx_var_set_map_null(&vmap, "null"));
+    CHKZ(cx_var_set_map_bool(&vmap, "bool", true));
+    CHKZ(cx_var_set_map_bool(&vmap, "bool", false));
+    CHKZ(cx_var_set_map_int(&vmap, "int", 10));
+    CHKZ(cx_var_set_map_float(&vmap, "float", 3.1415));
+    CHKZ(cx_var_set_map_str(&vmap, "str", "string text"));
         CxVar varr = cx_var_new_arr(alloc);
         cx_var_push_arr_val(&varr, cx_var_new_null());
         cx_var_push_arr_val(&varr, cx_var_new_bool(false));
