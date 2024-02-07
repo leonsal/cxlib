@@ -146,6 +146,7 @@ void json_parse_test(const CxAllocator* alloc) {
             CHK(cx_var_get_map_int(&map, "3", &vint) == 0 && vint == 3);
         }
         CHK(cx_var_get_arr_null(&arr, 2) == 0);
+        cx_var_del(&arr);
     }
 }
 
