@@ -171,6 +171,13 @@ int cx_var_get_map_count(const CxVar* var, size_t* len);
 // Returns non-zero error if 'var' is not of map type
 // or the key was not found.
 int cx_var_get_map_val(const CxVar* var, const char* key, CxVar* pval);
+int cx_var_get_map_null(const CxVar* var, const char* key);
+int cx_var_get_map_bool(const CxVar* arr, const char* key, bool* pbool);
+int cx_var_get_map_int(const CxVar* arr, const char* key, int64_t* pint);
+int cx_var_get_map_float(const CxVar* arr, const char* key, double* pfloat);
+int cx_var_get_map_str(const CxVar* arr, const char* key, const char** pstr);
+int cx_var_get_map_arr(const CxVar* arr, const char* key, CxVar* arr_el);
+int cx_var_get_map_map(const CxVar* arr, const char* key, CxVar* map_el);
 
 #endif
 

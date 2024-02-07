@@ -302,5 +302,52 @@ int cx_var_get_map_val(const CxVar* var, const char* key, CxVar* pval) {
     return 1;
 }
 
+int cx_var_get_map_null(const CxVar* map, const char* key) {
+
+    CxVar var;
+    CHKR(cx_var_get_map_val(map, key, &var));
+    return cx_var_get_type(&var) == CxVarNull ? 0 : 1;
+}
+
+int cx_var_get_map_bool(const CxVar* map, const char* key, bool* pbool) {
+
+    CxVar var;
+    CHKR(cx_var_get_map_val(map, key, &var));
+    return cx_var_get_bool(&var, pbool);
+}
+
+int cx_var_get_map_int(const CxVar* map, const char* key, int64_t* pint) {
+
+    CxVar var;
+    CHKR(cx_var_get_map_val(map, key, &var));
+    return cx_var_get_int(&var, pint);
+}
+
+int cx_var_get_map_float(const CxVar* map, const char* key, double* pfloat) {
+
+    CxVar var;
+    CHKR(cx_var_get_map_val(map, key, &var));
+    return cx_var_get_float(&var, pfloat);
+}
+
+int cx_var_get_map_str(const CxVar* map, const char* key, const char** pstr) {
+
+    CxVar var;
+    CHKR(cx_var_get_map_val(map, key, &var));
+    return cx_var_get_str(&var, pstr);
+}
+
+int cx_var_get_map_arr(const CxVar* map, const char* key, CxVar* var) {
+
+    CHKR(cx_var_get_map_val(map, key, var));
+    return cx_var_get_type(var) == CxVarArr ? 0 : 1;
+}
+
+int cx_var_get_map_map(const CxVar* map, const char* key, CxVar* var) {
+
+    CHKR(cx_var_get_map_val(map, key, var));
+    return cx_var_get_type(var) == CxVarMap ? 0 : 1;
+}
+
 
 
