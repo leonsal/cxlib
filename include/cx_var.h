@@ -73,8 +73,7 @@ typedef struct CxVar {
 #include "cx_hmap.h"
 
 // Returns CxVar of the specified type
-// For CxVar of types string, array and map is necessary to
-// supply an allocator.
+// For CxVar of types string, array, map and buf is necessary to supply an allocator.
 CxVar cx_var_new_null(void);
 CxVar cx_var_new_bool(bool val);
 CxVar cx_var_new_int(int64_t val);
@@ -97,21 +96,39 @@ int cx_var_set_str(CxVar* var, const char* str);
 int cx_var_set_strn(CxVar* var, const char* str, size_t slen);
 int cx_var_set_buf(CxVar* var, void* data, size_t len);
 
-// Push CxVar into an array CxVar.
+// Push value into an array
 // Returns non-zero error if 'var' has not array type
-int cx_var_arr_push(CxVar* var, const CxVar el);
+int cx_var_push_arr_val(CxVar* arr, const CxVar el);
+int cx_var_push_arr_null(CxVar* arr);
+int cx_var_push_arr_bool(CxVar* arr, bool val);
+int cx_var_push_arr_int(CxVar* arr, int64_t val);
+int cx_var_push_arr_float(CxVar* arr, double val);
+int cx_var_push_arr_str(CxVar* arr, const char* str);
+int cx_var_push_arr_strn(CxVar* arr, const char* str, size_t len);
+int cx_var_push_arr_arr(CxVar* arr, CxVar val);
+int cx_var_push_arr_map(CxVar* arr, CxVar val);
+int cx_var_push_arr_buf(CxVar* arr, void* data, size_t len);
 
-// Sets value associated with string key of CxVar map
+// Sets value associated with string key of CxVar
 // Returns non-zero error if 'var' has not map type
-int cx_var_map_set(CxVar* var, const char* key, CxVar v);
+int cx_var_set_map_val(CxVar* map, const char* key, CxVar v);
+int cx_var_set_map_val2(CxVar* var, const char* key, size_t key_len, CxVar v);
+int cx_var_set_map_null(CxVar* map, const char* key);
+int cx_var_set_map_bool(CxVar* map, const char* key, bool v);
+int cx_var_set_map_int(CxVar* map, const char* key, int64_t v);
+int cx_var_set_map_float(CxVar* map, const char* key, double v);
+int cx_var_set_map_str(CxVar* map, const char* key, const char* v);
+int cx_var_set_map_arr(CxVar* map, const char* key, CxVar v);
+int cx_var_set_map_map(CxVar* map, const char* key, CxVar v);
+int cx_var_set_map_buf(CxVar* map, const char* key, void* data, size_t len);
 
-// Sets value associated with string key of specified size of CxVar map
-// Returns non-zero error if 'var' has not map type
-int cx_var_map_setn(CxVar* var, const char* key, size_t klen, CxVar v);
-
-// Pushes data into the CxVar buf.
+// Pushes additional data into the CxVar buf.
 // Returns non-zero error if 'var' is of CxVarBuf type.
 int cx_var_buf_push(CxVar* var, void* data, size_t len);
+
+//-----------------------------------------------------------------------------
+// Getters
+//-----------------------------------------------------------------------------
 
 // Returns the type of CxVar.
 CxVarType cx_var_get_type(const CxVar* var);

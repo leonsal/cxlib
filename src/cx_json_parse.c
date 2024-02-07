@@ -249,7 +249,7 @@ static int cx_json_parse_arr(ParseState* ps, CxVar* var) {
     while (arr_len) {
         CxVar el;
         CHK(cx_json_parse_token(ps, &el));
-        CHK(cx_var_arr_push(var, el));
+        CHK(cx_var_push_arr_val(var, el));
         arr_len--;
     }
     return 0;
@@ -268,7 +268,7 @@ static int cx_json_parse_obj(ParseState* ps, CxVar* var) {
         // Value
         CxVar value;
         CHK(cx_json_parse_token(ps, &value));
-        CHK(cx_var_map_setn(var, ps->skey.data, cxvar_str_len(&ps->skey), value));
+        CHK(cx_var_set_map_val2(var, ps->skey.data, cxvar_str_len(&ps->skey), value));
     }
     return 0;
 }

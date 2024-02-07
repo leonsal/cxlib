@@ -159,7 +159,7 @@ int cx_var_set_strn(CxVar* var, const char* str, size_t len) {
     return 1;
 }
 
-int cx_var_arr_push(CxVar* var, const CxVar el) {
+int cx_var_push_arr_val(CxVar* var, const CxVar el) {
 
     if (var->type == CxVarArr) {
         cxvar_arr_push(var->v.arr, el);
@@ -168,12 +168,82 @@ int cx_var_arr_push(CxVar* var, const CxVar el) {
     return 1;
 }
 
-int cx_var_map_set(CxVar* var, const char* key, CxVar v) {
+int cx_var_push_arr_null(CxVar* arr) {
 
-    return cx_var_map_setn(var, key, strlen(key), v);
+    const CxVar val = cx_var_new_null();
+    return cx_var_push_arr_val(arr, val);
 }
 
-int cx_var_map_setn(CxVar* var, const char* key, size_t klen, CxVar v) {
+int cx_var_push_arr_bool(CxVar* arr, bool val) {
+
+    const CxVar var = cx_var_new_bool(val);
+    return cx_var_push_arr_val(arr, var);
+}
+
+int cx_var_push_arr_int(CxVar* arr, int64_t val) {
+
+    const CxVar var = cx_var_new_int(val);
+    return cx_var_push_arr_val(arr, var);
+}
+
+int cx_var_push_arr_float(CxVar* arr, double val) {
+
+    const CxVar var = cx_var_new_float(val);
+    return cx_var_push_arr_val(arr, var);
+}
+
+int cx_var_push_arr_str(CxVar* arr, const char* val) {
+
+    if (arr->type != CxVarArr) {
+        return 1;
+    }
+    const CxAllocator* alloc = arr->v.arr->alloc_;
+    const CxVar var = cx_var_new_str(val, alloc);
+    return cx_var_push_arr_val(arr, var);
+}
+
+int cx_var_push_arr_strn(CxVar* arr, const char* val, size_t len) {
+
+    if (arr->type != CxVarArr) {
+        return 1;
+    }
+    const CxAllocator* alloc = arr->v.arr->alloc_;
+    const CxVar var = cx_var_new_strn(val, len, alloc);
+    return cx_var_push_arr_val(arr, var);
+}
+
+int cx_var_push_arr_arr(CxVar* arr, CxVar val) {
+
+    if (arr->type != CxVarArr || val.type != CxVarArr) {
+        return 1;
+    }
+    return cx_var_push_arr_val(arr, val);
+}
+
+int cx_var_push_arr_map(CxVar* arr, CxVar val) {
+
+    if (arr->type != CxVarArr || val.type != CxVarMap) {
+        return 1;
+    }
+    return cx_var_push_arr_val(arr, val);
+}
+
+int cx_var_push_arr_buf(CxVar* arr, void* data, size_t len) {
+
+    if (arr->type != CxVarArr) {
+        return 1;
+    }
+    const CxAllocator* alloc = arr->v.arr->alloc_;
+    const CxVar var = cx_var_new_buf(data, len, alloc);
+    return cx_var_push_arr_val(arr, var);
+}
+
+int cx_var_set_map_val(CxVar* var, const char* key, CxVar v) {
+
+    return cx_var_set_map_val2(var, key, strlen(key), v);
+}
+
+int cx_var_set_map_val2(CxVar* var, const char* key, size_t klen, CxVar v) {
 
     if (var->type == CxVarMap) {
         const CxAllocator* alloc = var->v.map->alloc_;
@@ -183,6 +253,69 @@ int cx_var_map_setn(CxVar* var, const char* key, size_t klen, CxVar v) {
         return 0;
     }
     return 1;
+}
+int cx_var_set_map_null(CxVar* map, const char* key) {
+
+    const CxVar val = cx_var_new_null();
+    return cx_var_set_map_val(map, key, val);
+}
+
+int cx_var_set_map_bool(CxVar* map, const char* key, bool v) {
+
+    const CxVar val = cx_var_new_bool(v);
+    return cx_var_set_map_val(map, key, val);
+}
+
+int cx_var_set_map_int(CxVar* map, const char* key, int64_t v) {
+
+    const CxVar val = cx_var_new_int(v);
+    return cx_var_set_map_val(map, key, val);
+}
+
+int cx_var_set_map_float(CxVar* map, const char* key, double v) {
+
+    const CxVar val = cx_var_new_float(v);
+    return cx_var_set_map_val(map, key, val);
+}
+
+int cx_var_set_map_str(CxVar* map, const char* key, const char* v) {
+
+    if (map->type != CxVarMap) {
+        return 1;
+    }
+    const CxAllocator* alloc = map->v.map->alloc_;
+    const CxVar val = cx_var_new_str(v, alloc);
+    return cx_var_set_map_val(map, key, val);
+}
+
+int cx_var_set_map_arr(CxVar* map, const char* key, CxVar v) {
+
+    if (map->type != CxVarMap) {
+        return 1;
+    }
+    const CxAllocator* alloc = map->v.map->alloc_;
+    const CxVar arr = cx_var_new_arr(alloc);
+    return cx_var_set_map_val(map, key, arr);
+}
+
+int cx_var_set_map_map(CxVar* map, const char* key, CxVar v) {
+
+    if (map->type != CxVarMap) {
+        return 1;
+    }
+    const CxAllocator* alloc = map->v.map->alloc_;
+    const CxVar map_val = cx_var_new_map(alloc);
+    return cx_var_set_map_val(map, key, map_val);
+}
+
+int cx_var_set_map_buf(CxVar* map, const char* key, void* data, size_t len) {
+
+    if (map->type != CxVarMap) {
+        return 1;
+    }
+    const CxAllocator* alloc = map->v.map->alloc_;
+    const CxVar buf_val = cx_var_new_buf(data, len, alloc);
+    return cx_var_set_map_val(map, key, buf_val);
 }
 
 int cx_var_buf_push(CxVar* var, void* data, size_t len) {

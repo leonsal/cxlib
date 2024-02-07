@@ -156,6 +156,7 @@ static int cx_json_build_arr(BuildState* bs, const CxVar* var) {
         }
     }
     CHKW(cx_writer_write_str(bs->out, "]"));
+    return 0;
 }
 
 static int cx_json_build_map(BuildState* bs, const CxVar* var) {
@@ -181,5 +182,6 @@ static int cx_json_build_map(BuildState* bs, const CxVar* var) {
         idx++;
     }
     CHKW(cx_writer_write_str(bs->out, "}"));
+    return 0;
 }
 
