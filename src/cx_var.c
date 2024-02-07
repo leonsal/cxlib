@@ -16,6 +16,11 @@
 #define CHKNULL(V) if (V == NULL) { return (CxVar){0}; } 
 #define CHKR(V)    {int res = V; if (res) {return res;}}
 
+CxVar cx_var_new_undef(void) {
+
+    return (CxVar){.type = CxVarUndef};
+}
+
 CxVar cx_var_new_null(void) {
 
     return (CxVar){.type = CxVarNull};
