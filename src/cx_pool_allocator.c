@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <time.h>
+#include <pthread.h>
 
 #include "cx_alloc.h"
 #include "cx_pool_allocator.h"
@@ -17,6 +18,7 @@ typedef struct Block {
 
 // Block Allocator state
 typedef struct CxPoolAllocator {
+    pthread_mutex_t     lock;
     const CxAllocator*  alloc;      // Allocator for blocks
     CxAllocator         userAlloc;  // Allocator interface
     size_t              blockSize;  // Minimum block size
@@ -47,6 +49,7 @@ CxPoolAllocator* cx_pool_allocator_create(size_t blockSize, const CxAllocator* a
         .alloc = (CxAllocatorAllocFn)cx_pool_allocator_alloc,
         .free = cxAllocPoolDummyFree,
     };
+    assert(pthread_mutex_init(&a->lock, NULL) == 0);
 
     a->blockSize = blockSize;
     a->nextFree = NULL;
@@ -61,6 +64,7 @@ CxPoolAllocator* cx_pool_allocator_create(size_t blockSize, const CxAllocator* a
 void cx_pool_allocator_destroy(CxPoolAllocator* a) {
 
     cx_pool_allocator_free(a);
+    assert(pthread_mutex_destroy(&a->lock) == 0);
     cx_alloc_free(a->alloc, a, sizeof(CxPoolAllocator));
 }
 
@@ -71,27 +75,33 @@ void* cx_pool_allocator_alloc(CxPoolAllocator* a, size_t size) {
 
 void* cx_pool_allocator_alloc2(CxPoolAllocator* a, size_t size, size_t align) {
 
+    assert(pthread_mutex_lock(&a->lock) == 0);
+    void* pdata = NULL;
     uintptr_t padding = 0;
     if (a->currBlock) {
         padding = alignForward(a->used, align) - a->used;
     }
     if (a->currBlock == NULL || (a->used + padding + size > a->currBlock->size)) {
         if (newBlock(a, size)) {
-            return NULL;
+            goto exit;
         }
         padding = 0;
     }
-    void *p = a->currBlock->data + a->used + padding;
+    pdata = a->currBlock->data + a->used + padding;
     a->used += padding + size;
     a->nallocs++;
     a->nbytes += size;
-    return p;
+
+exit:
+    assert(pthread_mutex_unlock(&a->lock) == 0);
+    return pdata;
 }
 
 void cx_pool_allocator_clear(CxPoolAllocator* a) {
 
+    assert(pthread_mutex_lock(&a->lock) == 0);
     if (a->firstBlock == NULL) {
-        return;
+        goto exit;
     }
     // Join free blocks chain with the used blocks
     if (a->nextFree != NULL) {
@@ -110,10 +120,14 @@ void cx_pool_allocator_clear(CxPoolAllocator* a) {
     a->used = 0;
     a->nallocs = 0;
     a->nbytes = 0;
+
+exit:
+    assert(pthread_mutex_unlock(&a->lock) == 0);
 }
 
 void cx_pool_allocator_free(CxPoolAllocator* a) {
 
+    assert(pthread_mutex_lock(&a->lock) == 0);
     // Free used blocks
     Block *b = a->firstBlock;
     while (b != NULL) {
@@ -134,6 +148,7 @@ void cx_pool_allocator_free(CxPoolAllocator* a) {
     a->used = 0;
     a->nallocs = 0;
     a->nbytes = 0;
+    assert(pthread_mutex_unlock(&a->lock) == 0);
 }
 
 static void cxAllocPoolDummyFree(void* ctx, void* p, size_t n) {}
@@ -143,8 +158,9 @@ const CxAllocator* cx_pool_allocator_iface(CxPoolAllocator* a) {
     return &a->userAlloc;
 }
 
-CxPoolAllocatorStats cx_pool_allocator_stats(const CxPoolAllocator* a) {
+CxPoolAllocatorStats cx_pool_allocator_stats(CxPoolAllocator* a) {
 
+    assert(pthread_mutex_lock(&a->lock) == 0);
     CxPoolAllocatorStats stats = {
         .nallocs = a->nallocs,
         .nbytes = a->nbytes,
@@ -163,6 +179,7 @@ CxPoolAllocatorStats cx_pool_allocator_stats(const CxPoolAllocator* a) {
         stats.freeBlocks++;
         curr = curr->next;
     }
+    assert(pthread_mutex_unlock(&a->lock) == 0);
     return stats;
 }
 

@@ -39,9 +39,8 @@ void* cx_pool_allocator_alloc2(CxPoolAllocator* a, size_t size, size_t align);
 //
 void cx_pool_allocator_clear(CxPoolAllocator* a);
 
-//
-// Free all allocated memory
-//
+// Free all allocated memory from upstream allocator.
+// This allocator can continue to be used
 void cx_pool_allocator_free(CxPoolAllocator* a);
 
 //
@@ -52,7 +51,7 @@ const CxAllocator* cx_pool_allocator_iface(CxPoolAllocator* a);
 //
 // Returns allocator statistics
 //
-CxPoolAllocatorStats cx_pool_allocator_stats(const CxPoolAllocator* a);
+CxPoolAllocatorStats cx_pool_allocator_stats(CxPoolAllocator* a);
 
 #endif
 

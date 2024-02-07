@@ -60,59 +60,28 @@ typedef struct CxVar {
 #endif
 #include "cx_hmap.h"
 
-
-// Returns CxVar of null type
+// Returns CxVar of the specified type
+// For CxVar of types string, array and map is necessary to
+// supply an allocator.
 CxVar cx_var_new_null(void);
-
-// Returns CxVar of bool type
 CxVar cx_var_new_bool(bool val);
-
-// Returns CxVar of integer type
 CxVar cx_var_new_int(int64_t val);
-
-// Returns CxVar of floating point type
 CxVar cx_var_new_float(double val);
-
-// Returns CxVar of string type
 CxVar cx_var_new_str(const char* str, const CxAllocator* alloc);
-
-// Returns CxVar of string type
 CxVar cx_var_new_strn(const char* str, size_t slen, const CxAllocator* alloc);
-
-// Returns CxVar of array type
 CxVar cx_var_new_arr(const CxAllocator* alloc);
-
-// Returns CxVar of map type
 CxVar cx_var_new_map(const CxAllocator* alloc);
 
 // Deletes allocated memory from previously created CxVar.
 void cx_var_del(CxVar* var);
 
-// Sets value of boolean CxVar.
-// Returns non-zero error if CxVar has not boolean type
+// Sets value of CxVar.
+// Returns non-zero error if CxVar is not of the specified type
 int cx_var_set_bool(CxVar* var, bool vb);
-
-// Set value of integer CxVar
-// Returns non-zero error if CxVar has not integer type
 int cx_var_set_int(CxVar* var, int64_t vi);
-
-// Set value of floating point CxVar
-// Returns non-zero error if CxVar has not floating point type
 int cx_var_set_float(CxVar* var, double vd);
-
-// Set value of string CxVar.
-// The specified nul terminated string is copied into the CxVar.
-// Returns non-zero error if CxVar has not floating point type
 int cx_var_set_str(CxVar* var, const char* str);
-
-// Set value of string CxVar.
-// The specified nul terminated string is copied into the CxVar.
-// Returns non-zero error if CxVar has not floating point type
 int cx_var_set_strn(CxVar* var, const char* str, size_t slen);
-
-// Set value of string CxVar.
-// The specified string is copied into the CxVar.
-// Returns non-zero error if CxVar has not floating point type
 int cx_var_set_strn(CxVar* var, const char* str, size_t len);
 
 // Push CxVar into an array CxVar.
@@ -130,20 +99,12 @@ int cx_var_map_setn(CxVar* var, const char* key, size_t klen, CxVar v);
 // Returns the type of CxVar.
 CxVarType cx_var_get_type(const CxVar* var);
 
-// Get value of boolean CxVar
-// Returns non-zero error if 'var' has not boolean type
+// Get value of CxVar
+// Returns non-zero error if 'var' has not of the requested type
+int cx_var_get_null(const CxVar* var);
 int cx_var_get_bool(const CxVar* var, bool *pval);
-
-// Get value of integer CxVar
-// Returns non-zero error if 'var' is not of integer type
 int cx_var_get_int(const CxVar* var, int64_t* pval);
-
-// Get value of float CxVar
-// Returns non-zero error if 'var' is not of integer type
 int cx_var_get_float(const CxVar* var, double* pval);
-
-// Get value of string CxVar 
-// Returns non-zero error if 'var' is not of string type
 int cx_var_get_str(const CxVar* var, const char** pval);
 
 // Returns the number of elements of the CxVar array.
@@ -153,7 +114,7 @@ int cx_var_get_arr_len(const CxVar* var, size_t* len);
 // Get value at the specified index from CxVar array.
 // Returns non-zero error if 'arr' is not of array type
 // or the index is invalid or the element at the specified index
-// if not of the requested type.
+// is not of the requested type.
 int cx_var_get_arr_val(const CxVar* arr, size_t index, CxVar* pval);
 int cx_var_get_arr_null(const CxVar* arr, size_t index);
 int cx_var_get_arr_bool(const CxVar* arr, size_t index, bool* pbool);
@@ -169,7 +130,8 @@ int cx_var_get_map_count(const CxVar* var, size_t* len);
 
 // Get value with the specified key from CxVar map
 // Returns non-zero error if 'var' is not of map type
-// or the key was not found.
+// or the key was not found or the element associated with the key
+// is not of the requested type.
 int cx_var_get_map_val(const CxVar* var, const char* key, CxVar* pval);
 int cx_var_get_map_null(const CxVar* var, const char* key);
 int cx_var_get_map_bool(const CxVar* arr, const char* key, bool* pbool);
