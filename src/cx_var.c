@@ -69,6 +69,16 @@ CxVar cx_var_new_map(const CxAllocator* alloc) {
     return var;
 }
 
+CxVar cx_var_new_buf(void* data, size_t len, const CxAllocator* alloc) {
+
+    CxVar var = {.type = CxVarBuf };
+    var.v.buf = cx_alloc_malloc(alloc, len);
+    CHKNULL(var.v.buf);
+    *(var.v.buf) = cxvar_buf_init(alloc);
+    cxvar_buf_pushn(var.v.buf, data, len);
+    return var;
+}
+
 void cx_var_del(CxVar* var) {
 
     if (var->type == CxVarStr) {
@@ -95,6 +105,10 @@ void cx_var_del(CxVar* var) {
         }
         cxvar_map_free(var->v.map);
         cx_alloc_free(alloc, var->v.map, sizeof(cxvar_map));
+    } else if (var->type == CxVarBuf) {
+        const CxAllocator* alloc = var->v.buf->alloc_;
+        cxvar_buf_free(var->v.buf);
+        cx_alloc_free(alloc, var->v.buf, sizeof(cxvar_buf));
     }
     var->type = CxVarNone;
     var->v.str = NULL;
@@ -171,6 +185,15 @@ int cx_var_map_setn(CxVar* var, const char* key, size_t klen, CxVar v) {
     return 1;
 }
 
+int cx_var_buf_push(CxVar* var, void* data, size_t len) {
+
+    if (var->type == CxVarBuf) {
+        cxvar_buf_pushn(var->v.buf, data, len);
+        return 0;
+    }
+    return 1;
+}
+
 CxVarType cx_var_get_type(const CxVar* var) {
 
     return var->type;
@@ -207,6 +230,16 @@ int cx_var_get_str(const CxVar* var, const char** pval) {
 
     if (var->type == CxVarStr) {
         *pval = var->v.str->data;
+        return 0;
+    }
+    return 1;
+}
+
+int cx_var_get_buf(const CxVar* var, const void** data, size_t* len) {
+
+    if (var->type == CxVarBuf) {
+        *data = var->v.buf->data;
+        *len = cxvar_buf_len(var->v.buf);
         return 0;
     }
     return 1;
@@ -280,6 +313,13 @@ int cx_var_get_arr_map(const CxVar* arr, size_t index, CxVar* map_el) {
     return cx_var_get_type(map_el) == CxVarMap ? 0 : 1;
 }
 
+int cx_var_get_arr_buf(const CxVar* arr, size_t index, const void** data, size_t* len) {
+
+    CxVar el;
+    CHKR(cx_var_get_arr_val(arr, index, &el));
+    return cx_var_get_buf(&el, data, len);
+}
+
 int cx_var_get_map_count(const CxVar* var, size_t* len) {
 
     if (var->type == CxVarMap) {
@@ -349,5 +389,11 @@ int cx_var_get_map_map(const CxVar* map, const char* key, CxVar* var) {
     return cx_var_get_type(var) == CxVarMap ? 0 : 1;
 }
 
+int cx_var_get_map_buf(const CxVar* map, const char* key, const void** data, size_t* len) {
+
+    CxVar var;
+    CHKR(cx_var_get_map_val(map, key, &var));
+    return cx_var_get_buf(&var, data, len); 
+}
 
 

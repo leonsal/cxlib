@@ -14,6 +14,7 @@ typedef enum {
     CxVarStr,
     CxVarArr,
     CxVarMap,
+    CxVarBuf,
 } CxVarType;
 
 // Declare/define dynamic string used in CxVar
@@ -27,6 +28,7 @@ typedef enum {
 // Declare CxVar state
 typedef struct cxvar_arr cxvar_arr;
 typedef struct cxvar_map cxvar_map;
+typedef struct cxvar_buf cxvar_buf;
 typedef struct CxVar {
     CxVarType type;    
     union {
@@ -36,12 +38,22 @@ typedef struct CxVar {
         cxvar_str*  str;
         cxvar_arr*  arr;
         cxvar_map*  map;
+        cxvar_buf*  buf;
     } v;
 } CxVar;
 
 // Declare/define dynamic array used in CxVar
 #define cx_array_name cxvar_arr
 #define cx_array_type CxVar
+#define cx_array_instance_allocator
+#ifdef CX_VAR_IMPLEMENT
+#define cx_array_implement
+#endif
+#include "cx_array.h"
+
+// Declare/define dynamic buffer used in CxVar
+#define cx_array_name cxvar_buf
+#define cx_array_type uint8_t
 #define cx_array_instance_allocator
 #ifdef CX_VAR_IMPLEMENT
 #define cx_array_implement
@@ -71,6 +83,7 @@ CxVar cx_var_new_str(const char* str, const CxAllocator* alloc);
 CxVar cx_var_new_strn(const char* str, size_t slen, const CxAllocator* alloc);
 CxVar cx_var_new_arr(const CxAllocator* alloc);
 CxVar cx_var_new_map(const CxAllocator* alloc);
+CxVar cx_var_new_buf(void* data, size_t len, const CxAllocator* alloc);
 
 // Deletes allocated memory from previously created CxVar.
 void cx_var_del(CxVar* var);
@@ -82,7 +95,7 @@ int cx_var_set_int(CxVar* var, int64_t vi);
 int cx_var_set_float(CxVar* var, double vd);
 int cx_var_set_str(CxVar* var, const char* str);
 int cx_var_set_strn(CxVar* var, const char* str, size_t slen);
-int cx_var_set_strn(CxVar* var, const char* str, size_t len);
+int cx_var_set_buf(CxVar* var, void* data, size_t len);
 
 // Push CxVar into an array CxVar.
 // Returns non-zero error if 'var' has not array type
@@ -96,6 +109,10 @@ int cx_var_map_set(CxVar* var, const char* key, CxVar v);
 // Returns non-zero error if 'var' has not map type
 int cx_var_map_setn(CxVar* var, const char* key, size_t klen, CxVar v);
 
+// Pushes data into the CxVar buf.
+// Returns non-zero error if 'var' is of CxVarBuf type.
+int cx_var_buf_push(CxVar* var, void* data, size_t len);
+
 // Returns the type of CxVar.
 CxVarType cx_var_get_type(const CxVar* var);
 
@@ -106,6 +123,7 @@ int cx_var_get_bool(const CxVar* var, bool *pval);
 int cx_var_get_int(const CxVar* var, int64_t* pval);
 int cx_var_get_float(const CxVar* var, double* pval);
 int cx_var_get_str(const CxVar* var, const char** pval);
+int cx_var_get_buf(const CxVar* var, const void** data, size_t* len);
 
 // Returns the number of elements of the CxVar array.
 // Returns non-zero error if CxVar is not of array type.
@@ -123,6 +141,7 @@ int cx_var_get_arr_float(const CxVar* arr, size_t index, double* pfloat);
 int cx_var_get_arr_str(const CxVar* arr, size_t index, const char** pstr);
 int cx_var_get_arr_arr(const CxVar* arr, size_t index, CxVar* arr_el);
 int cx_var_get_arr_map(const CxVar* arr, size_t index, CxVar* map_el);
+int cx_var_get_arr_buf(const CxVar* arr, size_t index, const void** data, size_t* len);
 
 // Returns the number of entries from the CxVar map.
 // Returns non-zero error if CxVar is not of map type.
@@ -132,14 +151,16 @@ int cx_var_get_map_count(const CxVar* var, size_t* len);
 // Returns non-zero error if 'var' is not of map type
 // or the key was not found or the element associated with the key
 // is not of the requested type.
-int cx_var_get_map_val(const CxVar* var, const char* key, CxVar* pval);
-int cx_var_get_map_null(const CxVar* var, const char* key);
-int cx_var_get_map_bool(const CxVar* arr, const char* key, bool* pbool);
-int cx_var_get_map_int(const CxVar* arr, const char* key, int64_t* pint);
-int cx_var_get_map_float(const CxVar* arr, const char* key, double* pfloat);
-int cx_var_get_map_str(const CxVar* arr, const char* key, const char** pstr);
-int cx_var_get_map_arr(const CxVar* arr, const char* key, CxVar* arr_el);
-int cx_var_get_map_map(const CxVar* arr, const char* key, CxVar* map_el);
+int cx_var_get_map_val(const CxVar* map, const char* key, CxVar* pval);
+int cx_var_get_map_null(const CxVar* map, const char* key);
+int cx_var_get_map_bool(const CxVar* map, const char* key, bool* pbool);
+int cx_var_get_map_int(const CxVar* map, const char* key, int64_t* pint);
+int cx_var_get_map_float(const CxVar* map, const char* key, double* pfloat);
+int cx_var_get_map_str(const CxVar* map, const char* key, const char** pstr);
+int cx_var_get_map_arr(const CxVar* map, const char* key, CxVar* arr_el);
+int cx_var_get_map_map(const CxVar* map, const char* key, CxVar* map_el);
+int cx_var_get_map_buf(const CxVar* map, const char* key, const void** data, size_t* len);
+
 
 #endif
 
