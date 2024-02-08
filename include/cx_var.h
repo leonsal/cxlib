@@ -73,8 +73,8 @@ CxVarType cx_var_get_type(const CxVar* var);
 
 // Get value of CxVar
 // Returns false if CxVar is not of the requested type
-bool cx_var_is_undef(const CxVar* var);
-bool cx_var_is_null(const CxVar* var);
+bool cx_var_get_undef(const CxVar* var);
+bool cx_var_get_null(const CxVar* var);
 bool cx_var_get_bool(const CxVar* var, bool *pval);
 bool cx_var_get_int(const CxVar* var, int64_t* pval);
 bool cx_var_get_float(const CxVar* var, double* pval);
