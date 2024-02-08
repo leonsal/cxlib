@@ -123,9 +123,11 @@ void* cx_pool_allocator_realloc(CxPoolAllocator* a, void* old_ptr, size_t old_si
         return pnew;
     }
 
-    assert(pthread_mutex_lock(&a->lock) == 0);
-    memcpy(pnew, old_ptr, old_size);
-    assert(pthread_mutex_unlock(&a->lock) == 0);
+    if (old_ptr != NULL) {
+        assert(pthread_mutex_lock(&a->lock) == 0);
+        memcpy(pnew, old_ptr, old_size);
+        assert(pthread_mutex_unlock(&a->lock) == 0);
+    }
     return pnew;
 }
 

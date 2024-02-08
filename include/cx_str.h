@@ -228,6 +228,8 @@ Return 0 if equal, -1 or 1 (as memcmp())
         const CxAllocator* alloc_;
     #define cx_str_alloc_(s,n)\
         cx_alloc_malloc(s->alloc_, n)
+    #define cx_str_realloc_(s,oldp,oldn,n)\
+        cx_alloc_realloc(s->alloc_, oldp,oldn, n)
     #define cx_str_free_(s,p,n)\
         cx_alloc_free(s->alloc_, p, n)
 // Use global type allocator
@@ -321,47 +323,27 @@ cx_str_api_ void cx_str_name_(_rtrim)(cx_str_name* s, const char* cset);
     extern char* utf8catcodepoint(char* str, int32_t chr, size_t n);
 
 // Internal string reallocation function
-static void cx_str_name_(_grow_)(cx_str_name* s, size_t addLen, size_t minCap) {
+// The requested 'new_len' does not count the nul terminating byte.
+static void cx_str_name_(_grow_)(cx_str_name* s, size_t new_len) {
 
-    size_t minLen = s->len_ + addLen;
-    if (minLen > minCap) {
-        minCap = minLen;
-    }
-    if (minCap <= s->cap_) {
+    if (new_len <= s->len_) {
         return;
     }
-
-    // Increase needed capacity to guarantee O(1) amortized
-    if (minCap < 2 * s->cap_) {
-        minCap = 2 * s->cap_;
-    }
-    else if (minCap < 4) {
-        minCap = 4;
-    }
-
-#ifdef cx_str_error_handler
-    if (minCap + 1 > cx_str_max_cap_) {
-        cx_str_error_handler("capacity exceeded",__func__);
+    if (new_len + 1 < s->cap_) {
         return;
     }
-#endif
+    size_t new_cap = 2 * new_len;
 
-    // Allocates new capacity
-    const size_t elemSize = sizeof(*(s->data));
-    const size_t allocSize = elemSize * (minCap + 1);
-    void* new = cx_str_alloc_(s, allocSize);
+    const size_t elem_size = sizeof(*(s->data));
+    const size_t alloc_size = elem_size * new_cap;
+    void* new = cx_str_realloc_(s, s->data, s->cap_, alloc_size);
     if (new == NULL) {
         return;
     }
-
-    // Copy current data to new area and free previous
-    if (s->data) {
-        memcpy(new, s->data, (s->len_ + 1) * elemSize);
-        cx_str_free_(s, s->data, (s->len_ + 1) * elemSize);
-    }
     s->data = new;
-    s->cap_ = minCap;
+    s->cap_ = new_cap;
 }
+
 
 #ifdef cx_str_instance_allocator
 
@@ -435,9 +417,7 @@ cx_str_api_ void cx_str_name_(_clear)(cx_str_name* s) {
 
 cx_str_api_ void cx_str_name_(_reserve)(cx_str_name* s, size_t n) {
 
-    if (s->len_ + n < s->cap_) {
-        cx_str_name_(_grow_)(s, 0, s->len_ + n);
-    }
+    cx_str_name_(_grow_)(s, s->len_ + n);
 }
 
 cx_str_api_ size_t cx_str_name_(_cap)(const cx_str_name* s) {
@@ -467,7 +447,7 @@ cx_str_api_ bool cx_str_name_(_empty)(const cx_str_name* s) {
 
 cx_str_api_ void cx_str_name_(_setcap)(cx_str_name* s, size_t cap) {
 
-    cx_str_name_(_grow_)(s, 0, cap);
+    cx_str_name_(_grow_)(s, cap);
 }
 
 cx_str_api_ void cx_str_name_(_cpyn)(cx_str_name* s, const char* src, size_t n) {
@@ -475,14 +455,10 @@ cx_str_api_ void cx_str_name_(_cpyn)(cx_str_name* s, const char* src, size_t n) 
     if (src == NULL) {
         return;
     }
-    if (n > s->cap_) {
-        cx_str_name_(_grow_)(s, 0, n);
-    }
+    cx_str_name_(_grow_)(s, n);
     memcpy(s->data, src, n);
     s->len_ = n;
-    if (s->len_) {
-        s->data[s->len_] = 0;
-    }
+    s->data[s->len_] = 0;
 }
 
 cx_str_api_ void cx_str_name_(_cpy)(cx_str_name* s, const char* src) {
@@ -500,9 +476,7 @@ cx_str_api_ void cx_str_name_(_cpys)(cx_str_name* s, const cx_str_name* src) {
 
 cx_str_api_ void cx_str_name_(_catn)(cx_str_name* s, const char* src, size_t n) {
 
-    if (s->len_ + n > s->cap_) {
-        cx_str_name_(_grow_)(s, s->len_ + n, 0);
-    }
+    cx_str_name_(_grow_)(s, s->len_ + n);
     memcpy(s->data + s->len_, src, n);
     s->len_ += n;
     if (s->len_) {
@@ -529,9 +503,7 @@ cx_str_api_ void cx_str_name_(_cats)(cx_str_name* s, const cx_str_name* src) {
 cx_str_api_ void cx_str_name_(_catcp)(cx_str_name* s, int32_t cp) {
 
     const size_t size = utf8codepointsize(cp);
-    if (s->len_ + size > s->cap_) {
-        cx_str_name_(_grow_)(s, s->len_ + size, 0);
-    }
+    cx_str_name_(_grow_)(s, s->len_ + size);
     utf8catcodepoint(s->data + s->len_, cp, size);
     s->len_ += size;
     s->data[s->len_] = 0;
@@ -546,9 +518,7 @@ cx_str_api_ void cx_str_name_(_insn)(cx_str_name* s, const char* src, size_t n, 
     }
 #endif
 
-    if (s->len_ + n > s->cap_) {
-        cx_str_name_(_grow_)(s, n, 0);
-    }
+    cx_str_name_(_grow_)(s, s->len_ + n);
     memmove(s->data + idx + n, s->data + idx, s->len_ - idx);
     memcpy(s->data + idx, src, n);
     s->len_ += n;
@@ -759,9 +729,7 @@ cx_str_api_ void cx_str_name_(_replace)(cx_str_name* s, const char* old, const c
             cx_str_name_(_deln)(s, pos, olen - nlen);
         } else if (olen < nlen) {
             const size_t addLen = nlen - olen;
-            if (s->len_ + addLen > s->cap_) {
-                cx_str_name_(_grow_)(s, addLen, 0);
-            }
+            cx_str_name_(_grow_)(s, s->len_ + addLen);
             memmove(s->data + pos + olen + addLen, s->data + pos + olen, s->len_ - pos);
             s->len_ += addLen;
             s->data[s->len_] = 0;

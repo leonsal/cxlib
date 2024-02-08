@@ -24,6 +24,7 @@ void cx_var_tests(void) {
 void cx_var_test(const CxAllocator* alloc) {
 
     LOGI("var alloc=%p", alloc);
+    // Primitives
     {
         CxVar* var = cx_var_new(alloc);
 
@@ -48,12 +49,6 @@ void cx_var_test(const CxAllocator* alloc) {
         cx_var_set_float(var, -0.1);
         CHK(cx_var_get_float(var, &vfloat) == 0 && vfloat == -0.1);
 
-        const char* pstr;
-        cx_var_set_str(var, "string");
-        CHK(cx_var_get_str(var, &pstr) == 0 && strcmp(pstr, "string") == 0);
-
-        cx_var_set_arr(var);
-        CHK(cx_var_get_type(var) == CxVarArr);
 
         cx_var_set_map(var);
         CHK(cx_var_get_type(var) == CxVarMap);
@@ -66,6 +61,7 @@ void cx_var_test(const CxAllocator* alloc) {
         cx_var_del(var);
     }
 
+    // String
     {
         CxVar* var = cx_var_new(alloc);
 
@@ -78,9 +74,43 @@ void cx_var_test(const CxAllocator* alloc) {
 
         sets = "0123456789";
         cx_var_set_str(var, sets);
-        CHK(cx_var_get_str(var, &sets) == 0 && strcmp(gets, sets) == 0);
+        CHK(cx_var_get_str(var, &gets) == 0 && strcmp(gets, sets) == 0);
+
+        sets = "";
+        cx_var_set_str(var, sets);
+        CHK(cx_var_get_str(var, &gets) == 0 && strcmp(gets, sets) == 0);
 
         cx_var_del(var);
+    }
+
+    // Array
+    {
+        CxVar* arr = cx_var_set_arr(cx_var_new(alloc));
+        size_t len;
+
+        CHK(cx_var_get_type(arr) == CxVarArr);
+        CHK(cx_var_get_arr_len(arr, &len) == 0 && len == 0);
+
+        CHKN(cx_var_push_arr_null(arr));
+        CHKN(cx_var_push_arr_bool(arr, true));
+        CHKN(cx_var_push_arr_bool(arr, false));
+        CHKN(cx_var_push_arr_int(arr, 42));
+        CHKN(cx_var_push_arr_float(arr, -0.1));
+        {
+            CxVar* arr_el = cx_var_push_arr_arr(arr);
+            CHKN(arr_el);
+            CHKN(cx_var_push_arr_null(arr_el));
+            CHKN(cx_var_push_arr_bool(arr_el, false));
+            CHKN(cx_var_push_arr_int(arr_el, 88));
+            CHKN(cx_var_push_arr_float(arr_el, 0.4));
+        }
+        {
+            CxVar* map_el = cx_var_push_arr_map(arr);
+            CHKN(map_el);
+            CHKN(cx_var_set_map_null(map_el, "k1"));
+        }
+
+        cx_var_del(arr);
     }
 
 }

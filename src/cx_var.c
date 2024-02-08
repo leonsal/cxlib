@@ -78,40 +78,45 @@ void cx_var_del(CxVar* var) {
     cx_alloc_free(var->alloc, var, sizeof(CxVar));
 }
 
-void cx_var_set_undef(CxVar* var) {
+CxVar* cx_var_set_undef(CxVar* var) {
 
     cx_var_free_cont(var);
     var->type = CxVarUndef;
+    return var;
 }
 
-void cx_var_set_null(CxVar* var) {
+CxVar* cx_var_set_null(CxVar* var) {
 
     cx_var_free_cont(var);
     var->type = CxVarNull;
+    return var;
 }
 
-void cx_var_set_bool(CxVar* var, bool v) {
+CxVar* cx_var_set_bool(CxVar* var, bool v) {
 
     cx_var_free_cont(var);
     var->type = CxVarBool;
     var->v.boolean = v;
+    return var;
 }
 
-void cx_var_set_int(CxVar* var, int64_t v) {
+CxVar* cx_var_set_int(CxVar* var, int64_t v) {
 
     cx_var_free_cont(var);
     var->type = CxVarInt;
     var->v.i64 = v;
+    return var;
 }
 
-void cx_var_set_float(CxVar* var, double v) {
+CxVar* cx_var_set_float(CxVar* var, double v) {
 
     cx_var_free_cont(var);
     var->type = CxVarFloat;
     var->v.f64 = v;
+    return var;
 }
 
-void cx_var_set_strn(CxVar* var, const char* str, size_t len) {
+CxVar* cx_var_set_strn(CxVar* var, const char* str, size_t len) {
 
     if (var->type != CxVarStr) {
         cx_var_free_cont(var);
@@ -120,14 +125,15 @@ void cx_var_set_strn(CxVar* var, const char* str, size_t len) {
         *(var->v.str) = cxvar_str_init(var->alloc);
     }
     cxvar_str_cpyn(var->v.str, str, len);
+    return var;
 }
 
-void cx_var_set_str(CxVar* var, const char* str) {
+CxVar* cx_var_set_str(CxVar* var, const char* str) {
 
-    cx_var_set_strn(var, str, strlen(str));
+    return cx_var_set_strn(var, str, strlen(str));
 }
 
-void cx_var_set_arr(CxVar* var) {
+CxVar* cx_var_set_arr(CxVar* var) {
 
     if (var->type != CxVarArr) {
         cx_var_free_cont(var);
@@ -136,10 +142,10 @@ void cx_var_set_arr(CxVar* var) {
         *(var->v.arr) = cxvar_arr_init(var->alloc);
     }
     cxvar_arr_clear(var->v.arr);
+    return var;
 }
 
-
-void cx_var_set_map(CxVar* var) {
+CxVar* cx_var_set_map(CxVar* var) {
 
     if (var->type != CxVarMap) {
         cx_var_free_cont(var);
@@ -148,9 +154,10 @@ void cx_var_set_map(CxVar* var) {
         *(var->v.map) = cxvar_map_init(var->alloc, 0);
     }
     cxvar_map_clear(var->v.map);
+    return var;
 }
 
-void cx_var_set_buf(CxVar* var, void* data, size_t len) {
+CxVar* cx_var_set_buf(CxVar* var, void* data, size_t len) {
 
     if (var->type != CxVarBuf) {
         cx_var_free_cont(var);
@@ -162,10 +169,121 @@ void cx_var_set_buf(CxVar* var, void* data, size_t len) {
     if (data != NULL) {
         cxvar_buf_pushn(var->v.buf, data, len);
     }
+    return var;
 }
 
+CxVar* cx_var_push_arr_val(CxVar* arr, CxVar* val) {
 
+    if (arr->type != CxVarArr) {
+        return NULL;
+    }
+    cxvar_arr_push(arr->v.arr, val);
+    return val;
+}
 
+CxVar* cx_var_push_arr_null(CxVar* arr) {
+
+    return cx_var_push_arr_val(arr, cx_var_set_null(cx_var_new(arr->alloc)));
+}
+
+CxVar* cx_var_push_arr_bool(CxVar* arr, bool v) {
+
+    return cx_var_push_arr_val(arr, cx_var_set_bool(cx_var_new(arr->alloc), v));
+}
+
+CxVar* cx_var_push_arr_int(CxVar* arr, int64_t v) {
+
+    return cx_var_push_arr_val(arr, cx_var_set_int(cx_var_new(arr->alloc), v));
+}
+
+CxVar* cx_var_push_arr_float(CxVar* arr, double v) {
+
+    return cx_var_push_arr_val(arr, cx_var_set_float(cx_var_new(arr->alloc), v));
+}
+
+CxVar* cx_var_push_arr_str(CxVar* arr, const char* str) {
+
+    return cx_var_push_arr_val(arr, cx_var_set_str(cx_var_new(arr->alloc), str));
+}
+
+CxVar* cx_var_push_arr_strn(CxVar* arr, const char* str, size_t len) {
+
+    return cx_var_push_arr_val(arr, cx_var_set_strn(cx_var_new(arr->alloc), str, len));
+}
+
+CxVar* cx_var_push_arr_buf(CxVar* arr, void* data, size_t len) {
+
+    return cx_var_push_arr_val(arr, cx_var_set_buf(cx_var_new(arr->alloc), data, len));
+}
+
+CxVar* cx_var_push_arr_arr(CxVar* arr) {
+
+    return cx_var_push_arr_val(arr, cx_var_set_arr(cx_var_new(arr->alloc)));
+}
+
+CxVar* cx_var_push_arr_map(CxVar* arr) {
+
+    return cx_var_push_arr_val(arr, cx_var_set_map(cx_var_new(arr->alloc)));
+}
+
+CxVar* cx_var_set_map_val(CxVar* map, const char* key, CxVar* val) {
+
+    if (map->type != CxVarMap) {
+        return NULL;
+    }
+
+    // If no current value at this key, sets with the specified 'val'
+    CxVar** curr = cxvar_map_get(map->v.map, (char*)key);
+    if (curr == NULL) {
+        char* key_copy = cx_alloc_malloc(map->alloc, sizeof(key)+1);
+        strcpy(key_copy, key);
+        cxvar_map_set(map->v.map, key_copy, val);
+        return val;
+    }
+    cx_var_del(*curr);
+    cxvar_map_set(map->v.map, (char*)key, val);
+    return val;
+}
+
+CxVar* cx_var_set_map_null(CxVar* map, const char* key) {
+
+    return cx_var_set_map_val(map, key, cx_var_set_null(cx_var_new(map->alloc)));
+}
+
+CxVar* cx_var_set_map_bool(CxVar* map, const char* key, bool v) {
+
+    return cx_var_set_map_val(map, key, cx_var_set_bool(cx_var_new(map->alloc), v));
+}
+
+CxVar* cx_var_set_map_int(CxVar* map, const char* key, int64_t v) {
+
+    return cx_var_set_map_val(map, key, cx_var_set_int(cx_var_new(map->alloc), v));
+}
+
+CxVar* cx_var_set_map_float(CxVar* map, const char* key, double v) {
+
+    return cx_var_set_map_val(map, key, cx_var_set_float(cx_var_new(map->alloc), v));
+}
+
+CxVar* cx_var_set_map_str(CxVar* map, const char* key, const char* v) {
+
+    return cx_var_set_map_val(map, key, cx_var_set_str(cx_var_new(map->alloc), v));
+}
+
+CxVar* cx_var_set_map_arr(CxVar* map, const char* key) {
+
+    return cx_var_set_map_val(map, key, cx_var_set_arr(cx_var_new(map->alloc)));
+}
+
+CxVar* cx_var_set_map_map(CxVar* map, const char* key) {
+
+    return cx_var_set_map_val(map, key, cx_var_set_map(cx_var_new(map->alloc)));
+}
+
+CxVar* cx_var_set_map_buf(CxVar* map, const char* key, void* data, size_t len) {
+
+    return cx_var_set_map_val(map, key, cx_var_set_buf(cx_var_new(map->alloc), data, len));
+}
 
 CxVarType cx_var_get_type(const CxVar* var) {
 
@@ -225,6 +343,15 @@ int cx_var_get_buf(const CxVar* var, const void** data, size_t* len) {
     }
     *data = var->v.buf->data;
     *len = cxvar_buf_len(var->v.buf);
+    return 0;
+}
+
+int cx_var_get_arr_len(const CxVar* var, size_t* len) {
+
+    if (var->type != CxVarArr) {
+        return 1;
+    }
+    *len = cxvar_arr_len(var->v.arr);
     return 0;
 }
 
@@ -306,7 +433,6 @@ static void cx_var_free_cont(CxVar* var) {
 //     var->v.str = NULL;
 // }
 
-void cx_var_set_null(CxVar* var);
 
 // #define CX_VAR_IMPLEMENT
 // #include "cx_var.h"
