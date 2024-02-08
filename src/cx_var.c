@@ -60,6 +60,7 @@ typedef struct CxVar {
     } v;
 } CxVar;
 
+static void cx_var_free_cont(CxVar* var);
 
 CxVar* cx_var_new(const CxAllocator* alloc) {
 
@@ -73,30 +74,141 @@ CxVar* cx_var_new(const CxAllocator* alloc) {
 
 void cx_var_del(CxVar* var) {
 
-    if (var->type == CxVarStr) {
-        cxvar_str_free(var->v.str);
-        cx_alloc_free(var->alloc, var->v.str, sizeof(cxvar_str));
-    } else if (var->type == CxVarArr) {
-        for (size_t i = 0; i < cxvar_arr_len(var->v.arr); i++) {
-            cx_var_del(var->v.arr->data[i]);
-        }
-        cxvar_arr_free(var->v.arr);
-    } else if (var->type == CxVarMap) {
-        cxvar_map_iter iter = {0};
-        while (true) {
-            cxvar_map_entry* e = cxvar_map_next(var->v.map, &iter);
-            if (e == NULL) {
-                break;
-            }
-            cx_alloc_free(var->alloc, e->key, strlen(e->key)+1);
-            cx_var_del(e->val);
-        }
-        cxvar_map_free(var->v.map);
-    } else if (var->type == CxVarBuf) {
-        cxvar_buf_free(var->v.buf);
-    }
+    cx_var_free_cont(var);
     cx_alloc_free(var->alloc, var, sizeof(CxVar));
 }
+
+void cx_var_set_undef(CxVar* var) {
+
+    cx_var_free_cont(var);
+    var->type = CxVarUndef;
+}
+
+void cx_var_set_null(CxVar* var) {
+
+    cx_var_free_cont(var);
+    var->type = CxVarNull;
+}
+
+void cx_var_set_bool(CxVar* var, bool v) {
+
+    cx_var_free_cont(var);
+    var->type = CxVarBool;
+    var->v.boolean = v;
+}
+
+void cx_var_set_int(CxVar* var, int64_t v) {
+
+    cx_var_free_cont(var);
+    var->type = CxVarInt;
+    var->v.i64 = v;
+}
+
+void cx_var_set_float(CxVar* var, double v) {
+
+    cx_var_free_cont(var);
+    var->type = CxVarFloat;
+    var->v.f64 = v;
+}
+
+void cx_var_set_strn(CxVar* var, const char* str, size_t len) {
+
+    if (var->type != CxVarStr) {
+        cx_var_free_cont(var);
+        var->type = CxVarStr;
+        var->v.str = cx_alloc_malloc(var->alloc, sizeof(cxvar_str*));
+        *(var->v.str) = cxvar_str_init(var->alloc);
+    }
+    cxvar_str_cpyn(var->v.str, str, len);
+}
+
+void cx_var_set_str(CxVar* var, const char* str) {
+
+    cx_var_set_strn(var, str, strlen(str));
+}
+
+void cx_var_set_arr(CxVar* var) {
+
+    if (var->type != CxVarArr) {
+        cx_var_free_cont(var);
+        var->type = CxVarArr;
+        var->v.arr = cx_alloc_malloc(var->alloc, sizeof(cxvar_arr*));
+        *(var->v.arr) = cxvar_arr_init(var->alloc);
+    }
+    cxvar_arr_clear(var->v.arr);
+}
+
+
+void cx_var_set_map(CxVar* var) {
+
+    if (var->type != CxVarMap) {
+        cx_var_free_cont(var);
+        var->type = CxVarMap;
+        var->v.map = cx_alloc_malloc(var->alloc, sizeof(cxvar_map*));
+        *(var->v.map) = cxvar_map_init(var->alloc, 0);
+    }
+    cxvar_map_clear(var->v.map);
+}
+
+void cx_var_set_buf(CxVar* var, void* data, size_t len) {
+
+    if (var->type != CxVarBuf) {
+        cx_var_free_cont(var);
+        var->type = CxVarBuf;
+        var->v.buf = cx_alloc_malloc(var->alloc, sizeof(cxvar_buf*));
+        *(var->v.buf) = cxvar_buf_init(var->alloc);
+    }
+    cxvar_buf_clear(var->v.buf);
+    if (data != NULL) {
+        cxvar_buf_pushn(var->v.buf, data, len);
+    }
+}
+
+
+static void cx_var_free_cont(CxVar* var) {
+
+    switch (var->type) {
+        case CxVarUndef:
+        case CxVarNull:
+        case CxVarBool:
+        case CxVarInt:
+        case CxVarFloat:
+            return;
+        case CxVarStr:
+            cxvar_str_free(var->v.str);
+            cx_alloc_free(var->alloc, var->v.str, sizeof(cxvar_str));
+            var->v.str = NULL;
+            break;
+        case CxVarArr:
+            for (size_t i = 0; i < cxvar_arr_len(var->v.arr); i++) {
+                cx_var_del(var->v.arr->data[i]);
+            }
+            cxvar_arr_free(var->v.arr);
+            var->v.arr = NULL;
+            break;
+        case CxVarMap:
+            cxvar_map_iter iter = {0};
+            while (true) {
+                cxvar_map_entry* e = cxvar_map_next(var->v.map, &iter);
+                if (e == NULL) {
+                    break;
+                }
+                cx_alloc_free(var->alloc, e->key, strlen(e->key)+1);
+                cx_var_del(e->val);
+            }
+            cxvar_map_free(var->v.map);
+            var->v.map = NULL;
+            break;
+        case CxVarBuf:
+            cxvar_buf_free(var->v.buf);
+            var->v.buf = NULL;
+            break;
+        default:
+            assert(0);
+            break;
+    }
+}
+
 
 //         cx_alloc_free(alloc, var->v.str, sizeof(cxvar_str));
 //     } else if (var->type == CxVarArr) {

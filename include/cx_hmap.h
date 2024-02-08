@@ -520,6 +520,9 @@ cx_hmap_api_ size_t cx_hmap_name_(_count)(cx_hmap_name* m) {
 
 cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hmap_name_(_iter)* iter) {
 
+    if (m->count_ == 0) {
+        return NULL;
+    }
     for (size_t i = iter->bucket_; i < m->nbuckets_; i++) {
         if (iter->next_ != NULL) {
             cx_hmap_name_(_entry)* e = iter->next_;

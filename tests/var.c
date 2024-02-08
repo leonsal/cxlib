@@ -24,7 +24,11 @@ void cx_var_tests(void) {
 void cx_var_test(const CxAllocator* alloc) {
 
     CxVar* var = cx_var_new(alloc);
-
+    cx_var_set_null(var);
+    cx_var_set_str(var, "string");
+    cx_var_set_arr(var);
+    cx_var_set_map(var);
+    cx_var_set_buf(var, (uint8_t[]){0,1,2,3}, 4);
     cx_var_del(var);
 
 

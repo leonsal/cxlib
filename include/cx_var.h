@@ -21,7 +21,16 @@ typedef struct CxVar CxVar;
 CxVar* cx_var_new(const CxAllocator* alloc);
 void cx_var_del(CxVar* var);
 
+void cx_var_set_undef(CxVar* var);
 void cx_var_set_null(CxVar* var);
+void cx_var_set_bool(CxVar* var, bool v);
+void cx_var_set_int(CxVar* var, int64_t v);
+void cx_var_set_float(CxVar* var, double v);
+void cx_var_set_strn(CxVar* var, const char* str, size_t len);
+void cx_var_set_str(CxVar* var, const char* str);
+void cx_var_set_arr(CxVar* var);
+void cx_var_set_map(CxVar* var);
+void cx_var_set_buf(CxVar* var, void* data, size_t len);
 
 
 // // Declare/define dynamic string used in CxVar
