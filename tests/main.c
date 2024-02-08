@@ -20,7 +20,7 @@ int main() {
 
     LOG_INIT();
     LOGW("START");
-    // cxAllocPoolTests();
+    cxAllocPoolTests();
     // cxArrayTests();
     // cxHmapTests();
     cxStrTests();

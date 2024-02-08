@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 #include <assert.h>
 #include <time.h>
 #include <pthread.h>
@@ -19,15 +20,17 @@ typedef struct Block {
 // Block Allocator state
 typedef struct CxPoolAllocator {
     pthread_mutex_t     lock;
-    const CxAllocator*  alloc;      // Allocator for blocks
-    CxAllocator         userAlloc;  // Allocator interface
-    size_t              blockSize;  // Minimum block size
-    Block*              nextFree;   // Next free block of the free chain
-    Block*              firstBlock; // First block of the allocated chain
-    Block*              currBlock;  // Current block of the allocated chain
-    size_t              used;       // Bytes allocated in current block (not including block header)
-    size_t              nallocs;    // Number of individual allocations
-    size_t              nbytes;     // Total bytes requested for allocation
+    const CxAllocator*  alloc;          // Allocator for blocks
+    CxAllocator         iface;          // Allocator interface
+    CxAllocatorErrorFn  error_fn;       // Optional error function
+    void*               error_udata;    // Optional error function userdata
+    size_t              blockSize;      // Minimum block size
+    Block*              nextFree;       // Next free block of the free chain
+    Block*              firstBlock;     // First block of the allocated chain
+    Block*              currBlock;      // Current block of the allocated chain
+    size_t              used;           // Bytes allocated in current block (not including block header)
+    size_t              nallocs;        // Number of individual allocations
+    size_t              nbytes;         // Total bytes requested for allocation
 } CxPoolAllocator;
 
 
@@ -44,10 +47,11 @@ CxPoolAllocator* cx_pool_allocator_create(size_t blockSize, const CxAllocator* a
     }
     CxPoolAllocator* a = cx_alloc_malloc(alloc, sizeof(CxPoolAllocator));
     a->alloc = alloc;
-    a->userAlloc = (CxAllocator){
+    a->iface = (CxAllocator){
         .ctx = a,
         .alloc = (CxAllocatorAllocFn)cx_pool_allocator_alloc,
         .free = cxAllocPoolDummyFree,
+        .realloc = (CxAllocatorReallocFn)cx_pool_allocator_realloc,
     };
     assert(pthread_mutex_init(&a->lock, NULL) == 0);
 
@@ -59,6 +63,12 @@ CxPoolAllocator* cx_pool_allocator_create(size_t blockSize, const CxAllocator* a
     a->nallocs = 0;
     a->nbytes = 0;
     return a;
+}
+
+void cx_pool_allocator_set_error_fn(CxPoolAllocator* a, CxAllocatorErrorFn fn, void* userdata) {
+
+    a->error_fn = fn;
+    a->error_udata = userdata;
 }
 
 void cx_pool_allocator_destroy(CxPoolAllocator* a) {
@@ -81,8 +91,10 @@ void* cx_pool_allocator_alloc2(CxPoolAllocator* a, size_t size, size_t align) {
     if (a->currBlock) {
         padding = alignForward(a->used, align) - a->used;
     }
+    int res = 0;
     if (a->currBlock == NULL || (a->used + padding + size > a->currBlock->size)) {
-        if (newBlock(a, size)) {
+        res = newBlock(a, size);
+        if (res) {
             goto exit;
         }
         padding = 0;
@@ -94,7 +106,27 @@ void* cx_pool_allocator_alloc2(CxPoolAllocator* a, size_t size, size_t align) {
 
 exit:
     assert(pthread_mutex_unlock(&a->lock) == 0);
+    if (res && a->error_fn) {
+        a->error_fn("Error allocating new block", a->error_udata);
+    }
     return pdata;
+}
+
+void* cx_pool_allocator_realloc(CxPoolAllocator* a, void* old_ptr, size_t old_size, size_t size) {
+
+    if (size <= old_size) {
+        return old_ptr;
+    }
+
+    void* pnew = cx_pool_allocator_alloc(a, size);
+    if (pnew == NULL) {
+        return pnew;
+    }
+
+    assert(pthread_mutex_lock(&a->lock) == 0);
+    memcpy(pnew, old_ptr, old_size);
+    assert(pthread_mutex_unlock(&a->lock) == 0);
+    return pnew;
 }
 
 void cx_pool_allocator_clear(CxPoolAllocator* a) {
@@ -155,7 +187,7 @@ static void cxAllocPoolDummyFree(void* ctx, void* p, size_t n) {}
 
 const CxAllocator* cx_pool_allocator_iface(CxPoolAllocator* a) {
 
-    return &a->userAlloc;
+    return &a->iface;
 }
 
 CxPoolAllocatorStats cx_pool_allocator_stats(CxPoolAllocator* a) {

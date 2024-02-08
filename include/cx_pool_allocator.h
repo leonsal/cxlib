@@ -24,33 +24,26 @@ CxPoolAllocator* cx_pool_allocator_create(size_t blockSize, const CxAllocator* c
 // Destroy a previously created block allocator freeing all allocated memory.
 void cx_pool_allocator_destroy(CxPoolAllocator* a);
 
-//
 // Allocates size bytes using standard alignment and return its pointer
-//
 void* cx_pool_allocator_alloc(CxPoolAllocator* a, size_t size);
 
-//
 // Allocates size bytes using specified alignment and return its pointer
-//
 void* cx_pool_allocator_alloc2(CxPoolAllocator* a, size_t size, size_t align);
 
-//
+// Reallocates new area and copy old area to new area.
+void* cx_pool_allocator_realloc(CxPoolAllocator* a, void* old_ptr, size_t old_size, size_t size);
+
 // Clears the allocator keeping the memory allocated from parent allocator
-//
 void cx_pool_allocator_clear(CxPoolAllocator* a);
 
 // Free all allocated memory from upstream allocator.
 // This allocator can continue to be used
 void cx_pool_allocator_free(CxPoolAllocator* a);
 
-//
 // Returns allocator interface 
-//
 const CxAllocator* cx_pool_allocator_iface(CxPoolAllocator* a);
 
-//
 // Returns allocator statistics
-//
 CxPoolAllocatorStats cx_pool_allocator_stats(CxPoolAllocator* a);
 
 #endif
