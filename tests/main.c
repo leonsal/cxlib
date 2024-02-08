@@ -12,8 +12,9 @@
 #include "queue.h"
 #include "list.h"
 #include "timer.h"
-#include "json_build.h"
-#include "json_parse.h"
+#include "var.h"
+// #include "json_build.h"
+// #include "json_parse.h"
 
 int main() {
 
@@ -26,8 +27,9 @@ int main() {
     cxQueueTests();
     cx_list_tests();
     //cx_timer_tests();
-    json_build_tests();
-    json_parse_tests();
+    cx_var_tests();
+    // json_build_tests();
+    // json_parse_tests();
     LOGW("END");
 }
 
