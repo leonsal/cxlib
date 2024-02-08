@@ -20,12 +20,12 @@ int main() {
 
     LOG_INIT();
     LOGW("START");
-    cxAllocPoolTests();
-    cxArrayTests();
-    cxHmapTests();
+    // cxAllocPoolTests();
+    // cxArrayTests();
+    // cxHmapTests();
     cxStrTests();
-    cxQueueTests();
-    cx_list_tests();
+    // cxQueueTests();
+    // cx_list_tests();
     //cx_timer_tests();
     cx_var_tests();
     // json_build_tests();

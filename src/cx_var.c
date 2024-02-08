@@ -116,7 +116,7 @@ void cx_var_set_strn(CxVar* var, const char* str, size_t len) {
     if (var->type != CxVarStr) {
         cx_var_free_cont(var);
         var->type = CxVarStr;
-        var->v.str = cx_alloc_malloc(var->alloc, sizeof(cxvar_str*));
+        var->v.str = cx_alloc_malloc(var->alloc, sizeof(cxvar_str));
         *(var->v.str) = cxvar_str_init(var->alloc);
     }
     cxvar_str_cpyn(var->v.str, str, len);
@@ -132,7 +132,7 @@ void cx_var_set_arr(CxVar* var) {
     if (var->type != CxVarArr) {
         cx_var_free_cont(var);
         var->type = CxVarArr;
-        var->v.arr = cx_alloc_malloc(var->alloc, sizeof(cxvar_arr*));
+        var->v.arr = cx_alloc_malloc(var->alloc, sizeof(cxvar_arr));
         *(var->v.arr) = cxvar_arr_init(var->alloc);
     }
     cxvar_arr_clear(var->v.arr);
@@ -144,7 +144,7 @@ void cx_var_set_map(CxVar* var) {
     if (var->type != CxVarMap) {
         cx_var_free_cont(var);
         var->type = CxVarMap;
-        var->v.map = cx_alloc_malloc(var->alloc, sizeof(cxvar_map*));
+        var->v.map = cx_alloc_malloc(var->alloc, sizeof(cxvar_map));
         *(var->v.map) = cxvar_map_init(var->alloc, 0);
     }
     cxvar_map_clear(var->v.map);
@@ -155,7 +155,7 @@ void cx_var_set_buf(CxVar* var, void* data, size_t len) {
     if (var->type != CxVarBuf) {
         cx_var_free_cont(var);
         var->type = CxVarBuf;
-        var->v.buf = cx_alloc_malloc(var->alloc, sizeof(cxvar_buf*));
+        var->v.buf = cx_alloc_malloc(var->alloc, sizeof(cxvar_buf));
         *(var->v.buf) = cxvar_buf_init(var->alloc);
     }
     cxvar_buf_clear(var->v.buf);
@@ -184,6 +184,7 @@ static void cx_var_free_cont(CxVar* var) {
                 cx_var_del(var->v.arr->data[i]);
             }
             cxvar_arr_free(var->v.arr);
+            cx_alloc_free(var->alloc, var->v.str, sizeof(cxvar_arr));
             var->v.arr = NULL;
             break;
         case CxVarMap:
@@ -197,10 +198,12 @@ static void cx_var_free_cont(CxVar* var) {
                 cx_var_del(e->val);
             }
             cxvar_map_free(var->v.map);
+            cx_alloc_free(var->alloc, var->v.map, sizeof(cxvar_map));
             var->v.map = NULL;
             break;
         case CxVarBuf:
             cxvar_buf_free(var->v.buf);
+            cx_alloc_free(var->alloc, var->v.buf, sizeof(cxvar_buf));
             var->v.buf = NULL;
             break;
         default:

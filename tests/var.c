@@ -23,8 +23,13 @@ void cx_var_tests(void) {
 
 void cx_var_test(const CxAllocator* alloc) {
 
+    LOGI("var alloc=%p", alloc);
     CxVar* var = cx_var_new(alloc);
     cx_var_set_null(var);
+    cx_var_set_bool(var, true);
+    cx_var_set_bool(var, false);
+    cx_var_set_int(var, 42);
+    cx_var_set_float(var, -0.1);
     cx_var_set_str(var, "string");
     cx_var_set_arr(var);
     cx_var_set_map(var);
