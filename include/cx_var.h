@@ -99,7 +99,7 @@ CxVar* cx_var_get_arr_map(const CxVar* arr, size_t index);
 CxVar* cx_var_get_arr_buf(const CxVar* arr, size_t index, const void** data, size_t* len);
 
 // Returns number of map elements or negative error.
-ssize_t cx_var_get_map_len(const CxVar* map, size_t* len);
+ssize_t cx_var_get_map_len(const CxVar* map);
 
 // Get value of map element at the specified key
 // Returns NULL on errors.

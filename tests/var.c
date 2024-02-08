@@ -36,18 +36,18 @@ void cx_var_test(const CxAllocator* alloc) {
 
         bool vbool;
         cx_var_set_bool(var, true);
-        CHK(cx_var_get_bool(var, &vbool) == 0 && vbool);
+        CHK(cx_var_get_bool(var, &vbool) && vbool);
 
         cx_var_set_bool(var, false);
-        CHK(cx_var_get_bool(var, &vbool) == 0 && !vbool);
+        CHK(cx_var_get_bool(var, &vbool) && !vbool);
 
         int64_t vint;
         cx_var_set_int(var, 42);
-        CHK(cx_var_get_int(var, &vint) == 0 && vint == 42);
+        CHK(cx_var_get_int(var, &vint) && vint == 42);
 
         double vfloat;
         cx_var_set_float(var, -0.1);
-        CHK(cx_var_get_float(var, &vfloat) == 0 && vfloat == -0.1);
+        CHK(cx_var_get_float(var, &vfloat) && vfloat == -0.1);
 
 
         cx_var_set_map(var);
@@ -56,7 +56,7 @@ void cx_var_test(const CxAllocator* alloc) {
         const void* pbuf;
         size_t len;
         cx_var_set_buf(var, (uint8_t[]){0,1,2,3}, 4);
-        CHK(cx_var_get_buf(var, &pbuf, &len) == 0 && len == 4);
+        CHK(cx_var_get_buf(var, &pbuf, &len) && len == 4);
         CHK(memcmp(pbuf, (uint8_t[]){0,1,2,3}, len) == 0);
         cx_var_del(var);
     }
@@ -70,15 +70,15 @@ void cx_var_test(const CxAllocator* alloc) {
 
         sets = "123";
         cx_var_set_str(var, sets);
-        CHK(cx_var_get_str(var, &gets) == 0 && strcmp(gets, sets) == 0);
+        CHK(cx_var_get_str(var, &gets) && strcmp(gets, sets) == 0);
 
         sets = "0123456789";
         cx_var_set_str(var, sets);
-        CHK(cx_var_get_str(var, &gets) == 0 && strcmp(gets, sets) == 0);
+        CHK(cx_var_get_str(var, &gets) && strcmp(gets, sets) == 0);
 
         sets = "";
         cx_var_set_str(var, sets);
-        CHK(cx_var_get_str(var, &gets) == 0 && strcmp(gets, sets) == 0);
+        CHK(cx_var_get_str(var, &gets) && strcmp(gets, sets) == 0);
 
         cx_var_del(var);
     }
