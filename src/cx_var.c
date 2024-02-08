@@ -165,6 +165,69 @@ void cx_var_set_buf(CxVar* var, void* data, size_t len) {
 }
 
 
+
+
+CxVarType cx_var_get_type(const CxVar* var) {
+
+    return var->type;
+}
+
+int cx_var_get_undef(const CxVar* var) {
+
+    return var->type == CxVarUndef ? 0 : 1;
+}
+
+int cx_var_get_null(const CxVar* var) {
+
+    return var->type == CxVarNull ? 0 : 1;
+}
+
+int cx_var_get_bool(const CxVar* var, bool *pval) {
+
+    if (var->type != CxVarBool) {
+        return 1;
+    }
+    *pval = var->v.boolean;
+    return 0;
+}
+
+int cx_var_get_int(const CxVar* var, int64_t* pval) {
+
+    if (var->type != CxVarInt) {
+        return 1;
+    }
+    *pval = var->v.i64;
+    return 0;
+}
+
+int cx_var_get_float(const CxVar* var, double* pval) {
+
+    if (var->type != CxVarFloat) {
+        return 1;
+    }
+    *pval = var->v.f64;
+    return 0;
+}
+
+int cx_var_get_str(const CxVar* var, const char** pval) {
+
+    if (var->type != CxVarStr) {
+        return 1;
+    }
+    *pval = var->v.str->data;
+    return 0;
+}
+
+int cx_var_get_buf(const CxVar* var, const void** data, size_t* len) {
+
+    if (var->type != CxVarBuf) {
+        return 1;
+    }
+    *data = var->v.buf->data;
+    *len = cxvar_buf_len(var->v.buf);
+    return 0;
+}
+
 static void cx_var_free_cont(CxVar* var) {
 
     switch (var->type) {

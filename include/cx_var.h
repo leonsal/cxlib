@@ -32,86 +32,6 @@ void cx_var_set_arr(CxVar* var);
 void cx_var_set_map(CxVar* var);
 void cx_var_set_buf(CxVar* var, void* data, size_t len);
 
-
-// // Declare/define dynamic string used in CxVar
-// #define cx_str_name cxvar_str
-// #define cx_str_instance_allocator
-// #ifdef CX_VAR_IMPLEMENT
-// #define cx_str_implement
-// #endif
-// #include "cx_str.h"
-//
-// // Declare CxVar state
-// typedef struct cxvar_arr cxvar_arr;
-// typedef struct cxvar_map cxvar_map;
-// typedef struct cxvar_buf cxvar_buf;
-// typedef struct CxVar {
-//     CxVarType type;    
-//     union {
-//         bool        boolean;
-//         int64_t     i64;
-//         double      f64;
-//         cxvar_str*  str;
-//         cxvar_arr*  arr;
-//         cxvar_map*  map;
-//         cxvar_buf*  buf;
-//     } v;
-// } CxVar;
-//
-// // Declare/define dynamic array used in CxVar
-// #define cx_array_name cxvar_arr
-// #define cx_array_type CxVar
-// #define cx_array_instance_allocator
-// #ifdef CX_VAR_IMPLEMENT
-// #define cx_array_implement
-// #endif
-// #include "cx_array.h"
-//
-// // Declare/define dynamic buffer used in CxVar
-// #define cx_array_name cxvar_buf
-// #define cx_array_type uint8_t
-// #define cx_array_instance_allocator
-// #ifdef CX_VAR_IMPLEMENT
-// #define cx_array_implement
-// #endif
-// #include "cx_array.h"
-//
-// // Declare/define hash map used in CxVar
-// #define cx_hmap_name cxvar_map
-// #define cx_hmap_key char*
-// #define cx_hmap_val CxVar
-// #define cx_hmap_cmp_key  cx_hmap_cmp_key_str_ptr
-// #define cx_hmap_hash_key cx_hmap_hash_key_str_ptr
-// #define cx_hmap_instance_allocator
-// #ifdef CX_VAR_IMPLEMENT
-// #define cx_hmap_implement
-// #endif
-// #include "cx_hmap.h"
-//
-// // Returns CxVar of the specified type
-// // For CxVar of types string, array, map and buf is necessary to supply an allocator.
-// CxVar cx_var_new_null(void);
-// CxVar cx_var_new_bool(bool val);
-// CxVar cx_var_new_int(int64_t val);
-// CxVar cx_var_new_float(double val);
-// CxVar cx_var_new_str(const char* str, const CxAllocator* alloc);
-// CxVar cx_var_new_strn(const char* str, size_t slen, const CxAllocator* alloc);
-// CxVar cx_var_new_arr(const CxAllocator* alloc);
-// CxVar cx_var_new_map(const CxAllocator* alloc);
-// CxVar cx_var_new_buf(void* data, size_t len, const CxAllocator* alloc);
-//
-// // Deletes allocated memory from previously created CxVar.
-// void cx_var_del(CxVar* var);
-//
-// // Sets value of CxVar.
-// // Returns non-zero error if CxVar is not of the specified type
-// int cx_var_set_bool(CxVar* var, bool vb);
-// int cx_var_set_int(CxVar* var, int64_t vi);
-// int cx_var_set_float(CxVar* var, double vd);
-// int cx_var_set_str(CxVar* var, const char* str);
-// int cx_var_set_strn(CxVar* var, const char* str, size_t slen);
-// int cx_var_set_buf(CxVar* var, void* data, size_t len);
-//
 // // Push value into an array
 // // Returns non-zero error if 'var' has not array type
 // int cx_var_push_arr_val(CxVar* arr, const CxVar el);
@@ -146,18 +66,19 @@ void cx_var_set_buf(CxVar* var, void* data, size_t len);
 // // Getters
 // //-----------------------------------------------------------------------------
 //
-// // Returns the type of CxVar.
-// CxVarType cx_var_get_type(const CxVar* var);
-//
-// // Get value of CxVar
-// // Returns non-zero error if 'var' has not of the requested type
-// int cx_var_get_null(const CxVar* var);
-// int cx_var_get_bool(const CxVar* var, bool *pval);
-// int cx_var_get_int(const CxVar* var, int64_t* pval);
-// int cx_var_get_float(const CxVar* var, double* pval);
-// int cx_var_get_str(const CxVar* var, const char** pval);
-// int cx_var_get_buf(const CxVar* var, const void** data, size_t* len);
-//
+// Returns the type of CxVar.
+CxVarType cx_var_get_type(const CxVar* var);
+
+// Get value of CxVar
+// Returns non-zero error if 'var' has not of the requested type
+int cx_var_get_undef(const CxVar* var);
+int cx_var_get_null(const CxVar* var);
+int cx_var_get_bool(const CxVar* var, bool *pval);
+int cx_var_get_int(const CxVar* var, int64_t* pval);
+int cx_var_get_float(const CxVar* var, double* pval);
+int cx_var_get_str(const CxVar* var, const char** pval);
+int cx_var_get_buf(const CxVar* var, const void** data, size_t* len);
+
 // // Returns the number of elements of the CxVar array.
 // // Returns non-zero error if CxVar is not of array type.
 // int cx_var_get_arr_len(const CxVar* var, size_t* len);
