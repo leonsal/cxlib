@@ -290,70 +290,262 @@ CxVarType cx_var_get_type(const CxVar* var) {
     return var->type;
 }
 
-int cx_var_get_undef(const CxVar* var) {
+bool cx_var_is_undef(const CxVar* var) {
 
-    return var->type == CxVarUndef ? 0 : 1;
+    return var->type == CxVarUndef ? true : false;
 }
 
-int cx_var_get_null(const CxVar* var) {
+bool cx_var_is_null(const CxVar* var) {
 
-    return var->type == CxVarNull ? 0 : 1;
+    return var->type == CxVarNull ? true : false;
 }
 
-int cx_var_get_bool(const CxVar* var, bool *pval) {
+bool cx_var_get_bool(const CxVar* var, bool *pval) {
 
     if (var->type != CxVarBool) {
-        return 1;
+        return false;
     }
     *pval = var->v.boolean;
-    return 0;
+    return true;
 }
 
-int cx_var_get_int(const CxVar* var, int64_t* pval) {
+bool cx_var_get_int(const CxVar* var, int64_t* pval) {
 
     if (var->type != CxVarInt) {
-        return 1;
+        return false;
     }
     *pval = var->v.i64;
-    return 0;
+    return true;
 }
 
-int cx_var_get_float(const CxVar* var, double* pval) {
+bool cx_var_get_float(const CxVar* var, double* pval) {
 
     if (var->type != CxVarFloat) {
-        return 1;
+        return false;
     }
     *pval = var->v.f64;
-    return 0;
+    return true;
 }
 
-int cx_var_get_str(const CxVar* var, const char** pval) {
+bool cx_var_get_str(const CxVar* var, const char** pval) {
 
     if (var->type != CxVarStr) {
-        return 1;
+        return false;
     }
     *pval = var->v.str->data;
-    return 0;
+    return true;
 }
 
-int cx_var_get_buf(const CxVar* var, const void** data, size_t* len) {
+bool cx_var_get_buf(const CxVar* var, const void** data, size_t* len) {
 
     if (var->type != CxVarBuf) {
-        return 1;
+        return false;
     }
     *data = var->v.buf->data;
     *len = cxvar_buf_len(var->v.buf);
-    return 0;
+    return true;
 }
 
-int cx_var_get_arr_len(const CxVar* var, size_t* len) {
+ssize_t cx_var_get_arr_len(const CxVar* arr) {
 
-    if (var->type != CxVarArr) {
-        return 1;
+    if (arr->type != CxVarArr) {
+        return -1;
     }
-    *len = cxvar_arr_len(var->v.arr);
-    return 0;
+    return cxvar_arr_len(arr->v.arr);
 }
+
+CxVar* cx_var_get_arr_val(const CxVar* arr, size_t index) {
+
+    if (arr->type != CxVarArr) {
+        return NULL;
+    }
+    if (index >= cxvar_arr_len(arr->v.arr)) {
+        return NULL;
+    }
+    return arr->v.arr->data[index];
+}
+
+CxVar* cx_var_get_arr_null(const CxVar* arr, size_t index) {
+
+    CxVar* val = cx_var_get_arr_val(arr, index);
+    if (val && cx_var_is_null(val)) {
+        return (CxVar*)val;
+    } else {
+        return NULL;
+    }
+}
+
+CxVar* cx_var_get_arr_bool(const CxVar* arr, size_t index, bool* pbool) {
+
+    CxVar* val = cx_var_get_arr_val(arr, index);
+    if (val && cx_var_get_bool(val, pbool)) {
+        return (CxVar*)val;
+    } else {
+        return NULL;
+    }
+}
+
+CxVar* cx_var_get_arr_int(const CxVar* arr, size_t index, int64_t* pint) {
+
+    CxVar* val = cx_var_get_arr_val(arr, index);
+    if (val && cx_var_get_int(val, pint)) {
+        return (CxVar*)val;
+    } else {
+        return NULL;
+    }
+}
+
+CxVar* cx_var_get_arr_float(const CxVar* arr, size_t index, double* pfloat) {
+
+    CxVar* val = cx_var_get_arr_val(arr, index);
+    if (val && cx_var_get_float(val, pfloat)) {
+        return (CxVar*)val;
+    } else {
+        return NULL;
+    }
+}
+
+CxVar* cx_var_get_arr_str(const CxVar* arr, size_t index, const char** pstr) {
+
+    CxVar* val = cx_var_get_arr_val(arr, index);
+    if (val && cx_var_get_str(val, pstr)) {
+        return (CxVar*)val;
+    } else {
+        return NULL;
+    }
+}
+
+CxVar* cx_var_get_arr_arr(const CxVar* arr, size_t index) {
+
+    CxVar* val = cx_var_get_arr_val(arr, index);
+    if (val && val->type == CxVarArr) {
+        return val;
+    } else {
+        return NULL;
+    }
+}
+
+CxVar* cx_var_get_arr_map(const CxVar* arr, size_t index) {
+
+    CxVar* val = cx_var_get_arr_val(arr, index);
+    if (val && val->type == CxVarMap) {
+        return val;
+    } else {
+        return NULL;
+    }
+}
+
+CxVar* cx_var_get_arr_buf(const CxVar* arr, size_t index, const void** data, size_t* len) {
+
+    CxVar* val = cx_var_get_arr_val(arr, index);
+    if (val && cx_var_get_buf(val, data, len)) {
+        return val;
+    } else {
+        return NULL;
+    }
+}
+
+ssize_t cx_var_get_map_len(const CxVar* map, size_t* len) {
+
+    if (map->type != CxVarMap) {
+        return -1;
+    }
+    return cxvar_map_count(map->v.map);
+}
+
+
+CxVar* cx_var_get_map_val(const CxVar* map, const char* key) {
+
+    if (map->type != CxVarMap) {
+        return NULL;
+    }
+    CxVar** val = cxvar_map_get(map->v.map, (char*)key);
+    if (val == NULL) {
+        return NULL;
+    }
+    return *val;
+}
+
+CxVar* cx_var_get_map_null(const CxVar* map, const char* key) {
+
+    CxVar* val = cx_var_get_map_val(map, key);
+    if (val && cx_var_is_null(val)) {
+        return (CxVar*)val;
+    } else {
+        return NULL;
+    }
+}
+
+CxVar* cx_var_get_map_bool(const CxVar* map, const char* key, bool* pbool) {
+
+    CxVar* val = cx_var_get_map_val(map, key);
+    if (val && cx_var_get_bool(val, pbool)) {
+        return (CxVar*)val;
+    } else {
+        return NULL;
+    }
+}
+
+CxVar* cx_var_get_map_int(const CxVar* map, const char* key, int64_t* pint) {
+
+    CxVar* val = cx_var_get_map_val(map, key);
+    if (val && cx_var_get_int(val, pint)) {
+        return (CxVar*)val;
+    } else {
+        return NULL;
+    }
+}
+
+CxVar* cx_var_get_map_float(const CxVar* map, const char* key, double* pfloat) {
+
+    CxVar* val = cx_var_get_map_val(map, key);
+    if (val && cx_var_get_float(val, pfloat)) {
+        return (CxVar*)val;
+    } else {
+        return NULL;
+    }
+}
+
+CxVar* cx_var_get_map_str(const CxVar* map, const char* key, const char** pstr) {
+
+    CxVar* val = cx_var_get_map_val(map, key);
+    if (val && cx_var_get_str(val, pstr)) {
+        return (CxVar*)val;
+    } else {
+        return NULL;
+    }
+}
+
+CxVar* cx_var_get_map_arr(const CxVar* map, const char* key) {
+
+    CxVar* val = cx_var_get_map_val(map, key);
+    if (val && val->type == CxVarArr) {
+        return (CxVar*)val;
+    } else {
+        return NULL;
+    }
+}
+
+CxVar* cx_var_get_map_map(const CxVar* map, const char* key) {
+
+    CxVar* val = cx_var_get_map_val(map, key);
+    if (val && val->type == CxVarMap) {
+        return (CxVar*)val;
+    } else {
+        return NULL;
+    }
+}
+
+CxVar* cx_var_get_map_buf(const CxVar* map, const char* key, const void** data, size_t* len) {
+
+    CxVar* val = cx_var_get_map_val(map, key);
+    if (val && cx_var_get_buf(val, data, len)) {
+        return (CxVar*)val;
+    } else {
+        return NULL;
+    }
+}
+
 
 static void cx_var_free_cont(CxVar* var) {
 

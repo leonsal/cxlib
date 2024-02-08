@@ -29,10 +29,10 @@ void cx_var_test(const CxAllocator* alloc) {
         CxVar* var = cx_var_new(alloc);
 
         cx_var_set_undef(var);
-        CHKZ(cx_var_get_undef(var));
+        CHK(cx_var_is_undef(var));
 
         cx_var_set_null(var);
-        CHKZ(cx_var_get_null(var));
+        CHK(cx_var_is_null(var));
 
         bool vbool;
         cx_var_set_bool(var, true);
@@ -89,7 +89,7 @@ void cx_var_test(const CxAllocator* alloc) {
         size_t len;
 
         CHK(cx_var_get_type(arr) == CxVarArr);
-        CHK(cx_var_get_arr_len(arr, &len) == 0 && len == 0);
+        CHK(cx_var_get_arr_len(arr) == 0);
 
         CHKN(cx_var_push_arr_null(arr));
         CHKN(cx_var_push_arr_bool(arr, true));
