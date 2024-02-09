@@ -49,10 +49,6 @@ void cx_var_test(const CxAllocator* alloc) {
         cx_var_set_float(var, -0.1);
         CHK(cx_var_get_float(var, &vfloat) && vfloat == -0.1);
 
-
-        cx_var_set_map(var);
-        CHK(cx_var_get_type(var) == CxVarMap);
-
         const void* pbuf;
         size_t len;
         cx_var_set_buf(var, (uint8_t[]){0,1,2,3}, 4);

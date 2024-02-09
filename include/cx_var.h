@@ -21,6 +21,8 @@ typedef enum {
 // Creates and returns pointer to new CxVar using the specified allocator.
 typedef struct CxVar CxVar;
 CxVar* cx_var_new(const CxAllocator* alloc);
+
+// Deletes CxVar
 void cx_var_del(CxVar* var);
 
 // Sets the new type and/or value of a previously created CxVar.
