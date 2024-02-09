@@ -22,6 +22,7 @@ typedef struct CxVar CxVar;
 #define cx_array_name cxvar_arr
 #define cx_array_type CxVar*
 #define cx_array_instance_allocator
+#define cx_array_static
 #define cx_array_implement
 #include "cx_array.h"
 
@@ -29,10 +30,19 @@ typedef struct CxVar CxVar;
 #define cx_array_name cxvar_buf
 #define cx_array_type uint8_t
 #define cx_array_instance_allocator
+#define cx_array_static
 #define cx_array_implement
 #include "cx_array.h"
 
-// Declare/define hash map used in CxVar
+// Define array to store map keys in order
+#define cx_array_name cxvar_keys
+#define cx_array_type char*
+#define cx_array_instance_allocator
+#define cx_array_static
+#define cx_array_implement
+#include "cx_array.h"
+
+// Define hash map used in CxVar
 #define cx_hmap_name cxvar_map
 #define cx_hmap_key char*
 #define cx_hmap_val CxVar*
@@ -45,6 +55,11 @@ typedef struct CxVar CxVar;
 #include "cx_alloc.h"
 #include "cx_var.h"
 
+typedef struct CxVarMapArr {
+    cxvar_keys keys;
+    cxvar_map  map;     
+} CxVarMapArr;
+
 // Declare CxVar state
 typedef struct CxVar {
     const CxAllocator* alloc;
@@ -55,8 +70,8 @@ typedef struct CxVar {
         double      f64;
         cxvar_str*  str;
         cxvar_arr*  arr;
-        cxvar_map*  map;
         cxvar_buf*  buf;
+        CxVarMapArr* map;
     } v;
 } CxVar;
 
@@ -155,10 +170,12 @@ CxVar* cx_var_set_map(CxVar* var) {
     if (var->type != CxVarMap) {
         cx_var_free_cont(var);
         var->type = CxVarMap;
-        var->v.map = cx_alloc_malloc(var->alloc, sizeof(cxvar_map));
-        *(var->v.map) = cxvar_map_init(var->alloc, 0);
+        var->v.map = cx_alloc_malloc(var->alloc, sizeof(CxVarMapArr));
+        var->v.map->keys = cxvar_keys_init(var->alloc);
+        var->v.map->map = cxvar_map_init(var->alloc, 0);
     }
-    cxvar_map_clear(var->v.map);
+    cxvar_keys_clear(&var->v.map->keys);
+    cxvar_map_clear(&var->v.map->map);
     return var;
 }
 
@@ -243,15 +260,16 @@ CxVar* cx_var_set_map_valn(CxVar* map, const char* key, size_t key_len, CxVar* v
     }
 
     // If no current value at this key, sets with the specified 'val'
-    CxVar** curr = cxvar_map_get(map->v.map, (char*)key);
+    CxVar** curr = cxvar_map_get(&map->v.map->map, (char*)key);
     if (curr == NULL) {
         char* key_copy = cx_alloc_malloc(map->alloc, key_len + 1);
         strcpy(key_copy, key);
-        cxvar_map_set(map->v.map, key_copy, val);
+        cxvar_map_set(&map->v.map->map, key_copy, val);
+        cxvar_keys_push(&map->v.map->keys, key_copy);
         return val;
     }
     cx_var_del(*curr);
-    cxvar_map_set(map->v.map, (char*)key, val);
+    cxvar_map_set(&map->v.map->map, (char*)key, val);
     return val;
 }
 
@@ -461,17 +479,27 @@ CxVar* cx_var_get_map_len(const CxVar* map, size_t* len) {
     if (map->type != CxVarMap) {
         return NULL;
     }
-    *len = cxvar_map_count(map->v.map);
+    *len = cxvar_map_count(&map->v.map->map);
     return (CxVar*)map;
 }
 
+const char* cx_var_get_map_key(const CxVar* map, size_t order) {
+
+    if (map->type != CxVarMap) {
+        return NULL;
+    }
+    if (order >= cxvar_keys_len(&map->v.map->keys)) {
+        return NULL;
+    }
+    return map->v.map->keys.data[order];
+}
 
 CxVar* cx_var_get_map_val(const CxVar* map, const char* key) {
 
     if (map->type != CxVarMap) {
         return NULL;
     }
-    CxVar** val = cxvar_map_get(map->v.map, (char*)key);
+    CxVar** val = cxvar_map_get(&map->v.map->map, (char*)key);
     if (val == NULL) {
         return NULL;
     }
@@ -558,41 +586,6 @@ CxVar* cx_var_get_map_buf(const CxVar* map, const char* key, const void** data, 
     }
 }
 
-CxVarMapIter* cx_var_get_map_iter(const CxVar* map) {
-
-    if (map->type != CxVarMap) {
-        return NULL;
-    }
-    cxvar_map_iter* iter = cx_alloc_malloc(map->alloc, sizeof(cxvar_map_iter));
-    if (iter == NULL) {
-        return NULL;
-    }
-    *iter = (cxvar_map_iter){0};
-    return (CxVarMapIter*)iter;
-}
-
-CxVar* cx_var_get_map_next(const CxVar* map, CxVarMapIter* iter, const char** key) {
-
-    if (map->type != CxVarMap) {
-        return NULL;
-    }
-    cxvar_map_entry* e = cxvar_map_next(map->v.map, (cxvar_map_iter*)iter); 
-    if (e == NULL) {
-        return NULL;
-    }
-    *key = e->key;
-    return e->val;
-}
-
-CxVar* cx_var_map_del_iter(const CxVar* map, CxVarMapIter* iter) {
-
-    if (map->type != CxVarMap) {
-        return NULL;
-    }
-    cx_alloc_free(map->alloc, iter, sizeof(cxvar_map_iter));
-    return (CxVar*)map;
-}
-
 static void cx_var_free_cont(CxVar* var) {
 
     switch (var->type) {
@@ -616,16 +609,17 @@ static void cx_var_free_cont(CxVar* var) {
             var->v.arr = NULL;
             break;
         case CxVarMap: {
+            cxvar_keys_free(&var->v.map->keys);
             cxvar_map_iter iter = {0};
             while (true) {
-                cxvar_map_entry* e = cxvar_map_next(var->v.map, &iter);
+                cxvar_map_entry* e = cxvar_map_next(&var->v.map->map, &iter);
                 if (e == NULL) {
                     break;
                 }
                 cx_alloc_free(var->alloc, e->key, strlen(e->key)+1);
                 cx_var_del(e->val);
             }
-            cxvar_map_free(var->v.map);
+            cxvar_map_free(&var->v.map->map);
             cx_alloc_free(var->alloc, var->v.map, sizeof(cxvar_map));
             var->v.map = NULL;
             break;

@@ -162,13 +162,14 @@ static int cx_json_build_map(BuildState* bs, const CxVar* var) {
 
     size_t count;
     cx_var_get_map_len(var, &count);
-
-    size_t idx = 0;
-    CxVarMapIter* iter = cx_var_get_map_iter(var);
+    size_t order = 0;
     CHKW(cx_writer_write_str(bs->out, "{"));
     while (true) {
-        const char* key;
-        CxVar* value = cx_var_get_map_next(var, iter, &key);
+        const char* key = cx_var_get_map_key(var, order);
+        if (key == NULL) {
+            break;
+        }
+        CxVar* value = cx_var_get_map_val(var, key);
         if (value == NULL) {
             break;
         }
@@ -176,13 +177,12 @@ static int cx_json_build_map(BuildState* bs, const CxVar* var) {
         CHKW(cx_writer_write_str(bs->out, key));
         CHKW(cx_writer_write_str(bs->out, "\":"));
         CHKRES(cx_json_build_val(bs, value));
-        if (idx < count - 1) {
+        if (order < count - 1) {
             CHKW(cx_writer_write_str(bs->out, ","));
         }
-        idx++;
+        order++;
     }
     CHKW(cx_writer_write_str(bs->out, "}"));
-    cx_var_map_del_iter(var, iter);
     return 0;
 }
 

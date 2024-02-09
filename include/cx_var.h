@@ -109,6 +109,10 @@ CxVar* cx_var_get_arr_buf(const CxVar* arr, size_t index, const void** data, siz
 // Returns the supplied map pointer or NULL on error.
 CxVar* cx_var_get_map_len(const CxVar* map, size_t* len);
 
+// Returns the map key at the order it was inserted.
+// Returns NULl if order is invalid.
+const char* cx_var_get_map_key(const CxVar* map, size_t order);
+
 // Get value of map element at the specified key
 // Returns NULL on errors.
 CxVar* cx_var_get_map_val(const CxVar* map, const char* key);
@@ -123,11 +127,6 @@ CxVar* cx_var_get_map_arr(const CxVar* map, const char* key);
 CxVar* cx_var_get_map_map(const CxVar* map, const char* key);
 CxVar* cx_var_get_map_buf(const CxVar* map, const char* key, const void** data, size_t* len);
 
-// Map iteration
-typedef struct CxVarMapIter CxVarMapIter;
-CxVarMapIter* cx_var_get_map_iter(const CxVar* map);
-CxVar* cx_var_get_map_next(const CxVar* map, CxVarMapIter* iter, const char** key);
-CxVar* cx_var_map_del_iter(const CxVar* map, CxVarMapIter* iter);
 
 #endif
 
