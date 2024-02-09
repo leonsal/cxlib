@@ -26,7 +26,7 @@ int main() {
     cxStrTests();
     cxQueueTests();
     cx_list_tests();
-    //cx_timer_tests();
+    cx_timer_tests();
     cx_var_tests();
     json_build_tests();
     json_parse_tests();

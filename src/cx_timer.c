@@ -160,6 +160,7 @@ int cx_timer_clear(CxTimer* tm, size_t task_id) {
     cx_timer_del_task(tm, task_id);
     CHKPTI(pthread_mutex_unlock(&tm->lock));
     CHKPTI(pthread_cond_signal(&tm->cond));
+    return 0;
 }
 
 int cx_timer_clear_all(CxTimer* tm) {
@@ -168,6 +169,7 @@ int cx_timer_clear_all(CxTimer* tm) {
     list_task_clear(&tm->tasks);
     CHKPTI(pthread_mutex_unlock(&tm->lock));
     CHKPTI(pthread_cond_signal(&tm->cond));
+    return 0;
 }
 
 size_t cx_timer_count(CxTimer* tm) {
