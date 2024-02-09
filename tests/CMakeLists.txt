@@ -15,8 +15,8 @@ set(SOURCES
     list.c
     timer.c 
     var.c 
-    # json_build.c
-    # json_parse.c
+    json_build.c
+    json_parse.c
 )
 
 add_subdirectory(.. cxlib)

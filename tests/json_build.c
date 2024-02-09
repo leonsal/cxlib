@@ -31,38 +31,41 @@ void json_build_tests(void) {
 void json_build_test(const CxAllocator* alloc) {
 
     LOGI("json_build alloc:%p", alloc);
-    CxVar vmap = cx_var_new_map(alloc);
-    CHKZ(cx_var_set_map_null(&vmap, "null"));
-    CHKZ(cx_var_set_map_bool(&vmap, "bool", true));
-    CHKZ(cx_var_set_map_bool(&vmap, "bool", false));
-    CHKZ(cx_var_set_map_int(&vmap, "int", 10));
-    CHKZ(cx_var_set_map_float(&vmap, "float", 3.1415));
-    CHKZ(cx_var_set_map_str(&vmap, "str", "string text"));
-        CxVar varr = cx_var_new_arr(alloc);
-        cx_var_push_arr_val(&varr, cx_var_new_null());
-        cx_var_push_arr_val(&varr, cx_var_new_bool(false));
-        cx_var_push_arr_val(&varr, cx_var_new_int(1));
-        cx_var_push_arr_val(&varr, cx_var_new_float(-34.33));
-        cx_var_push_arr_val(&varr, cx_var_new_str("string \"el\"", alloc));
 
-            CxVar varr2 = cx_var_new_arr(alloc);
-            cx_var_push_arr_val(&varr2, cx_var_new_null());
-            cx_var_push_arr_val(&varr2, cx_var_new_int(123));
-            cx_var_push_arr_val(&varr, varr2);
+    // Enclosing map
+    CxVar* vmap = cx_var_set_map(cx_var_new(alloc));
+    CHK(cx_var_set_map_null(vmap, "null"));
+    CHK(cx_var_set_map_bool(vmap, "bool", true));
+    CHK(cx_var_set_map_bool(vmap, "bool", false));
+    CHK(cx_var_set_map_int(vmap, "int", 10));
+    CHK(cx_var_set_map_float(vmap, "float", 3.1415));
+    CHK(cx_var_set_map_str(vmap, "str", "string text"));
 
-            CxVar vmap2 = cx_var_new_map(alloc);
-            cx_var_set_map_val(&vmap2, "b1", cx_var_new_bool(true));
-            cx_var_push_arr_val(&varr, vmap2);
+    // Array element
+    CxVar* varr = cx_var_set_map_arr(vmap, "arr");
+    cx_var_push_arr_null(varr);
+    cx_var_push_arr_bool(varr, false);
+    cx_var_push_arr_int(varr, 1);
+    cx_var_push_arr_float(varr, -34.33);
+    cx_var_push_arr_str(varr, "string \"el\"");
 
-    cx_var_set_map_val(&vmap, "arr", varr);
+    // Map element
+    CxVar* vmap2 = cx_var_set_map_map(vmap, "map");
+    cx_var_set_map_null(vmap2, "null");
+    cx_var_set_map_bool(vmap2, "bool", false);
+    cx_var_set_map_int(vmap2, "int", -42);
+    cx_var_set_map_float(vmap2, "float", 0.1);
+    cx_var_set_map_str(vmap2, "str", "mapel");
 
     // Creates CxWriter using a string to store the json build output 
     cxstr out = cxstr_init(alloc);
     CxWriter writer = {.ctx = &out, .write = (CxWriterWrite)cxstring_write};
-    CHK(cx_json_build(&vmap, NULL, &writer) == 0);
+
+    // Builds JSON 
+    CHK(cx_json_build(vmap, NULL, &writer) == 0);
     printf("json:%s\n", out.data);
     cxstr_free(&out);
-    cx_var_del(&vmap);
+    cx_var_del(vmap);
 }
 
 static int cxstring_write(cxstr* str, void* data, size_t len) {

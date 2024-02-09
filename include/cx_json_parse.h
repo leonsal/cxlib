@@ -10,7 +10,7 @@ typedef struct CxJsonBuildCfg {
 
 // Parses JSON string and builds CxVar.
 // Return non-zero error code
-int cx_json_parse(const char* data, size_t len, CxVar* var, const CxAllocator* alloc); 
+int cx_json_parse(const char* data, size_t len, CxVar** var, const CxAllocator* alloc); 
 
 #endif
 

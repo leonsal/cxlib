@@ -237,6 +237,8 @@ Return 0 if equal, -1 or 1 (as memcmp())
     #define cx_str_alloc_field_
     #define cx_str_alloc_(s,n)\
         cx_alloc_malloc(cx_str_allocator,n)
+    #define cx_str_realloc_(s,oldp,oldn,n)\
+        cx_alloc_realloc(cx_str_allocator,oldp,oldn, n)
     #define cx_str_free_(s,p,n)\
         cx_alloc_free(cx_str_allocator,p,n)
 #endif

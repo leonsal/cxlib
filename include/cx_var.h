@@ -22,6 +22,9 @@ typedef enum {
 typedef struct CxVar CxVar;
 CxVar* cx_var_new(const CxAllocator* alloc);
 
+// Returns the allocator used by the CxVar
+const CxAllocator* cx_var_allocator(CxVar* var);
+
 // Deletes CxVar
 void cx_var_del(CxVar* var);
 
@@ -56,7 +59,8 @@ CxVar* cx_var_push_arr_buf(CxVar* arr, void* data, size_t len);
 
 // Creates and sets new map entry
 // Returns pointer to the new entry or NULL on errors.
-CxVar* cx_var_set_map_val(CxVar* arr, const char* key, CxVar* val);
+CxVar* cx_var_set_map_val(CxVar* map, const char* key, CxVar* val);
+CxVar* cx_var_set_map_valn(CxVar* map, const char* key, size_t key_len, CxVar* val);
 CxVar* cx_var_set_map_null(CxVar* map, const char* key);
 CxVar* cx_var_set_map_bool(CxVar* map, const char* key, bool v);
 CxVar* cx_var_set_map_int(CxVar* map, const char* key, int64_t v);
@@ -84,10 +88,11 @@ bool cx_var_get_str(const CxVar* var, const char** pval);
 bool cx_var_get_buf(const CxVar* var, const void** data, size_t* len);
 
 // Get length of array
-ssize_t cx_var_get_arr_len(const CxVar* arr);
+// Returns the supplied array pointer or NULL on error.
+CxVar* cx_var_get_arr_len(const CxVar* arr, size_t* len);
 
 // Get value at the specified array index
-// Returns NULL on errors.
+// Returns the supplied array pointer or NULL on error.
 CxVar* cx_var_get_arr_val(const CxVar* arr, size_t index);
 
 // Utility array getters
@@ -100,8 +105,9 @@ CxVar* cx_var_get_arr_arr(const CxVar* arr, size_t index);
 CxVar* cx_var_get_arr_map(const CxVar* arr, size_t index);
 CxVar* cx_var_get_arr_buf(const CxVar* arr, size_t index, const void** data, size_t* len);
 
-// Returns number of map elements or negative error.
-ssize_t cx_var_get_map_len(const CxVar* map);
+// Get length of map
+// Returns the supplied map pointer or NULL on error.
+CxVar* cx_var_get_map_len(const CxVar* map, size_t* len);
 
 // Get value of map element at the specified key
 // Returns NULL on errors.
@@ -116,6 +122,12 @@ CxVar* cx_var_get_map_str(const CxVar* map, const char* key, const char** pstr);
 CxVar* cx_var_get_map_arr(const CxVar* map, const char* key);
 CxVar* cx_var_get_map_map(const CxVar* map, const char* key);
 CxVar* cx_var_get_map_buf(const CxVar* map, const char* key, const void** data, size_t* len);
+
+// Map iteration
+typedef struct CxVarMapIter CxVarMapIter;
+CxVarMapIter* cx_var_get_map_iter(const CxVar* map);
+CxVar* cx_var_get_map_next(const CxVar* map, CxVarMapIter* iter, const char** key);
+CxVar* cx_var_map_del_iter(const CxVar* map, CxVarMapIter* iter);
 
 #endif
 

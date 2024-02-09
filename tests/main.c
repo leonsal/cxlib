@@ -13,8 +13,8 @@
 #include "list.h"
 #include "timer.h"
 #include "var.h"
-// #include "json_build.h"
-// #include "json_parse.h"
+#include "json_build.h"
+#include "json_parse.h"
 
 int main() {
 
@@ -28,8 +28,8 @@ int main() {
     cx_list_tests();
     //cx_timer_tests();
     cx_var_tests();
-    // json_build_tests();
-    // json_parse_tests();
+    json_build_tests();
+    json_parse_tests();
     LOGW("END");
 }
 

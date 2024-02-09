@@ -81,10 +81,16 @@ void cx_var_test(const CxAllocator* alloc) {
 
     // Array
     {
+        bool vbool;
+        int64_t vint;
+        double vfloat;
+        const char* vstr;
+        const void* vbuf;
+        size_t len;
         CxVar* arr = cx_var_set_arr(cx_var_new(alloc));
 
         CHK(cx_var_get_type(arr) == CxVarArr);
-        CHK(cx_var_get_arr_len(arr) == 0);
+        CHK(cx_var_get_arr_len(arr, &len) && len == 0);
 
         CHKN(cx_var_push_arr_null(arr));
         CHKN(cx_var_push_arr_bool(arr, true));
@@ -117,14 +123,8 @@ void cx_var_test(const CxAllocator* alloc) {
         CHKN(cx_var_push_arr_buf(arr, (uint8_t[]){0,1,2}, 3));
 
         // Checks
-        bool vbool;
-        int64_t vint;
-        double vfloat;
-        const char* vstr;
-        const void* vbuf;
-        size_t len;
 
-        CHK(cx_var_get_arr_len(arr) == 9);
+        CHK(cx_var_get_arr_len(arr, &len) && len == 9);
         CHK(cx_var_get_arr_null(arr, 0));
         CHK(cx_var_get_arr_bool(arr, 1, &vbool) && vbool == true);
         CHK(cx_var_get_arr_bool(arr, 2, &vbool) && vbool == false);
@@ -133,14 +133,14 @@ void cx_var_test(const CxAllocator* alloc) {
         CHK(cx_var_get_arr_str(arr, 5, &vstr) && strcmp(vstr, "strel") == 0);
 
         CxVar* arr_el = cx_var_get_arr_arr(arr, 6);
-        CHK(cx_var_get_arr_len(arr_el) == 4);
+        CHK(cx_var_get_arr_len(arr_el, &len) && len == 4);
         CHK(cx_var_get_arr_null(arr_el, 0));
         CHK(cx_var_get_arr_bool(arr_el, 1, &vbool) && vbool == false);
         CHK(cx_var_get_arr_int(arr_el, 2, &vint) && vint == 88);
         CHK(cx_var_get_arr_float(arr_el, 3, &vfloat) && vfloat == 0.4);
 
         CxVar* map_el = cx_var_get_arr_map(arr, 7);
-        CHK(cx_var_get_map_len(map_el) == 5);
+        CHK(cx_var_get_map_len(map_el, &len) && len == 5);
         CHK(cx_var_get_map_null(map_el, "knull"));
         CHK(cx_var_get_map_bool(map_el, "kbool", &vbool) && vbool == true);
         CHK(cx_var_get_map_int(map_el, "kint", &vint) && vint == 20);
