@@ -615,7 +615,7 @@ static void cx_var_free_cont(CxVar* var) {
             cx_alloc_free(var->alloc, var->v.str, sizeof(cxvar_arr));
             var->v.arr = NULL;
             break;
-        case CxVarMap:
+        case CxVarMap: {
             cxvar_map_iter iter = {0};
             while (true) {
                 cxvar_map_entry* e = cxvar_map_next(var->v.map, &iter);
@@ -629,6 +629,7 @@ static void cx_var_free_cont(CxVar* var) {
             cx_alloc_free(var->alloc, var->v.map, sizeof(cxvar_map));
             var->v.map = NULL;
             break;
+        }
         case CxVarBuf:
             cxvar_buf_free(var->v.buf);
             cx_alloc_free(var->alloc, var->v.buf, sizeof(cxvar_buf));
