@@ -1,0 +1,6 @@
+- remove CAP from cx_str
+- change cx_array grow as cx_str
+- use signed integers in cx_lib data structures
+  instead of unsigned ?
+
+
