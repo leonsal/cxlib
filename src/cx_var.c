@@ -49,29 +49,31 @@ typedef struct CxVar CxVar;
 #define cx_hmap_cmp_key  cx_hmap_cmp_key_str_ptr
 #define cx_hmap_hash_key cx_hmap_hash_key_str_ptr
 #define cx_hmap_instance_allocator
+#define cx_hmap_static
 #define cx_hmap_implement
 #include "cx_hmap.h"
 
 #include "cx_alloc.h"
 #include "cx_var.h"
 
-typedef struct CxVarMapArr {
+// CxVar map contains an array to keep the order of the keys inserted
+typedef struct cxvar_maparr {
     cxvar_keys keys;
     cxvar_map  map;     
-} CxVarMapArr;
+} cxvar_maparr;
 
 // Declare CxVar state
 typedef struct CxVar {
-    const CxAllocator* alloc;
-    CxVarType type;    
+    const CxAllocator*  alloc;
+    CxVarType           type;    
     union {
-        bool        boolean;
-        int64_t     i64;
-        double      f64;
-        cxvar_str*  str;
-        cxvar_arr*  arr;
-        cxvar_buf*  buf;
-        CxVarMapArr* map;
+        bool            boolean;
+        int64_t         i64;
+        double          f64;
+        cxvar_str*      str;
+        cxvar_arr*      arr;
+        cxvar_buf*      buf;
+        cxvar_maparr*   map;
     } v;
 } CxVar;
 
@@ -170,7 +172,7 @@ CxVar* cx_var_set_map(CxVar* var) {
     if (var->type != CxVarMap) {
         cx_var_free_cont(var);
         var->type = CxVarMap;
-        var->v.map = cx_alloc_malloc(var->alloc, sizeof(CxVarMapArr));
+        var->v.map = cx_alloc_malloc(var->alloc, sizeof(cxvar_maparr));
         var->v.map->keys = cxvar_keys_init(var->alloc);
         var->v.map->map = cxvar_map_init(var->alloc, 0);
     }
