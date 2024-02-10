@@ -1,7 +1,4 @@
-#include <stdio.h>
 #include <asm-generic/errno.h>
-#include <stdio.h>
-#include "cx_alloc.h"
 #include "cx_pool_allocator.h"
 
 #include "logger.h"

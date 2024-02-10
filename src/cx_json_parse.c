@@ -22,20 +22,18 @@ typedef struct ParseState {
     int         count;      // Number of tokens
     jsmntok_t*  tok;        // Pointer to current token
     jsmntok_t*  tok_last;   // Pointer to last token
-    cxstr       sprim;      // Temporary aux string for primitives
-    cxstr       skey;       // Temporary aux string for keys
 } ParseState;
 
-static int cx_json_parse_token(ParseState* ps, CxVar** var);
-static int cx_json_parse_prim(ParseState* ps, CxVar** var);
+static int cx_json_parse_token(ParseState* ps, CxVar* var);
+static int cx_json_parse_prim(ParseState* ps, CxVar* var);
 static int cx_json_parse_str_token(ParseState* ps, cxstr* str);
-static int cx_json_parse_str(ParseState* ps, CxVar** var);
-static int cx_json_parse_arr(ParseState* ps, CxVar** var);
-static int cx_json_parse_obj(ParseState* ps, CxVar** var);
+static int cx_json_parse_str(ParseState* ps, CxVar* var);
+static int cx_json_parse_arr(ParseState* ps, CxVar* var);
+static int cx_json_parse_obj(ParseState* ps, CxVar* var);
 
 #define CHK(CALL) {int res = CALL; if (res) {return res;}}
 
-int cx_json_parse(const char* data, size_t len, CxVar** var, const CxAllocator* alloc) {
+int cx_json_parse(const char* data, size_t len, CxVar* var, const CxAllocator* alloc) {
 
     // Count the number of tokens
     jsmn_parser p;
@@ -53,6 +51,7 @@ int cx_json_parse(const char* data, size_t len, CxVar** var, const CxAllocator* 
     jsmn_init(&p);
     int res = jsmn_parse(&p, data, len, tokens, count);
     if (res < 0) {
+        cx_alloc_free(alloc, tokens, nalloc); 
         return res;
     }
 
@@ -62,8 +61,6 @@ int cx_json_parse(const char* data, size_t len, CxVar** var, const CxAllocator* 
         .count = count,
         .tok = &tokens[0],
         .tok_last = &tokens[count-1],
-        .sprim = cxstr_init(alloc),
-        .skey = cxstr_init(alloc),
     };
 
     while (ps.tok <= ps.tok_last) {
@@ -73,14 +70,12 @@ int cx_json_parse(const char* data, size_t len, CxVar** var, const CxAllocator* 
         }
     }
 
-    cxstr_free(&ps.sprim);
-    cxstr_free(&ps.skey);
     cx_alloc_free(alloc, tokens, nalloc); 
     return res;
 }
 
 // Parses the current token
-static int cx_json_parse_token(ParseState* ps, CxVar** var) {
+static int cx_json_parse_token(ParseState* ps, CxVar* var) {
 
     int res;
     switch (ps->tok->type) {
@@ -104,29 +99,28 @@ static int cx_json_parse_token(ParseState* ps, CxVar** var) {
 }
 
 
-static int cx_json_parse_prim(ParseState* ps, CxVar** var) {
+static int cx_json_parse_prim(ParseState* ps, CxVar* var) {
 
-    // Copy current primitive to auxiliary string
-    cxstr_clear(&ps->sprim);
+    cxstr prim = cxstr_init(ps->alloc);
     const char* pstart = &ps->data[ps->tok->start];
-    cxstr_cpyn(&ps->sprim, pstart, ps->tok->end - ps->tok->start);
-
-    if (cxstr_cmp(&ps->sprim, "null") == 0) {
-        cx_var_set_null(*var);
+    cxstr_cpyn(&prim, pstart, ps->tok->end - ps->tok->start);
+    int res = 0;
+    if (cxstr_cmp(&prim, "null") == 0) {
+        cx_var_set_null(var);
         ps->tok++;
-        return 0;
+        goto exit;
     }
 
-    if (cxstr_cmp(&ps->sprim, "true") == 0) {
-        cx_var_set_bool(*var, true);
+    if (cxstr_cmp(&prim, "true") == 0) {
+        cx_var_set_bool(var, true);
         ps->tok++;
-        return 0;
+        goto exit;
     }
 
-    if (cxstr_cmp(&ps->sprim, "false") == 0) {
-        cx_var_set_bool(*var, false);
+    if (cxstr_cmp(&prim, "false") == 0) {
+        cx_var_set_bool(var, false);
         ps->tok++;
-        return 0;
+        goto exit;
     }
 
     int start = pstart[0];
@@ -135,28 +129,30 @@ static int cx_json_parse_prim(ParseState* ps, CxVar** var) {
         // Otherwise try to convert to long int.
         char* pend;
         errno = 0;
-        if (cxstr_find(&ps->sprim, ".") >= 0) {
-            const double v = strtod(ps->sprim.data, &pend);
-            cx_var_set_float(*var, v);
+        if (cxstr_find(&prim, ".") >= 0) {
+            const double v = strtod(prim.data, &pend);
+            cx_var_set_float(var, v);
         } else {
-            const int64_t v = strtod(ps->sprim.data, &pend);
-            cx_var_set_int(*var, v);
+            const int64_t v = strtod(prim.data, &pend);
+            cx_var_set_int(var, v);
         }
 
         // Checks for invalid number chars
-        if (ps->sprim.data + cxstr_len(&ps->sprim) != pend) {
-            return 1;
+        if (prim.data + cxstr_len(&prim) != pend) {
+            res = 1;
+            goto exit;
         }
         // Checks for overflow/underflow
         if (errno) {
-            return 1;
+            res = 1;
+            goto exit;
         }
         ps->tok++;
-        return 0;
     }
 
-    // Invalid primitive
-    return 1;
+exit:
+    cxstr_free(&prim);
+    return res;
 }
 
 static int cx_json_parse_str_token(ParseState* ps, cxstr* str) {
@@ -239,43 +235,45 @@ static int cx_json_parse_str_token(ParseState* ps, cxstr* str) {
     return 0;
 }
 
-static int cx_json_parse_str(ParseState* ps, CxVar** var) {
+static int cx_json_parse_str(ParseState* ps, CxVar* var) {
 
-    cxstr_clear(&ps->sprim);
-    CHK(cx_json_parse_str_token(ps, &ps->sprim));
-    cx_var_set_str(*var, ps->sprim.data);
+    cxstr str = cxstr_init(ps->alloc);
+    CHK(cx_json_parse_str_token(ps, &str));
+    cx_var_set_str(var, str.data);
+    cxstr_free(&str);
     ps->tok++;
     return 0;
 }
 
-static int cx_json_parse_arr(ParseState* ps, CxVar** var) {
+static int cx_json_parse_arr(ParseState* ps, CxVar* var) {
 
     size_t arr_len = ps->tok->size;
-    cx_var_set_arr(*var);
+    cx_var_set_arr(var);
     ps->tok++;
     while (arr_len) {
-        CxVar* el = cx_var_new(cx_var_allocator(*var));
-        CHK(cx_json_parse_token(ps, &el));
-        cx_var_push_arr_val(*var, el);
+        CxVar* el = cx_var_new(cx_var_allocator(var));
+        CHK(cx_json_parse_token(ps, el));
+        cx_var_push_arr_val(var, el);
         arr_len--;
     }
     return 0;
 }
 
-static int cx_json_parse_obj(ParseState* ps, CxVar** var) {
+static int cx_json_parse_obj(ParseState* ps, CxVar* var) {
 
     size_t obj_len = ps->tok->size;
-    cx_var_set_map(*var);
+    cx_var_set_map(var);
     ps->tok++;
     for (; obj_len > 0; obj_len--) {
         // Key
-        cxstr_clear(&ps->skey);
-        CHK(cx_json_parse_str_token(ps, &ps->skey));
+        cxstr key = cxstr_init(ps->alloc);
+        CHK(cx_json_parse_str_token(ps, &key));
         ps->tok++;
         // Value
-        CxVar* value = cx_var_new(cx_var_allocator(*var));
-        CHK(cx_json_parse_token(ps, &value));
-        cx_var_set_map_valn(*var, ps->skey.data, cxstr_len(&ps->skey), value);
+        CxVar* value = cx_var_new(cx_var_allocator(var));
+        CHK(cx_json_parse_token(ps, value));
+        cx_var_set_map_valn(var, key.data, cxstr_len(&key), value);
+        cxstr_free(&key);
     }
     return 0;
 }
