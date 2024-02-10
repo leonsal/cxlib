@@ -111,22 +111,23 @@ void json_parse_test(const CxAllocator* alloc) {
     }
 
     {
-        const char* json = "{\"k1\":null, \"k2\":false, \"k3\": -124, \"k4\": -0.8, \"k5\": \"strel\" }";
+        const char* json = "{\"k1\":null, \"k2\":false, \"k3\": -124, \"k4\": -0.8, \"k5\": \"strel\", \"k6\": {\"k61\": \"params\"}}";
         CxVar* map = cx_var_new(alloc);
         CHK(cx_json_parse(json, strlen(json), &map, alloc) == 0);
 
-        CHK(cx_var_get_map_len(map, &len) && len == 5);
+        CHK(cx_var_get_map_len(map, &len) && len == 6);
         CHK(cx_var_get_map_null(map, "k1"));
         CHK(cx_var_get_map_bool(map, "k2", &vbool) && !vbool);
         CHK(cx_var_get_map_int(map, "k3", &vint) && vint == -124);
         CHK(cx_var_get_map_float(map, "k4", &vfloat) && vfloat == -0.8);
         CHK(cx_var_get_map_str(map, "k5", &vstr) && strcmp(vstr, "strel") == 0);
+        CxVar* map2 = cx_var_get_map_map(map, "k6");
+        CHK(cx_var_get_map_str(map2, "k61", &vstr));
         cx_var_del(map);
     }
 
-
     {
-        const char* json = "[\"1\", {\"1\":1, \"2\":[2], \"3\": 3}, null]";
+        const char* json = "[\"1\", {\"k1\":1, \"k2\":[2], \"k3\": 3}, null]";
         CxVar* arr = cx_var_new(alloc);
         CHK(cx_json_parse(json, strlen(json), &arr, alloc) == 0);
 
@@ -134,14 +135,14 @@ void json_parse_test(const CxAllocator* alloc) {
         CHK(cx_var_get_arr_str(arr, 0, &vstr) && strcmp(vstr, "1") == 0);
         CxVar* map = cx_var_get_arr_map(arr, 1);
         {
-            //CHK(cx_var_get_map_count(&map, &len) == 0 && len == 3);
-            CHK(cx_var_get_map_int(map, "1", &vint) && vint == 1);
-            CxVar* arr2 = cx_var_get_map_arr(map, "2");
+            CHK(cx_var_get_map_len(map, &len) && len == 3);
+            CHK(cx_var_get_map_int(map, "k1", &vint) && vint == 1);
+            CxVar* arr2 = cx_var_get_map_arr(map, "k2");
             {
-                //CHK(cx_var_get_arr_len(arr2, &len) == 0 && len == 1);
+                CHK(cx_var_get_arr_len(arr2, &len) && len == 1);
                 CHK(cx_var_get_arr_int(arr2, 0, &vint) && vint == 2);
             }
-            CHK(cx_var_get_map_int(map, "3", &vint) && vint == 3);
+            CHK(cx_var_get_map_int(map, "k3", &vint) && vint == 3);
         }
         CHK(cx_var_get_arr_null(arr, 2));
         cx_var_del(arr);
