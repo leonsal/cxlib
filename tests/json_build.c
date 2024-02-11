@@ -15,6 +15,7 @@
 #include "cx_str.h"
 
 
+static void json_replacer(CxVar* var, void* userdata);
 static int cxstring_write(cxstr* str, void* data, size_t len);
 
 void json_build_tests(void) {
@@ -62,7 +63,8 @@ void json_build_test(const CxAllocator* alloc) {
     CxWriter writer = {.ctx = &out, .write = (CxWriterWrite)cxstring_write};
 
     // Builds JSON 
-    CHK(cx_json_build(vmap, NULL, &writer) == 0);
+    CxJsonBuildCfg cfg = {.replacer_fn = json_replacer};
+    CHK(cx_json_build(vmap, &cfg, &writer) == 0);
     printf("json:%s\n", out.data);
     cxstr_free(&out);
     cx_var_del(vmap);
@@ -73,3 +75,12 @@ static int cxstring_write(cxstr* str, void* data, size_t len) {
     cxstr_catn(str, data, len);
     return len;
 }
+
+static void json_replacer(CxVar* var, void* userdata) {
+    // size_t type = cx_var_get_type(var);
+    // printf("type:%zu\n", type);
+    // if (type == CxVarStr) {
+    //     cx_var_set_str(var, "LIXO");
+    // }
+}
+
