@@ -134,9 +134,6 @@ Initialize hashmap NOT defined with custom allocator
 If the specified number of bucket is 0, the default will be used.
     hmap hmap_init(size_t nbuckets);
 
-Clones hashmap returning a new one with possibly different number of buckets.
-    hmap hmap_clone(const hmap* src, size_t nbuckets);
-
 Free hashmap allocated memory
     void hmap_free(hmap* m);
 
@@ -280,7 +277,6 @@ typedef struct cx_hmap_name_(_iter) {
 #else
     cx_hmap_api_ cx_hmap_name cx_hmap_name_(_init)(size_t nbuckets);
 #endif
-cx_hmap_api_ cx_hmap_name cx_hmap_name_(_clone)(cx_hmap_name* src, size_t nbuckets);
 cx_hmap_api_ void cx_hmap_name_(_free_internal_)(cx_hmap_name* m, bool entries, bool buckets);
 cx_hmap_api_ void cx_hmap_name_(_free)(cx_hmap_name* m);
 cx_hmap_api_ void cx_hmap_name_(_set)(cx_hmap_name* m, cx_hmap_key k, cx_hmap_val v);
@@ -329,6 +325,7 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
             }
             cx_hmap_name_(_set)(&new, e->key, e->val);
         }
+        // Clear the old map nodes and buckets, but KEEP the entries.
         cx_hmap_name_(_free_internal_)(m, false, true);
         *m = new;
         printf("RESIZED:%lu\n", m->nbuckets_);
@@ -489,23 +486,6 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
     }
 
 #endif
-
-cx_hmap_api_ cx_hmap_name cx_hmap_name_(_clone)(cx_hmap_name* src, size_t nbuckets) {
-
-    cx_hmap_name dst = *src;
-    dst.nbuckets_ = nbuckets;
-    dst.count_ = 0;
-    dst.buckets_ = NULL;
-    cx_hmap_name_(_iter) iter = {0};
-    while (true) {
-        cx_hmap_name_(_entry)* e = cx_hmap_name_(_next)(src, &iter);
-        if (e == NULL) {
-            return dst;
-        }
-        cx_hmap_name_(_set)(&dst, e->key, e->val);
-    }
-    return dst;
-}
 
 // Frees all the link list nodes and optionally: entries pointer and/or buckets array
 cx_hmap_api_ void cx_hmap_name_(_free_internal_)(cx_hmap_name* m, bool entries, bool buckets) {

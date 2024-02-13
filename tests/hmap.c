@@ -84,13 +84,15 @@
 void test_map1u64(size_t size, size_t nbuckets, const CxAllocator* alloc);
 void test_map2u64(size_t size, size_t nbuckets, const CxAllocator* alloc);
 void test_map1str(size_t size, size_t nbuckets, const CxAllocator* alloc);
+void test_map2str(size_t size, size_t nbuckets, const CxAllocator* alloc);
 
 void cxHmapTests(void) {
 
     test_map1u64(100, 40, cxDefaultAllocator());
     test_map2u64(100, 40, cxDefaultAllocator());
-
+    
     test_map1str(100, 40, cxDefaultAllocator());
+    test_map2str(10, 40, cxDefaultAllocator());
 
     // // Use pool allocator because the keys are dynamically allocated
     // CxPoolAllocator* pa = cx_pool_allocator_create(4*1024, NULL);
@@ -399,6 +401,99 @@ void test_map1str(size_t size, size_t nbuckets, const CxAllocator* alloc) {
     map1str_free(&m);
 }
 
+void test_map2str(size_t size, size_t nbuckets, const CxAllocator* alloc) {
+
+    LOGI("%s: size=%lu nbuckets=%lu alloc=%p", __func__, size, nbuckets, alloc);
+    // Initializes map and sets entries
+    map2str m = map2str_init(alloc, nbuckets);
+    // Tests clearing empty map
+    map2str_clear(&m);
+    CHK(map2str_count(&m) == 0);
+
+    // Fill map
+    for (size_t  i = 0; i < size; i++) {
+        char* key = newstr(i,alloc);
+        map2str_set(&m, key, i*2.0);
+    }
+    // Checks entries directly
+    for (size_t  i = 0; i < size; i++) {
+        CHK(*map2str_get(&m, numstr(i)) == i * 2.0);
+    }
+    CHK(map2str_count(&m) == size);
+
+    map2str_free(&m);
+
+    // // Checks entries using iterator
+    // map1str_iter iter1 = {};
+    // size_t counter = 0;
+    // while (true) {
+    //     map1str_entry* e = map1str_next(&m, &iter1);
+    //     if (e == NULL) {
+    //         break;
+    //     }
+    //     CHK(e->val == atoi(e->key) * 2.0);
+    //     counter++;
+    // }
+    // CHK(counter == map1str_count(&m));
+    //
+    // // Overwrites all keys
+    // for (size_t i = 0; i < size; i++) {
+    //     map1str_set(&m, newstr(i, alloc), i*3.0);
+    // }
+    // // Checks entries directly
+    // for (size_t  i = 0; i < size; i++) {
+    //     CHK(*map1str_get(&m, numstr(i)) == i * 3.0);
+    // }
+    //
+    // // Delete even keys
+    // for (size_t i = 0; i < size; i++) {
+    //     if (i % 2 == 0) {
+    //         map1str_del(&m, numstr(i));
+    //     }
+    // }
+    // CHK(map1str_count(&m) == size/2);
+    //
+    // // Checks entries
+    // for (size_t  i = 0; i < size; i++) {
+    //     if (i % 2 == 0) {
+    //         CHK(map1str_get(&m, numstr(i)) == NULL);
+    //     }
+    //     else {
+    //         CHK(*map1str_get(&m, numstr(i)) == i * 3.0);
+    //     }
+    // }
+    //
+    // // Overwrites all keys
+    // for (size_t i = 0; i < size; i++) {
+    //     map1str_set(&m, newstr(i,alloc), i*4.0);
+    // }
+    // // Checks entries directly
+    // for (size_t  i = 0; i < size; i++) {
+    //     CHK(*map1str_get(&m, numstr(i)) == i * 4.0);
+    // }
+    // CHK(map1str_count(&m) == size);
+    //
+    // // Delete odd keys
+    // for (size_t i = 0; i < size; i++) {
+    //     if (i % 2) {
+    //         map1str_del(&m, numstr(i));
+    //     }
+    // }
+    // CHK(map1str_count(&m) == size/2);
+    //
+    // // Checks entries
+    // for (size_t  i = 0; i < size; i++) {
+    //     if (i % 2) {
+    //         CHK(map1str_get(&m, numstr(i)) == NULL);
+    //     }
+    //     else {
+    //         CHK(*map1str_get(&m, numstr(i)) == i * 4.0);
+    //     }
+    // }
+    // map1str_clear(&m);
+    // CHK(map1str_count(&m) == 0);
+    // map1str_free(&m);
+}
 
 //
 // // Converts integer to dynamically allocated cxstr

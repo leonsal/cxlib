@@ -326,6 +326,7 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
 #   if defined(cx_hmap_free_key) || defined(cx_hmap_free_val)
         for (size_t i = 0; i < m->nbuckets_; i++) {
             if (m->status_[i] == cx_hmap_full_) {
+                printf("free:%s\n", (char*)m->buckets_[i].key);
                 cx_hmap_free_key_(&m->buckets_[i].key);
                 cx_hmap_free_val_(&m->buckets_[i].val);
             }
@@ -342,7 +343,7 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
         cx_hmap_name resized = cx_hmap_name_(_clone)(m, (m->nbuckets_ * 2) + 0);
         cx_hmap_name_(_free)(m);
         *m = resized;
-        //printf("RESIZED:%lu\n", m->nbuckets_);
+        printf("RESIZED:%lu\n", m->nbuckets_);
     }
 
     // Map operations
