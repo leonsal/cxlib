@@ -75,14 +75,25 @@ which, if exceeded, will imply in the rehash of the hash map
 (expensive operation)
     #define cx_hmap_load_factor <lf>
 
-Define the key comparison function with type:
+Define the key comparison function:
 int (*cmp)(const void* k1, const void* k2, size_t size);
-    #define cx_hmap_cmp_key <cmp_func>
+The default comparison function is memcmp();
+    #define cx_hmap_cmp_key(pk1,pk2,s) <cmp_func>
 
-Define the key hash function with type:
+Define the key hash function:
 uint32_t (*hash)(const void* key, size_t size);
 The default hash function implements FNV-1a algorithm
-    #define cx_hmap_hash_key <hash_func>
+    #define cx_hmap_hash_key(pk,s) <hash_func>
+
+Define function to free the key of deleted entries:
+void (*free)(void* key);
+By default no function is defined.
+    #define cx_hmap_free_key(pk) <free_func>
+
+Define function to free the value of deleted entries:
+void (*free)(void* val);
+By default no function is defined.
+    #define cx_hmap_free_val <free_func>
 
 Define optional custom allocator pointer or function call which return pointer to allocator.
 Uses default allocator if not defined.
@@ -191,6 +202,20 @@ Returns statistics for the specified map (if enabled)
     #define cx_hmap_hash_key cx_hmap_hash_fnv1a32
 #endif
 
+// Default free key function
+#ifndef cx_hmap_free_key
+    #define cx_hmap_free_key_(key)
+#else
+    #define cx_hmap_free_key_(key) cx_hmap_free_key(key)
+#endif
+
+// Default free value function
+#ifndef cx_hmap_free_val
+    #define cx_hmap_free_val_(val)
+#else
+    #define cx_hmap_free_val_(val) cx_hmap_free_val(val)
+#endif
+
 // Auxiliary internal macros
 #define cx_hmap_concat2_(a, b) a ## b
 #define cx_hmap_concat1_(a, b) cx_hmap_concat2_(a, b)
@@ -293,6 +318,20 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
     // Declaration of function to hash keys of strings pointers.
     size_t cx_hmap_hash_key_str_ptr(void* key, size_t keySize);
 
+    // Internal function to free the map entries
+    cx_hmap_api_ void cx_hmap_name_(_free_internal_)(cx_hmap_name* m) {
+        if (m == NULL || m->count_ == 0) {
+            return;
+        }
+#   if defined(cx_hmap_free_key) || defined(cx_hmap_free_val)
+        for (size_t i = 0; i < m->nbuckets_; i++) {
+            if (m->status_[i] == cx_hmap_full_) {
+                cx_hmap_free_key_(&m->buckets_[i].key);
+                cx_hmap_free_val_(&m->buckets_[i].val);
+            }
+        }
+#   endif
+    }
 
     // Resize hash map if load exceeded
     cx_hmap_api_ void cx_hmap_name_(_check_resize_)(cx_hmap_name* m) {
@@ -364,6 +403,8 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
                         return e;
                     }
                     // For "Del" sets this bucket as deleted
+                    cx_hmap_free_key_(&e->key);
+                    cx_hmap_free_val_(&e->val);
                     m->count_--;
                     m->deleted_++;
                     m->status_[idx] = cx_hmap_del_;
@@ -437,6 +478,7 @@ cx_hmap_api_ cx_hmap_name cx_hmap_name_(_clone)(const cx_hmap_name* m, size_t nb
 cx_hmap_api_ void cx_hmap_name_(_free)(cx_hmap_name* m) {
 
     assert(m);
+    cx_hmap_name_(_free_internal_)(m);
     cx_hmap_free_(m, m->buckets_, m->nbuckets_ * sizeof(*m->buckets_));
     cx_hmap_free_(m, m->status_, m->nbuckets_ * sizeof(*m->status_));
     m->buckets_ = NULL;
@@ -469,6 +511,7 @@ cx_hmap_api_ bool cx_hmap_name_(_del)(cx_hmap_name* m, cx_hmap_key k) {
 cx_hmap_api_ void cx_hmap_name_(_clear)(cx_hmap_name* m) {
 
     assert(m);
+    cx_hmap_name_(_free_internal_)(m);
     if (m->count_ == 0) {
         return;
     }
@@ -581,6 +624,8 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
 #undef cx_hmap_resize_load
 #undef cx_hmap_cmp_key
 #undef cx_hmap_hash_key
+#undef cx_hmap_free_key
+#undef cx_hmap_free_val
 #undef cx_hmap_allocator
 #undef cx_hmap_instance_allocator
 #undef cx_hmap_static
@@ -596,6 +641,8 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
 #undef cx_hmap_alloc_global
 #undef cx_hmap_alloc_
 #undef cx_hmap_free_
+#undef cx_hmap_free_key_
+#undef cx_hmap_free_val_
 #undef cx_hmap_empty_
 #undef cx_hmap_full_
 #undef cx_hmap_del_

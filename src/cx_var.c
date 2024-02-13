@@ -46,8 +46,8 @@ typedef struct CxVar CxVar;
 #define cx_hmap_name cxvar_map
 #define cx_hmap_key char*
 #define cx_hmap_val CxVar*
-#define cx_hmap_cmp_key  cx_hmap_cmp_key_str_ptr
-#define cx_hmap_hash_key cx_hmap_hash_key_str_ptr
+#define cx_hmap_cmp_key  cx_hmap_cmp_key_str
+#define cx_hmap_hash_key cx_hmap_hash_key_str
 #define cx_hmap_instance_allocator
 #define cx_hmap_static
 #define cx_hmap_implement

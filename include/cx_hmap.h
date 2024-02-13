@@ -75,14 +75,25 @@ which, if exceeded, will imply in the rehash of the hash map
 (expensive operation)
     #define cx_hmap_load_factor <lf>
 
-Define the key comparison function with type:
+Define the key comparison function:
 int (*cmp)(const void* k1, const void* k2, size_t size);
-    #define cx_hmap_cmp_key <cmp_func>
+The default comparison function is memcmp();
+    #define cx_hmap_cmp_key(pk1,pk2,s) <cmp_func>
 
-Define the key hash function with type:
+Define the key hash function:
 uint32_t (*hash)(const void* key, size_t size);
 The default hash function implements FNV-1a algorithm
-    #define cx_hmap_hash_key <hash_func>
+    #define cx_hmap_hash_key(pk,s) <hash_func>
+
+Define function to free the key of deleted entries:
+void (*free)(void* key);
+By default no function is defined.
+    #define cx_hmap_free_key(pk) <free_func>
+
+Define function to free the value of deleted entries:
+void (*free)(void* val);
+By default no function is defined.
+    #define cx_hmap_free_val <free_func>
 
 Define optional custom allocator pointer or function call which return pointer to allocator.
 Uses default allocator if not defined.
@@ -181,12 +192,26 @@ Returns statistics for the specified map (if enabled)
 
 // Default key comparison function
 #ifndef cx_hmap_cmp_key
-    #define cx_hmap_cmp_key memcmp
+    #define cx_hmap_cmp_key(pk1,pk2,s) memcmp(pk1,pk2,s)
 #endif
 
 // Default key hash function
 #ifndef cx_hmap_hash_key
-    #define cx_hmap_hash_key cx_hmap_hash_fnv1a32
+    #define cx_hmap_hash_key(pk,s) cx_hmap_hash_fnv1a32(pk,s)
+#endif
+
+// Default free key function
+#ifndef cx_hmap_free_key
+    #define cx_hmap_free_key_(key)
+#else
+    #define cx_hmap_free_key_(key) cx_hmap_free_key(key)
+#endif
+
+// Default free value function
+#ifndef cx_hmap_free_val
+    #define cx_hmap_free_val_(val)
+#else
+    #define cx_hmap_free_val_(val) cx_hmap_free_val(val)
 #endif
 
 // Auxiliary internal macros
@@ -276,17 +301,14 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
     // Declaration of function to hash keys
     uint32_t cx_hmap_hash_fnv1a32(const void *buf, size_t len);
 
-    // Declaration of function to compare keys of strings with fixed size.
-    int cx_hmap_cmp_key_str_arr(const void* k1, const void* k2, size_t size);
+    // Declaration of function to compare keys of C strings pointers.
+    int cx_hmap_cmp_key_str(const void* k1, const void* k2, size_t size);
 
-    // Declaration of function to hash keys of strings with fixed size.
-    size_t cx_hmap_hash_key_str_arr(void* key, size_t keySize);
+    // Declaration of function to hash keys of C strings pointers.
+    size_t cx_hmap_hash_key_str(void* key, size_t keySize);
 
-    // Declaration of function to compare keys of strings pointers.
-    int cx_hmap_cmp_key_str_ptr(const void* k1, const void* k2, size_t size);
-
-    // Declaration of function to hash keys of strings pointers.
-    size_t cx_hmap_hash_key_str_ptr(void* key, size_t keySize);
+    // Declaration of function for freeing C strings
+    void cx_hmap_free_str(char** str);
 
     // Resize hash map if load exceeded
     cx_hmap_api_ void cx_hmap_name_(_check_resize_)(cx_hmap_name* m) {
@@ -359,8 +381,10 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
             if (op == cx_hmap_op_get_ || op == cx_hmap_op_set_) {
                 return e;
             }
-            // For "Del" sets this bucket as empty
-            // For string keys, free allocated key
+            // Operation is "Del":
+            // Delete entry key and value
+            cx_hmap_free_key_(&e->key);
+            cx_hmap_free_val_(&e->val);
             m->count_--;
             if (e == e->next_) {
                 e->next_ = NULL;
@@ -467,7 +491,9 @@ cx_hmap_api_ void cx_hmap_name_(_free_internal_)(cx_hmap_name* m, bool all) {
         if (e->next_ == NULL) {
             continue;
         }
-        // Free this bucket
+        // Free entry and bucket
+        cx_hmap_free_key_(&e->key);
+        cx_hmap_free_val_(&e->val);
         if (e->next_ == e) {
             e->next_ = NULL;
             continue;
@@ -627,6 +653,8 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
 #undef cx_hmap_val
 #undef cx_hmap_cmp_key
 #undef cx_hmap_hash_key
+#undef cx_hmap_free_key
+#undef cx_hmap_free_val
 #undef cx_hmap_allocator
 #undef cx_hmap_instance_allocator
 #undef cx_hmap_static
@@ -643,6 +671,8 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
 #undef cx_hmap_alloc_global
 #undef cx_hmap_alloc_
 #undef cx_hmap_free_
+#undef cx_hmap_free_key_
+#undef cx_hmap_free_val_
 #undef cx_hmap_op_set_
 #undef cx_hmap_op_get_
 #undef cx_hmap_op_del_
