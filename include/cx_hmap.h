@@ -281,7 +281,7 @@ typedef struct cx_hmap_name_(_iter) {
     cx_hmap_api_ cx_hmap_name cx_hmap_name_(_init)(size_t nbuckets);
 #endif
 cx_hmap_api_ cx_hmap_name cx_hmap_name_(_clone)(cx_hmap_name* src, size_t nbuckets);
-cx_hmap_api_ void cx_hmap_name_(_free_internal_)(cx_hmap_name* m, bool all);
+cx_hmap_api_ void cx_hmap_name_(_free_internal_)(cx_hmap_name* m, bool entries, bool buckets);
 cx_hmap_api_ void cx_hmap_name_(_free)(cx_hmap_name* m);
 cx_hmap_api_ void cx_hmap_name_(_set)(cx_hmap_name* m, cx_hmap_key k, cx_hmap_val v);
 cx_hmap_api_ cx_hmap_val* cx_hmap_name_(_get)(cx_hmap_name* m, cx_hmap_key k);
@@ -316,10 +316,22 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
         if (m->count_ + 1 < (float)(m->nbuckets_) * cx_hmap_load_factor) {
             return;
         }
-        cx_hmap_name resized = cx_hmap_name_(_clone)(m, (m->nbuckets_ * 2));
-        cx_hmap_name_(_free)(m);
-        *m = resized;
-        //printf("RESIZED:%lu\n", m->nbuckets_);
+
+        cx_hmap_name new = *m; // copy eventual allocator
+        new.nbuckets_ = m->nbuckets_ * 2;
+        new.count_ = 0;
+        new.buckets_ = NULL;
+        cx_hmap_name_(_iter) iter = {0};
+        while (true) {
+            cx_hmap_name_(_entry)* e = cx_hmap_name_(_next)(m, &iter);
+            if (e == NULL) {
+                break;
+            }
+            cx_hmap_name_(_set)(&new, e->key, e->val);
+        }
+        cx_hmap_name_(_free_internal_)(m, false, true);
+        *m = new;
+        printf("RESIZED:%lu\n", m->nbuckets_);
     }
 
     // Creates a new entry and inserts it after specified parent
@@ -377,8 +389,16 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
 
         // This bucket is used, checks its key
         if (cx_hmap_cmp_key(&e->key, key, sizeof(cx_hmap_key)) == 0) {
-            // For "Get" or "Set" just returns the pointer to this entry.
-            if (op == cx_hmap_op_get_ || op == cx_hmap_op_set_) {
+            // For "Get" just returns the pointer to this entry.
+            if (op == cx_hmap_op_get_) {
+                return e;
+            }
+            // For "Set" optionally free and updates the key pointer
+            if (op == cx_hmap_op_set_) {
+#ifdef cx_hmap_free_key
+                cx_hmap_free_key_(&e->key);
+                memcpy(&e->key, key, sizeof(cx_hmap_key));
+#endif
                 return e;
             }
             // Operation is "Del":
@@ -416,11 +436,16 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
         cx_hmap_name_(_entry)* curr = e->next_;
         while (curr != NULL) {
             if (cx_hmap_cmp_key(&curr->key, key, sizeof(cx_hmap_key)) == 0) {
-                // For "Get" or "Set" just returns the pointer
+                // For "Get" just returns the pointer
                 if (op == cx_hmap_op_get_) {
                     return curr;
                 }
+                // For "Set" optionally free and updates the key pointer
                 if (op == cx_hmap_op_set_) {
+#ifdef cx_hmap_free_key
+                    cx_hmap_free_key_(&curr->key);
+                    memcpy(&curr->key, key, sizeof(cx_hmap_key));
+#endif
                     return curr;
                 }
                 // For "Del" removes this entry from the linked list
@@ -428,6 +453,8 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
                 if (prev == e && prev->next_ == NULL) {
                     e->next_ = e;
                 }
+                cx_hmap_free_key_(&curr->key);
+                cx_hmap_free_val_(&curr->val);
                 cx_hmap_free_(m, curr, sizeof(cx_hmap_name_(_entry)));
                 m->count_--;
                 return curr;
@@ -480,7 +507,8 @@ cx_hmap_api_ cx_hmap_name cx_hmap_name_(_clone)(cx_hmap_name* src, size_t nbucke
     return dst;
 }
 
-cx_hmap_api_ void cx_hmap_name_(_free_internal_)(cx_hmap_name* m, bool all) {
+// Frees all the link list nodes and optionally: entries pointer and/or buckets array
+cx_hmap_api_ void cx_hmap_name_(_free_internal_)(cx_hmap_name* m, bool entries, bool buckets) {
 
     if (m == NULL || m->buckets_ == NULL) {
          return;
@@ -492,8 +520,10 @@ cx_hmap_api_ void cx_hmap_name_(_free_internal_)(cx_hmap_name* m, bool all) {
             continue;
         }
         // Free entry and bucket
-        cx_hmap_free_key_(&e->key);
-        cx_hmap_free_val_(&e->val);
+        if (entries) {
+            cx_hmap_free_key_(&e->key);
+            cx_hmap_free_val_(&e->val);
+        }
         if (e->next_ == e) {
             e->next_ = NULL;
             continue;
@@ -503,12 +533,16 @@ cx_hmap_api_ void cx_hmap_name_(_free_internal_)(cx_hmap_name* m, bool all) {
         while (curr != NULL) {
             cx_hmap_name_(_entry)* prev = curr;
             curr = curr->next_;
+            if (entries) {
+                cx_hmap_free_key_(&prev->key);
+                cx_hmap_free_val_(&prev->val);
+            }
             cx_hmap_free_(m, prev, sizeof(cx_hmap_name_(_entry)));
         }
         e->next_ = NULL;
     }
     m->count_ = 0;
-    if (all) {
+    if (buckets) {
         cx_hmap_free_(m, m->buckets_, m->nbuckets_ * sizeof(cx_hmap_name_(_entry)));
         m->buckets_ = NULL;
     }
@@ -516,7 +550,7 @@ cx_hmap_api_ void cx_hmap_name_(_free_internal_)(cx_hmap_name* m, bool all) {
 
 cx_hmap_api_ void cx_hmap_name_(_free)(cx_hmap_name* m) {
 
-    cx_hmap_name_(_free_internal_)(m, true);
+    cx_hmap_name_(_free_internal_)(m, true, true);
 }
 
 cx_hmap_api_ void cx_hmap_name_(_set)(cx_hmap_name* m, cx_hmap_key k, cx_hmap_val v) {
@@ -537,7 +571,7 @@ cx_hmap_api_ bool cx_hmap_name_(_del)(cx_hmap_name* m, cx_hmap_key k) {
 
 cx_hmap_api_ void cx_hmap_name_(_clear)(cx_hmap_name* m) {
 
-    cx_hmap_name_(_free_internal_)(m, false);
+    cx_hmap_name_(_free_internal_)(m, true, false);
 }
 
 cx_hmap_api_ size_t cx_hmap_name_(_count)(cx_hmap_name* m) {

@@ -9,7 +9,7 @@ set(SOURCES
     alloc.c
     logger.c
     array.c
-    #hmap.c
+    hmap.c
     string.c
     queue.c
     list.c

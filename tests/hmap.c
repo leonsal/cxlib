@@ -6,21 +6,17 @@
 
 #include "util.h"
 
-//
-// Map of int key -> double
-//
-#define cx_hmap_name mapt1
-#define cx_hmap_key int
+// Map type 1 of uint64_t -> double
+#define cx_hmap_name map1u64
+#define cx_hmap_key uint64_t
 #define cx_hmap_val double
 #define cx_hmap_instance_allocator
 #define cx_hmap_stats
 #define cx_hmap_implement
 #include "cx_hmap.h"
 
-//
-// Map of uint64_t key -> double
-//
-#define cx_hmap_name mapt2
+// Map type 2 of uint64_t key -> double
+#define cx_hmap_name map2u64
 #define cx_hmap_key uint64_t
 #define cx_hmap_val double
 #define cx_hmap_instance_allocator
@@ -28,101 +24,107 @@
 #define cx_hmap_implement
 #include "cx_hmap2.h"
 
-//
-// Map of fixed size C string key -> double
-//
-typedef struct strkey_{char data[32];} strkey;
-#define cx_hmap_name mapt3
-#define cx_hmap_key  strkey
+// String used as value for the following maps
+#define cx_str_name cxstr
+#define cx_str_implement
+#include "cx_str.h"
+
+// Map type 1 of allocated C string key -> double
+#define cx_hmap_name map1str
+#define cx_hmap_key  char*
 #define cx_hmap_val  double
-#define cx_hmap_cmp_key  cx_hmap_cmp_key_str_arr
-#define cx_hmap_hash_key cx_hmap_hash_key_str_arr
+#define cx_hmap_cmp_key(k1,k2,s)    strcmp(*(char**)k1,*(char**)k2)
+#define cx_hmap_hash_key(k,s)       cx_hmap_hash_fnv1a32(*((char**)k), strlen(*(char**)k))
+#define cx_hmap_free_key(k)         free(*k)
 #define cx_hmap_instance_allocator
 #define cx_hmap_implement
 #include "cx_hmap.h"
 
-//
-// Map of allocated C string key -> double
-// Must use custom allocator for clone to work
-//
-#define cx_hmap_name mapt4
+// Map type 2 of allocated C string key -> double
+#define cx_hmap_name map2str
 #define cx_hmap_key  char*
 #define cx_hmap_val  double
-#define cx_hmap_cmp_key  cx_hmap_cmp_key_str_ptr
-#define cx_hmap_hash_key cx_hmap_hash_key_str_ptr
+#define cx_hmap_cmp_key(k1,k2,s)    strcmp(*(char**)k1,*(char**)k2)
+#define cx_hmap_hash_key(k,s)       cx_hmap_hash_fnv1a32(*((char**)k), strlen(*(char**)k))
+#define cx_hmap_free_key(k)         free(*k)
 #define cx_hmap_instance_allocator
 #define cx_hmap_implement
 #include "cx_hmap2.h"
 
-//
-// Map of cx_str -> double
-//
-#define cx_str_name cxstr
-#define cx_str_cap 8
-#define cx_str_static
-#define cx_str_error_handler(msg,func) printf("CXSTR ERROR:%s at %s\n", msg, func);abort()
-#define cx_str_instance_allocator
-#define cx_str_implement
-#include "cx_str.h"
+// //
+// // Map of cx_str -> double
+// //
+// #define cx_str_name cxstr
+// #define cx_str_cap 8
+// #define cx_str_static
+// #define cx_str_error_handler(msg,func) printf("CXSTR ERROR:%s at %s\n", msg, func);abort()
+// #define cx_str_instance_allocator
+// #define cx_str_implement
+// #include "cx_str.h"
 
-static int cmp_cxstr_keys(const void* k1, const void* k2, size_t size) {
-    return cxstr_cmps((cxstr*)k1, (cxstr*)k2);
-}
-static size_t hash_cxstr_key(void* key, size_t keySize) {
-    return cx_hmap_hash_fnv1a32(((cxstr*)key)->data, cxstr_len((cxstr*)key));
-}
+// static int cmp_cxstr_keys(const void* k1, const void* k2, size_t size) {
+//     return cxstr_cmps((cxstr*)k1, (cxstr*)k2);
+// }
+// static size_t hash_cxstr_key(void* key, size_t keySize) {
+//     return cx_hmap_hash_fnv1a32(((cxstr*)key)->data, cxstr_len((cxstr*)key));
+// }
 
-#define cx_hmap_name mapt5
-#define cx_hmap_key  cxstr
-#define cx_hmap_val  double
-#define cx_hmap_cmp_key  cmp_cxstr_keys
-#define cx_hmap_hash_key hash_cxstr_key
-#define cx_hmap_instance_allocator
-#define cx_hmap_implement
-#include "cx_hmap2.h"
+// #define cx_hmap_name mapt5
+// #define cx_hmap_key  cxstr
+// #define cx_hmap_val  double
+// #define cx_hmap_cmp_key  cmp_cxstr_keys
+// #define cx_hmap_hash_key hash_cxstr_key
+// #define cx_hmap_instance_allocator
+// #define cx_hmap_implement
+// #include "cx_hmap2.h"
 
 #include "hmap.h"
 #include "logger.h"
 
+void test_map1u64(size_t size, size_t nbuckets, const CxAllocator* alloc);
+void test_map2u64(size_t size, size_t nbuckets, const CxAllocator* alloc);
+void test_map1str(size_t size, size_t nbuckets, const CxAllocator* alloc);
+
 void cxHmapTests(void) {
 
-    cxHmapTest1(100, 40, cxDefaultAllocator());
-    cxHmapTest2(100, 40, cxDefaultAllocator());
-    cxHmapTest3(100, 40, cxDefaultAllocator());
+    test_map1u64(100, 40, cxDefaultAllocator());
+    test_map2u64(100, 40, cxDefaultAllocator());
 
-    // Use pool allocator because the keys are dynamically allocated
-    CxPoolAllocator* pa = cx_pool_allocator_create(4*1024, NULL);
-    cxHmapTest4(100, 40, cx_pool_allocator_iface(pa));
-    cx_pool_allocator_destroy(pa);
+    test_map1str(100, 40, cxDefaultAllocator());
 
-    // Use pool allocator because the keys are dynamically allocated
-    pa = cx_pool_allocator_create(4*1024, NULL);
-    cxHmapTest5(100, 40, cx_pool_allocator_iface(pa));
-    cx_pool_allocator_destroy(pa);
+    // // Use pool allocator because the keys are dynamically allocated
+    // CxPoolAllocator* pa = cx_pool_allocator_create(4*1024, NULL);
+    // cxHmapTest4(100, 40, cx_pool_allocator_iface(pa));
+    // cx_pool_allocator_destroy(pa);
+    //
+    // // Use pool allocator because the keys are dynamically allocated
+    // pa = cx_pool_allocator_create(4*1024, NULL);
+    // cxHmapTest5(100, 40, cx_pool_allocator_iface(pa));
+    // cx_pool_allocator_destroy(pa);
 }
 
-void cxHmapTest1(size_t size, size_t nbuckets, const CxAllocator* alloc) {
+void test_map1u64(size_t size, size_t nbuckets, const CxAllocator* alloc) {
 
-    LOGI("hmap1 int->double, size=%lu nbuckets=%lu alloc=%p", size, nbuckets, alloc);
+    LOGI("%s: size=%lu nbuckets=%lu alloc=%p", __func__, size, nbuckets, alloc);
     // Initializes map type 1 and sets entries
-    mapt1 m1 = mapt1_init(alloc, nbuckets);
+    map1u64 m = map1u64_init(alloc, nbuckets);
     // Tests clearing empty map
-    mapt1_clear(&m1);
+    map1u64_clear(&m);
     for (size_t  i = 0; i < size; i++) {
-        mapt1_set(&m1, i, i*2.0);
+        map1u64_set(&m, i, i*2.0);
     }
-    //mapt1_stats s = mapt1_get_stats(&m1);
-    //mapt1_print_stats(&s);
-    CHK(mapt1_count(&m1) == size);
+    //map1u64_stats s = map1u64_get_stats(&m1);
+    //map1u64_print_stats(&s);
+    CHK(map1u64_count(&m) == size);
     // Checks entries directly
     for (size_t  i = 0; i < size; i++) {
-        CHK(*mapt1_get(&m1, i) == i * 2.0);
+        CHK(*map1u64_get(&m, i) == i * 2.0);
     }
     // Checks entries using iterator
-    mapt1_iter iter1 = {};
+    map1u64_iter iter1 = {};
     size_t m1Count = 0;
     while (true) {
-        mapt1_entry* e = mapt1_next(&m1, &iter1);
+        map1u64_entry* e = map1u64_next(&m, &iter1);
         if (e == NULL) {
             break;
         }
@@ -134,122 +136,90 @@ void cxHmapTest1(size_t size, size_t nbuckets, const CxAllocator* alloc) {
 
     // Overwrites all keys
     for (size_t i = 0; i < size; i++) {
-        mapt1_set(&m1, i, i*3.0);
+        map1u64_set(&m, i, i*3.0);
     }
     // Checks entries directly
     for (size_t  i = 0; i < size; i++) {
-        CHK(*mapt1_get(&m1, i) == i * 3.0);
+        CHK(*map1u64_get(&m, i) == i * 3.0);
     }
 
     // Delete even keys
     for (size_t i = 0; i < size; i++) {
         if (i % 2 == 0) {
-            mapt1_del(&m1, i);
+            map1u64_del(&m, i);
         }
     }
     // Checks entries
     for (size_t  i = 0; i < size; i++) {
         if (i % 2 == 0) {
-            CHK(mapt1_get(&m1, i) == NULL);
+            CHK(map1u64_get(&m, i) == NULL);
         }
         else {
-            CHK(*mapt1_get(&m1, i) == i * 3.0);
+            CHK(*map1u64_get(&m, i) == i * 3.0);
         }
     }
 
     // Overwrites all keys
     for (size_t i = 0; i < size; i++) {
-        mapt1_set(&m1, i, i*4.0);
+        map1u64_set(&m, i, i*4.0);
     }
     // Checks entries directly
     for (size_t  i = 0; i < size; i++) {
-        CHK(*mapt1_get(&m1, i) == i * 4.0);
+        CHK(*map1u64_get(&m, i) == i * 4.0);
     }
 
     // Delete odd keys
     for (size_t i = 0; i < size; i++) {
         if (i % 2) {
-            mapt1_del(&m1, i);
+            map1u64_del(&m, i);
         }
     }
     // Checks entries
     for (size_t  i = 0; i < size; i++) {
         if (i % 2) {
-            CHK(mapt1_get(&m1, i) == NULL);
+            CHK(map1u64_get(&m, i) == NULL);
         }
         else {
-            CHK(*mapt1_get(&m1, i) == i * 4.0);
+            CHK(*map1u64_get(&m, i) == i * 4.0);
         }
     }
 
     // Overwrites all keys
     for (size_t i = 0; i < size; i++) {
-        mapt1_set(&m1, i, i*5.0);
+        map1u64_set(&m, i, i*5.0);
     }
     // Checks entries directly
     for (size_t  i = 0; i < size; i++) {
-        CHK(*mapt1_get(&m1, i) == i * 5.0);
+        CHK(*map1u64_get(&m, i) == i * 5.0);
     }
 
-    // Clones map and checks entries of cloned map
-    mapt1 m2 = mapt1_clone(&m1, nbuckets*2);
-    iter1 = (mapt1_iter){};
-    while (true) {
-        mapt1_entry* e = mapt1_next(&m2, &iter1);
-        if (e == NULL) {
-            break;
-        }
-        CHK(*mapt1_get(&m2, e->key) == *mapt1_get(&m1, e->key));
-    }
-    // Frees mapt1 1
-    mapt1_free(&m1);
-    CHK(mapt1_count(&m1) == 0);
-
-    // Removes all the keys from map 2
-    for (size_t  i = 0; i < size; i++) {
-        mapt1_del(&m2, i);
-    }
-    CHK(mapt1_count(&m2) == 0);
-    // Fill again
-    for (size_t i = 0; i < size; i++) {
-        mapt1_set(&m2, i, i*6.0);
-    }
-    // Checks entries directly
-    for (size_t  i = 0; i < size; i++) {
-        CHK(*mapt1_get(&m2, i) == i * 6.0);
-    }
-    // Clears the map
-    mapt1_clear(&m2);
-    CHK(mapt1_count(&m2) == 0);
-    // Checks entries directly
-    for (size_t  i = 0; i < size; i++) {
-        CHK(mapt1_get(&m2, i) == NULL);
-    }
-    mapt1_free(&m2);
+    map1u64_clear(&m);
+    CHK(map1u64_count(&m) == 0);
+    map1u64_free(&m);
 }
 
-void cxHmapTest2(size_t size, size_t nbuckets, const CxAllocator* alloc) {
+void test_map2u64(size_t size, size_t nbuckets, const CxAllocator* alloc) {
 
-    LOGI("hmap2 uint32_t->double, size=%lu nbuckets=%lu alloc=%p", size, nbuckets, alloc);
+    LOGI("%s: size=%lu nbuckets=%lu alloc=%p", __func__, size, nbuckets, alloc);
     // Initializes map type 1 and sets entries
-    mapt2 m1 = mapt2_init(alloc, nbuckets);
+    map2u64 m = map2u64_init(alloc, nbuckets);
     // Tests clearing empty map
-    mapt2_clear(&m1);
+    map2u64_clear(&m);
     for (size_t  i = 0; i < size; i++) {
-        mapt2_set(&m1, i, i*2.0);
+        map2u64_set(&m, i, i*2.0);
     }
-    //mapt2_stats s = mapt2_get_stats(&m1);
-    //mapt2_print_stats(&s);
-    CHK(mapt2_count(&m1) == size);
+    //map2u64_stats s = map2u64_get_stats(&m1);
+    //map2u64_print_stats(&s);
+    CHK(map2u64_count(&m) == size);
     // Checks entries directly
     for (size_t  i = 0; i < size; i++) {
-        CHK(*mapt2_get(&m1, i) == i * 2.0);
+        CHK(*map2u64_get(&m, i) == i * 2.0);
     }
     // Checks entries using iterator
-    mapt2_iter iter1 = {};
+    map2u64_iter iter1 = {};
     size_t m1Count = 0;
     while (true) {
-        mapt2_entry* e = mapt2_next(&m1, &iter1);
+        map2u64_entry* e = map2u64_next(&m, &iter1);
         if (e == NULL) {
             break;
         }
@@ -261,511 +231,311 @@ void cxHmapTest2(size_t size, size_t nbuckets, const CxAllocator* alloc) {
 
     // Overwrites all keys
     for (size_t i = 0; i < size; i++) {
-        mapt2_set(&m1, i, i*3.0);
+        map2u64_set(&m, i, i*3.0);
     }
     // Checks entries directly
     for (size_t  i = 0; i < size; i++) {
-        CHK(*mapt2_get(&m1, i) == i * 3.0);
+        CHK(*map2u64_get(&m, i) == i * 3.0);
     }
 
     // Delete even keys
     for (size_t i = 0; i < size; i++) {
         if (i % 2 == 0) {
-            mapt2_del(&m1, i);
+            map2u64_del(&m, i);
         }
     }
     // Checks entries
     for (size_t  i = 0; i < size; i++) {
         if (i % 2 == 0) {
-            CHK(mapt2_get(&m1, i) == NULL);
+            CHK(map2u64_get(&m, i) == NULL);
         }
         else {
-            CHK(*mapt2_get(&m1, i) == i * 3.0);
+            CHK(*map2u64_get(&m, i) == i * 3.0);
         }
     }
 
     // Overwrites all keys
     for (size_t i = 0; i < size; i++) {
-        mapt2_set(&m1, i, i*4.0);
+        map2u64_set(&m, i, i*4.0);
     }
     // Checks entries directly
     for (size_t  i = 0; i < size; i++) {
-        CHK(*mapt2_get(&m1, i) == i * 4.0);
+        CHK(*map2u64_get(&m, i) == i * 4.0);
     }
 
     // Delete odd keys
     for (size_t i = 0; i < size; i++) {
         if (i % 2) {
-            mapt2_del(&m1, i);
+            map2u64_del(&m, i);
         }
     }
     // Checks entries
     for (size_t  i = 0; i < size; i++) {
         if (i % 2) {
-            CHK(mapt2_get(&m1, i) == NULL);
+            CHK(map2u64_get(&m, i) == NULL);
         }
         else {
-            CHK(*mapt2_get(&m1, i) == i * 4.0);
+            CHK(*map2u64_get(&m, i) == i * 4.0);
         }
     }
 
-    // Overwrites all keys
-    for (size_t i = 0; i < size; i++) {
-        mapt2_set(&m1, i, i*5.0);
-    }
-    // Checks entries directly
-    for (size_t  i = 0; i < size; i++) {
-        CHK(*mapt2_get(&m1, i) == i * 5.0);
-    }
-
-    // Clones map and checks entries of cloned map
-    mapt2 m2 = mapt2_clone(&m1, nbuckets*2);
-    iter1 = (mapt2_iter){};
-    while (true) {
-        mapt2_entry* e = mapt2_next(&m2, &iter1);
-        if (e == NULL) {
-            break;
-        }
-        CHK(*mapt2_get(&m2, e->key) == *mapt2_get(&m1, e->key));
-    }
-    // Frees mapt2 1
-    mapt2_free(&m1);
-    CHK(mapt2_count(&m1) == 0);
-
-    // Removes all the keys from map 2
-    for (size_t  i = 0; i < size; i++) {
-        mapt2_del(&m2, i);
-    }
-    CHK(mapt2_count(&m2) == 0);
-    // Fill again
-    for (size_t i = 0; i < size; i++) {
-        mapt2_set(&m2, i, i*6.0);
-    }
-    // Checks entries directly
-    for (size_t  i = 0; i < size; i++) {
-        CHK(*mapt2_get(&m2, i) == i * 6.0);
-    }
-    // Clears the map
-    mapt2_clear(&m2);
-    CHK(mapt2_count(&m2) == 0);
-    // Checks entries directly
-    for (size_t  i = 0; i < size; i++) {
-        CHK(mapt2_get(&m2, i) == NULL);
-    }
-    mapt2_free(&m2);
+    map2u64_clear(&m);
+    CHK(map2u64_count(&m) == 0);
+    map2u64_free(&m);
 }
 
 
-// Converts integer to fixed ASCII string
-static strkey num2key(size_t val) {
-   
-    strkey k;
-    snprintf(k.data, sizeof(k), "%zu", val);
-    return k;
-}
 
-void cxHmapTest3(size_t size, size_t nbuckets, const CxAllocator* alloc) {
-
-    LOGI("hmap3 char[32]->double, size=%lu nbuckets=%lu alloc=%p", size, nbuckets, alloc);
-    // Initializes map type 1 and sets entries
-    mapt3 m1 = mapt3_init(alloc, nbuckets);
-    // Tests clearing empty map
-    mapt3_clear(&m1);
-    for (size_t  i = 0; i < size; i++) {
-        mapt3_set(&m1, num2key(i), i*2.0);
-    }
-    CHK(mapt3_count(&m1) == size);
-
-    // Checks entries directly
-    for (size_t  i = 0; i < size; i++) {
-        CHK(*mapt3_get(&m1, num2key(i)) == i * 2.0);
-    }
-
-    // Checks entries using iterator
-    mapt3_iter iter1 = {};
-    size_t m1Count = 0;
-    while (true) {
-        mapt3_entry* e = mapt3_next(&m1, &iter1);
-        if (e == NULL) {
-            break;
-        }
-        m1Count++;
-        CHK(e->val == atoi(e->key.data) * 2.0);
-    }
-    CHK(m1Count == size);
-
-    // Overwrites all keys
-    for (size_t i = 0; i < size; i++) {
-        mapt3_set(&m1, num2key(i), i*3.0);
-    }
-    // Checks entries directly
-    for (size_t  i = 0; i < size; i++) {
-        CHK(*mapt3_get(&m1, num2key(i)) == i * 3.0);
-    }
-
-    // Delete even keys
-    for (size_t i = 0; i < size; i++) {
-        if (i % 2 == 0) {
-            mapt3_del(&m1, num2key(i));
-        }
-    }
-    // Checks entries
-    for (size_t  i = 0; i < size; i++) {
-        if (i % 2 == 0) {
-            CHK(mapt3_get(&m1, num2key(i)) == NULL);
-        }
-        else {
-            CHK(*mapt3_get(&m1, num2key(i)) == i * 3.0);
-        }
-    }
-
-    // Overwrites all keys
-    for (size_t i = 0; i < size; i++) {
-        mapt3_set(&m1, num2key(i), i*4.0);
-    }
-    // Checks entries directly
-    for (size_t  i = 0; i < size; i++) {
-        CHK(*mapt3_get(&m1, num2key(i)) == i * 4.0);
-    }
-
-    // Delete odd keys
-    for (size_t i = 0; i < size; i++) {
-        if (i % 2) {
-            mapt3_del(&m1, num2key(i));
-        }
-    }
-    // Checks entries
-    for (size_t  i = 0; i < size; i++) {
-        if (i % 2) {
-            CHK(mapt3_get(&m1, num2key(i)) == NULL);
-        }
-        else {
-            CHK(*mapt3_get(&m1, num2key(i)) == i * 4.0);
-        }
-    }
-
-    // Overwrites all keys
-    for (size_t i = 0; i < size; i++) {
-        mapt3_set(&m1, num2key(i), i*5.0);
-    }
-    // Checks entries directly
-    for (size_t  i = 0; i < size; i++) {
-        CHK(*mapt3_get(&m1, num2key(i)) == i * 5.0);
-    }
-
-    // Clones map and checks entries of cloned map
-    mapt3 m2 = mapt3_clone(&m1, nbuckets*2);
-    iter1 = (mapt3_iter){};
-    while (true) {
-        mapt3_entry* e = mapt3_next(&m2, &iter1);
-        if (e == NULL) {
-            break;
-        }
-        CHK(*mapt3_get(&m2, e->key) == *mapt3_get(&m1, e->key));
-    }
-    // Frees mapt3 1
-    mapt3_free(&m1);
-    CHK(mapt3_count(&m1) == 0);
-
-    // Removes all the keys from map 2
-    for (size_t  i = 0; i < size; i++) {
-        mapt3_del(&m2, num2key(i));
-    }
-    CHK(mapt3_count(&m2) == 0);
-
-    // Fill again
-    for (size_t i = 0; i < size; i++) {
-        mapt3_set(&m2, num2key(i), i*6.0);
-    }
-    // Checks entries directly
-    for (size_t  i = 0; i < size; i++) {
-        CHK(*mapt3_get(&m2, num2key(i)) == i * 6.0);
-    }
-
-    // Clears the map
-    mapt3_clear(&m2);
-    CHK(mapt3_count(&m2) == 0);
-    // Checks entries directly
-    for (size_t  i = 0; i < size; i++) {
-        CHK(mapt3_get(&m2, num2key(i)) == NULL);
-    }
-    mapt3_free(&m2);
-}
-
-// Converts integer to allocated ASCII string 
-static char* num2str(size_t val, const CxAllocator* alloc) {
+// Creates new C string from number
+// Used to set new values
+static char* newstr(size_t val, const CxAllocator* alloc) {
 
     char buf[32];
     snprintf(buf, sizeof(buf), "%zu", val);
     char* s  = cx_alloc_malloc(alloc, strlen(buf)+1);
     strcpy(s, buf);
+    //printf("alloc:%s\n", s);
     return s;
 }
 
-void cxHmapTest4(size_t size, size_t nbuckets, const CxAllocator* alloc) {
+// Returns statically allocated string from number
+// Used to get values from map
+static char* numstr(size_t val) {
 
-    LOGI("hmap4 char*->double, size=%lu nbuckets=%lu alloc=%p", size, nbuckets, alloc);
+    static char buf[32];
+    snprintf(buf, sizeof(buf), "%zu", val);
+    return buf;
+}
+
+void test_map1str(size_t size, size_t nbuckets, const CxAllocator* alloc) {
+
+    LOGI("%s: size=%lu nbuckets=%lu alloc=%p", __func__, size, nbuckets, alloc);
     // Initializes map and sets entries
-    mapt4 m1 = mapt4_init(alloc, nbuckets);
+    map1str m = map1str_init(alloc, nbuckets);
     // Tests clearing empty map
-    mapt4_clear(&m1);
-    for (size_t  i = 0; i < size; i++) {
-        mapt4_set(&m1, num2str(i,alloc), i*2.0);
-    }
-    CHK(mapt4_count(&m1) == size);
+    map1str_clear(&m);
+    CHK(map1str_count(&m) == 0);
 
+    // Fill map
+    for (size_t  i = 0; i < size; i++) {
+        char* key = newstr(i,alloc);
+        map1str_set(&m, key, i*2.0);
+    }
     // Checks entries directly
     for (size_t  i = 0; i < size; i++) {
-        CHK(*mapt4_get(&m1, num2str(i,alloc)) == i * 2.0);
+        CHK(*map1str_get(&m, numstr(i)) == i * 2.0);
     }
+    CHK(map1str_count(&m) == size);
 
     // Checks entries using iterator
-    mapt4_iter iter1 = {};
-    size_t m1Count = 0;
+    map1str_iter iter1 = {};
+    size_t counter = 0;
     while (true) {
-        mapt4_entry* e = mapt4_next(&m1, &iter1);
+        map1str_entry* e = map1str_next(&m, &iter1);
         if (e == NULL) {
             break;
         }
-        m1Count++;
         CHK(e->val == atoi(e->key) * 2.0);
+        counter++;
     }
-    CHK(m1Count == size);
+    CHK(counter == map1str_count(&m));
 
     // Overwrites all keys
     for (size_t i = 0; i < size; i++) {
-        mapt4_set(&m1, num2str(i,alloc), i*3.0);
+        map1str_set(&m, newstr(i, alloc), i*3.0);
     }
     // Checks entries directly
     for (size_t  i = 0; i < size; i++) {
-        CHK(*mapt4_get(&m1, num2str(i,alloc)) == i * 3.0);
+        CHK(*map1str_get(&m, numstr(i)) == i * 3.0);
     }
 
     // Delete even keys
     for (size_t i = 0; i < size; i++) {
         if (i % 2 == 0) {
-            mapt4_del(&m1, num2str(i,alloc));
+            map1str_del(&m, numstr(i));
         }
     }
+    CHK(map1str_count(&m) == size/2);
+
     // Checks entries
     for (size_t  i = 0; i < size; i++) {
         if (i % 2 == 0) {
-            CHK(mapt4_get(&m1, num2str(i,alloc)) == NULL);
+            CHK(map1str_get(&m, numstr(i)) == NULL);
         }
         else {
-            CHK(*mapt4_get(&m1, num2str(i,alloc)) == i * 3.0);
+            CHK(*map1str_get(&m, numstr(i)) == i * 3.0);
         }
     }
 
     // Overwrites all keys
     for (size_t i = 0; i < size; i++) {
-        mapt4_set(&m1, num2str(i,alloc), i*4.0);
+        map1str_set(&m, newstr(i,alloc), i*4.0);
     }
     // Checks entries directly
     for (size_t  i = 0; i < size; i++) {
-        CHK(*mapt4_get(&m1, num2str(i,alloc)) == i * 4.0);
+        CHK(*map1str_get(&m, numstr(i)) == i * 4.0);
     }
+    CHK(map1str_count(&m) == size);
 
     // Delete odd keys
     for (size_t i = 0; i < size; i++) {
         if (i % 2) {
-            mapt4_del(&m1, num2str(i,alloc));
+            map1str_del(&m, numstr(i));
         }
     }
+    CHK(map1str_count(&m) == size/2);
+
     // Checks entries
     for (size_t  i = 0; i < size; i++) {
         if (i % 2) {
-            CHK(mapt4_get(&m1, num2str(i,alloc)) == NULL);
+            CHK(map1str_get(&m, numstr(i)) == NULL);
         }
         else {
-            CHK(*mapt4_get(&m1, num2str(i,alloc)) == i * 4.0);
+            CHK(*map1str_get(&m, numstr(i)) == i * 4.0);
         }
     }
-
-    // Overwrites all keys
-    for (size_t i = 0; i < size; i++) {
-        mapt4_set(&m1, num2str(i,alloc), i*5.0);
-    }
-    // Checks entries directly
-    for (size_t  i = 0; i < size; i++) {
-        CHK(*mapt4_get(&m1, num2str(i,alloc)) == i * 5.0);
-    }
-
-    // Clones map and checks entries of cloned map
-    // NOTE: the key's string pointers are copied not allocated.
-    mapt4 m2 = mapt4_clone(&m1, nbuckets*2);
-    iter1 = (mapt4_iter){};
-    while (true) {
-        mapt4_entry* e = mapt4_next(&m2, &iter1);
-        if (e == NULL) {
-            break;
-        }
-        CHK(*mapt4_get(&m2, e->key) == *mapt4_get(&m1, e->key));
-    }
-    // Frees mapt4 1
-    mapt4_free(&m1);
-    CHK(mapt4_count(&m1) == 0);
-
-    // Removes all the keys from map 2
-    for (size_t  i = 0; i < size; i++) {
-        mapt4_del(&m2, num2str(i, alloc));
-    }
-    CHK(mapt4_count(&m2) == 0);
-
-    // Fill again
-    for (size_t i = 0; i < size; i++) {
-        mapt4_set(&m2, num2str(i,alloc), i*6.0);
-    }
-    // Checks entries directly
-    for (size_t  i = 0; i < size; i++) {
-        CHK(*mapt4_get(&m2, num2str(i,alloc)) == i * 6.0);
-    }
-
-    // Clears the map
-    mapt4_clear(&m2);
-    CHK(mapt4_count(&m2) == 0);
-    // Checks entries directly
-    for (size_t  i = 0; i < size; i++) {
-        CHK(mapt4_get(&m2, num2str(i,alloc)) == NULL);
-    }
-    mapt4_free(&m2);
-}
-
-// Converts integer to dynamically allocated cxstr
-static cxstr num2cxstr(size_t val, const CxAllocator* alloc) {
-  
-    cxstr s = cxstr_init(alloc);
-    cxstr_printf(&s, "%u", val);
-    return s;
-}
-
-void cxHmapTest5(size_t size, size_t nbuckets, const CxAllocator* alloc) {
-
-    LOGI("hmap5 cxstr->double, size=%lu nbuckets=%lu alloc=%p", size, nbuckets, alloc);
-    // Initializes map and sets entries
-    mapt5 m1 = mapt5_init(alloc, nbuckets);
-    // Tests clearing empty map
-    mapt5_clear(&m1);
-    for (size_t  i = 0; i < size; i++) {
-        mapt5_set(&m1, num2cxstr(i,alloc), i*2.0);
-    }
-    CHK(mapt5_count(&m1) == size);
-
-    // Checks entries directly
-    for (size_t  i = 0; i < size; i++) {
-        CHK(*mapt5_get(&m1, num2cxstr(i,alloc)) == i * 2.0);
-    }
-
-    // Checks entries using iterator
-    mapt5_iter iter1 = {};
-    size_t m1Count = 0;
-    while (true) {
-        mapt5_entry* e = mapt5_next(&m1, &iter1);
-        if (e == NULL) {
-            break;
-        }
-        m1Count++;
-        CHK(e->val == atoi(e->key.data) * 2.0);
-    }
-    CHK(m1Count == size);
-
-    // Overwrites all keys
-    for (size_t i = 0; i < size; i++) {
-        mapt5_set(&m1, num2cxstr(i,alloc), i*3.0);
-    }
-    // Checks entries directly
-    for (size_t  i = 0; i < size; i++) {
-        CHK(*mapt5_get(&m1, num2cxstr(i,alloc)) == i * 3.0);
-    }
-
-    // Delete even keys
-    for (size_t i = 0; i < size; i++) {
-        if (i % 2 == 0) {
-            mapt5_del(&m1, num2cxstr(i,alloc));
-        }
-    }
-    // Checks entries
-    for (size_t  i = 0; i < size; i++) {
-        if (i % 2 == 0) {
-            CHK(mapt5_get(&m1, num2cxstr(i,alloc)) == NULL);
-        }
-        else {
-            CHK(*mapt5_get(&m1, num2cxstr(i,alloc)) == i * 3.0);
-        }
-    }
-
-    // Overwrites all keys
-    for (size_t i = 0; i < size; i++) {
-        mapt5_set(&m1, num2cxstr(i,alloc), i*4.0);
-    }
-    // Checks entries directly
-    for (size_t  i = 0; i < size; i++) {
-        CHK(*mapt5_get(&m1, num2cxstr(i,alloc)) == i * 4.0);
-    }
-
-    // Delete odd keys
-    for (size_t i = 0; i < size; i++) {
-        if (i % 2) {
-            mapt5_del(&m1, num2cxstr(i,alloc));
-        }
-    }
-    // Checks entries
-    for (size_t  i = 0; i < size; i++) {
-        if (i % 2) {
-            CHK(mapt5_get(&m1, num2cxstr(i,alloc)) == NULL);
-        }
-        else {
-            CHK(*mapt5_get(&m1, num2cxstr(i,alloc)) == i * 4.0);
-        }
-    }
-
-    // Overwrites all keys
-    for (size_t i = 0; i < size; i++) {
-        mapt5_set(&m1, num2cxstr(i,alloc), i*5.0);
-    }
-    // Checks entries directly
-    for (size_t  i = 0; i < size; i++) {
-        CHK(*mapt5_get(&m1, num2cxstr(i,alloc)) == i * 5.0);
-    }
-
-    // Clones map and checks entries of cloned map
-    // NOTE: the key's cxstr are copied
-    mapt5 m2 = mapt5_clone(&m1, nbuckets*2);
-    iter1 = (mapt5_iter){};
-    while (true) {
-        mapt5_entry* e = mapt5_next(&m2, &iter1);
-        if (e == NULL) {
-            break;
-        }
-        CHK(*mapt5_get(&m2, e->key) == *mapt5_get(&m1, e->key));
-    }
-    // Frees mapt4 1
-    mapt5_free(&m1);
-    CHK(mapt5_count(&m1) == 0);
-
-    // Removes all the keys from map 2
-    for (size_t  i = 0; i < size; i++) {
-        mapt5_del(&m2, num2cxstr(i, alloc));
-    }
-    CHK(mapt5_count(&m2) == 0);
-
-    // Fill again
-    for (size_t i = 0; i < size; i++) {
-        mapt5_set(&m2, num2cxstr(i,alloc), i*6.0);
-    }
-    // Checks entries directly
-    for (size_t  i = 0; i < size; i++) {
-        CHK(*mapt5_get(&m2, num2cxstr(i,alloc)) == i * 6.0);
-    }
-
-    // Clears the map
-    mapt5_clear(&m2);
-    CHK(mapt5_count(&m2) == 0);
-    // Checks entries directly
-    for (size_t  i = 0; i < size; i++) {
-        CHK(mapt5_get(&m2, num2cxstr(i,alloc)) == NULL);
-    }
-    mapt5_free(&m2);
+    map1str_clear(&m);
+    CHK(map1str_count(&m) == 0);
+    map1str_free(&m);
 }
 
 
+//
+// // Converts integer to dynamically allocated cxstr
+// static cxstr num2cxstr(size_t val, const CxAllocator* alloc) {
+//   
+//     cxstr s = cxstr_init(alloc);
+//     cxstr_printf(&s, "%u", val);
+//     return s;
+// }
+//
+// void cxHmapTest5(size_t size, size_t nbuckets, const CxAllocator* alloc) {
+//
+//     LOGI("hmap5 cxstr->double, size=%lu nbuckets=%lu alloc=%p", size, nbuckets, alloc);
+//     // Initializes map and sets entries
+//     mapt5 m1 = mapt5_init(alloc, nbuckets);
+//     // Tests clearing empty map
+//     mapt5_clear(&m1);
+//     for (size_t  i = 0; i < size; i++) {
+//         mapt5_set(&m1, num2cxstr(i,alloc), i*2.0);
+//     }
+//     CHK(mapt5_count(&m1) == size);
+//
+//     // Checks entries directly
+//     for (size_t  i = 0; i < size; i++) {
+//         CHK(*mapt5_get(&m1, num2cxstr(i,alloc)) == i * 2.0);
+//     }
+//
+//     // Checks entries using iterator
+//     mapt5_iter iter1 = {};
+//     size_t m1Count = 0;
+//     while (true) {
+//         mapt5_entry* e = mapt5_next(&m1, &iter1);
+//         if (e == NULL) {
+//             break;
+//         }
+//         m1Count++;
+//         CHK(e->val == atoi(e->key.data) * 2.0);
+//     }
+//     CHK(m1Count == size);
+//
+//     // Overwrites all keys
+//     for (size_t i = 0; i < size; i++) {
+//         mapt5_set(&m1, num2cxstr(i,alloc), i*3.0);
+//     }
+//     // Checks entries directly
+//     for (size_t  i = 0; i < size; i++) {
+//         CHK(*mapt5_get(&m1, num2cxstr(i,alloc)) == i * 3.0);
+//     }
+//
+//     // Delete even keys
+//     for (size_t i = 0; i < size; i++) {
+//         if (i % 2 == 0) {
+//             mapt5_del(&m1, num2cxstr(i,alloc));
+//         }
+//     }
+//     // Checks entries
+//     for (size_t  i = 0; i < size; i++) {
+//         if (i % 2 == 0) {
+//             CHK(mapt5_get(&m1, num2cxstr(i,alloc)) == NULL);
+//         }
+//         else {
+//             CHK(*mapt5_get(&m1, num2cxstr(i,alloc)) == i * 3.0);
+//         }
+//     }
+//
+//     // Overwrites all keys
+//     for (size_t i = 0; i < size; i++) {
+//         mapt5_set(&m1, num2cxstr(i,alloc), i*4.0);
+//     }
+//     // Checks entries directly
+//     for (size_t  i = 0; i < size; i++) {
+//         CHK(*mapt5_get(&m1, num2cxstr(i,alloc)) == i * 4.0);
+//     }
+//
+//     // Delete odd keys
+//     for (size_t i = 0; i < size; i++) {
+//         if (i % 2) {
+//             mapt5_del(&m1, num2cxstr(i,alloc));
+//         }
+//     }
+//     // Checks entries
+//     for (size_t  i = 0; i < size; i++) {
+//         if (i % 2) {
+//             CHK(mapt5_get(&m1, num2cxstr(i,alloc)) == NULL);
+//         }
+//         else {
+//             CHK(*mapt5_get(&m1, num2cxstr(i,alloc)) == i * 4.0);
+//         }
+//     }
+//
+//     // Overwrites all keys
+//     for (size_t i = 0; i < size; i++) {
+//         mapt5_set(&m1, num2cxstr(i,alloc), i*5.0);
+//     }
+//     // Checks entries directly
+//     for (size_t  i = 0; i < size; i++) {
+//         CHK(*mapt5_get(&m1, num2cxstr(i,alloc)) == i * 5.0);
+//     }
+//
+//     // Clones map and checks entries of cloned map
+//     // NOTE: the key's cxstr are copied
+//     mapt5 m2 = mapt5_clone(&m1, nbuckets*2);
+//     iter1 = (mapt5_iter){};
+//     while (true) {
+//         mapt5_entry* e = mapt5_next(&m2, &iter1);
+//         if (e == NULL) {
+//             break;
+//         }
+//         CHK(*mapt5_get(&m2, e->key) == *mapt5_get(&m1, e->key));
+//     }
+//     // Frees map1str 1
+//     mapt5_free(&m1);
+//     CHK(mapt5_count(&m1) == 0);
+//
+//     // Removes all the keys from map 2
+//     for (size_t  i = 0; i < size; i++) {
+//         mapt5_del(&m2, num2cxstr(i, alloc));
+//     }
+//     CHK(mapt5_count(&m2) == 0);
+//
+//     // Fill again
+//     for (size_t i = 0; i < size; i++) {
+//         mapt5_set(&m2, num2cxstr(i,alloc), i*6.0);
+//     }
+//     // Checks entries directly
+//     for (size_t  i = 0; i < size; i++) {
+//         CHK(*mapt5_get(&m2, num2cxstr(i,alloc)) == i * 6.0);
+//     }
+//
+//     // Clears the map
+//     mapt5_clear(&m2);
+//     CHK(mapt5_count(&m2) == 0);
+//     // Checks entries directly
+//     for (size_t  i = 0; i < size; i++) {
+//         CHK(mapt5_get(&m2, num2cxstr(i,alloc)) == NULL);
+//     }
+//     mapt5_free(&m2);
+// }
+//
+//
