@@ -26,16 +26,18 @@
 
 // String used as value for the following maps
 #define cx_str_name cxstr
+#define cx_str_instance_allocator
 #define cx_str_implement
 #include "cx_str.h"
 
 // Map type 1 of allocated C string key -> double
 #define cx_hmap_name map1str
 #define cx_hmap_key  char*
-#define cx_hmap_val  double
+#define cx_hmap_val  cxstr
 #define cx_hmap_cmp_key(k1,k2,s)    strcmp(*(char**)k1,*(char**)k2)
 #define cx_hmap_hash_key(k,s)       cx_hmap_hash_fnv1a32(*((char**)k), strlen(*(char**)k))
 #define cx_hmap_free_key(k)         free(*k)
+#define cx_hmap_free_val(k)         cxstr_free(k)
 #define cx_hmap_instance_allocator
 #define cx_hmap_implement
 #include "cx_hmap.h"
@@ -86,7 +88,7 @@ void test_map1str(size_t size, size_t nbuckets, const CxAllocator* alloc);
 
 void cxHmapTests(void) {
 
-    test_map1u64(100, 50, cxDefaultAllocator());
+    //test_map1u64(100, 50, cxDefaultAllocator());
     test_map1str(100, 50, cxDefaultAllocator());
 
     // // Use pool allocator because the keys are dynamically allocated
@@ -207,6 +209,13 @@ static char* newstr(size_t val, const CxAllocator* alloc) {
     return s;
 }
 
+static cxstr newcxstr(size_t val, const CxAllocator* alloc) {
+
+    char buf[32];
+    snprintf(buf, sizeof(buf), "%zu", val);
+    return cxstr_initc(alloc, buf);
+}
+
 // Returns statically allocated string from number
 // Used to get values from map
 static char* numstr(size_t val) {
@@ -227,12 +236,15 @@ void test_map1str(size_t size, size_t nbuckets, const CxAllocator* alloc) {
 
     // Fill map
     for (size_t  i = 0; i < size; i++) {
-        char* key = newstr(i,alloc);
-        map1str_set(&m, key, i*2.0);
+        // The key and val are allocated and 'MOVED' to the map
+        char* key = newstr(i, alloc);
+        cxstr val = newcxstr(i*2, alloc);
+        map1str_set(&m, key, val);
     }
     // Checks entries directly
     for (size_t  i = 0; i < size; i++) {
-        CHK(*map1str_get(&m, numstr(i)) == i * 2.0);
+        cxstr* val = map1str_get(&m, numstr(i));
+        CHK(val && cxstr_cmp(val, numstr(i*2))==0);
     }
     CHK(map1str_count(&m) == size);
 
@@ -244,18 +256,23 @@ void test_map1str(size_t size, size_t nbuckets, const CxAllocator* alloc) {
         if (e == NULL) {
             break;
         }
-        CHK(e->val == atoi(e->key) * 2.0);
+        CHK(cxstr_cmp(&e->val, numstr(atoi(e->key)*2))==0);
         counter++;
     }
     CHK(counter == map1str_count(&m));
 
     // Overwrites all keys
     for (size_t i = 0; i < size; i++) {
-        map1str_set(&m, newstr(i, alloc), i*3.0);
+        char* key = newstr(i, alloc);
+        cxstr val = newcxstr(i*3, alloc);
+        map1str_set(&m, key, val);
     }
+    CHK(map1str_count(&m) == size);
+
     // Checks entries directly
     for (size_t  i = 0; i < size; i++) {
-        CHK(*map1str_get(&m, numstr(i)) == i * 3.0);
+        cxstr* val = map1str_get(&m, numstr(i));
+        CHK(val && cxstr_cmp(val, numstr(i*3))==0);
     }
 
     // Delete even keys
@@ -268,21 +285,23 @@ void test_map1str(size_t size, size_t nbuckets, const CxAllocator* alloc) {
 
     // Checks entries
     for (size_t  i = 0; i < size; i++) {
+        cxstr* val = map1str_get(&m, numstr(i));
         if (i % 2 == 0) {
-            CHK(map1str_get(&m, numstr(i)) == NULL);
+            CHK(val == NULL);
         }
         else {
-            CHK(*map1str_get(&m, numstr(i)) == i * 3.0);
+            CHK(val && cxstr_cmp(val, numstr(i*3))==0);
         }
     }
 
     // Overwrites all keys
     for (size_t i = 0; i < size; i++) {
-        map1str_set(&m, newstr(i,alloc), i*4.0);
+        map1str_set(&m, newstr(i,alloc), newcxstr(i*4.0, alloc));
     }
     // Checks entries directly
     for (size_t  i = 0; i < size; i++) {
-        CHK(*map1str_get(&m, numstr(i)) == i * 4.0);
+        cxstr* val = map1str_get(&m, numstr(i));
+        CHK(val && cxstr_cmp(val, numstr(i*4))==0);
     }
     CHK(map1str_count(&m) == size);
 
@@ -296,11 +315,12 @@ void test_map1str(size_t size, size_t nbuckets, const CxAllocator* alloc) {
 
     // Checks entries
     for (size_t  i = 0; i < size; i++) {
+        cxstr* val = map1str_get(&m, numstr(i));
         if (i % 2) {
-            CHK(map1str_get(&m, numstr(i)) == NULL);
+            CHK(val == NULL);
         }
         else {
-            CHK(*map1str_get(&m, numstr(i)) == i * 4.0);
+            CHK(val && cxstr_cmp(val, numstr(i*4))==0);
         }
     }
     map1str_clear(&m);

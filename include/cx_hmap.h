@@ -390,12 +390,14 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
             if (op == cx_hmap_op_get_) {
                 return e;
             }
-            // For "Set" optionally free and updates the key pointer
+            // For "Set" optionally free and updates the key and frees the value.
+            // The value will be updated by the caller
             if (op == cx_hmap_op_set_) {
 #ifdef cx_hmap_free_key
                 cx_hmap_free_key_(&e->key);
                 memcpy(&e->key, key, sizeof(cx_hmap_key));
 #endif
+                cx_hmap_free_val_(&e->val);
                 return e;
             }
             // Operation is "Del":
@@ -437,12 +439,15 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
                 if (op == cx_hmap_op_get_) {
                     return curr;
                 }
+                // For "Set" optionally free and updates the key and frees the value.
+                // The value will be updated by the caller
                 // For "Set" optionally free and updates the key pointer
                 if (op == cx_hmap_op_set_) {
 #ifdef cx_hmap_free_key
                     cx_hmap_free_key_(&curr->key);
                     memcpy(&curr->key, key, sizeof(cx_hmap_key));
 #endif
+                    cx_hmap_free_val_(&curr->val);
                     return curr;
                 }
                 // For "Del" removes this entry from the linked list
