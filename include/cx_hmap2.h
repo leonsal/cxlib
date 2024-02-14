@@ -134,9 +134,6 @@ Initialize hashmap NOT defined with custom allocator
 If the specified number of bucket is 0, the default will be used.
     hmap hmap_init(size_t nbuckets);
 
-Clones hashmap returning a new one with possibly different number of buckets.
-    hmap hmap_clone(const hmap* src, size_t nbuckets);
-
 Free hashmap allocated memory
     void hmap_free(hmap* m);
 
@@ -282,7 +279,6 @@ typedef struct cx_hmap_name_(_iter) {
 #else
     cx_hmap_api_ cx_hmap_name cx_hmap_name_(_init)(size_t nbuckets);
 #endif
-cx_hmap_api_ cx_hmap_name cx_hmap_name_(_clone)(const cx_hmap_name* src, size_t nbuckets);
 cx_hmap_api_ void cx_hmap_name_(_free)(cx_hmap_name* m);
 cx_hmap_api_ void cx_hmap_name_(_set)(cx_hmap_name* m, cx_hmap_key k, cx_hmap_val v);
 cx_hmap_api_ cx_hmap_val* cx_hmap_name_(_get)(const cx_hmap_name* m, cx_hmap_key k);
@@ -319,7 +315,7 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
     size_t cx_hmap_hash_key_str_ptr(void* key, size_t keySize);
 
     // Internal function to free the map entries
-    cx_hmap_api_ void cx_hmap_name_(_free_internal_)(cx_hmap_name* m) {
+    cx_hmap_api_ void cx_hmap_name_(_free_entries_)(cx_hmap_name* m) {
         if (m == NULL || m->count_ == 0) {
             return;
         }
@@ -340,9 +336,23 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
         if (m->count_ + m->deleted_ + 1 < (float)(m->nbuckets_) * cx_hmap_resize_load) {
             return;
         }
-        cx_hmap_name resized = cx_hmap_name_(_clone)(m, (m->nbuckets_ * 2) + 0);
-        cx_hmap_name_(_free)(m);
-        *m = resized;
+
+        cx_hmap_name new;
+#ifdef cx_hmap_instance_allocator
+        new = cx_hmap_name_(_init)(m->alloc_, m->nbuckets_*2);
+#else
+        new = cx_hmap_name_(_init)(m->nbuckets_*2);
+#endif
+        for (size_t i = 0; i < m->nbuckets_; i++) {
+            if (m->status_[i] == cx_hmap_full_) {
+                cx_hmap_name_(_entry)* e = &m->buckets_[i];
+                cx_hmap_name_(_set)(&new, e->key, e->val);
+            }
+        }
+        // Free original keeping ENTRIES.
+        cx_hmap_free_(m, m->buckets_, m->nbuckets_ * sizeof(*m->buckets_));
+        cx_hmap_free_(m, m->status_, m->nbuckets_ * sizeof(*m->status_));
+        *m = new;
         printf("RESIZED:%lu\n", m->nbuckets_);
     }
 
@@ -389,7 +399,7 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
                 if (op == cx_hmap_op_get_ || op == cx_hmap_op_del_) {
                     return NULL;
                 }
-                // Sets the bucket key and value
+                // Sets the bucket key
                 memcpy(&e->key, key, sizeof(cx_hmap_key));
                 m->count_++;
                 m->status_[idx] = cx_hmap_full_;
@@ -399,8 +409,16 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
             if (m->status_[idx] == cx_hmap_full_) {
                 // Checks current bucket key
                 if (cx_hmap_cmp_key(&e->key, key, sizeof(cx_hmap_key)) == 0) {
-                    // For "Get" or "Set" just returns the pointer to this entry.
-                    if (op == cx_hmap_op_get_ || op == cx_hmap_op_set_) {
+                    // For "Get" just returns the pointer to this entry.
+                    if (op == cx_hmap_op_get_) {
+                        return e;
+                    }
+                    // For "Set" optionally free and updates the key pointer
+                    if (op == cx_hmap_op_set_) {
+#ifdef cx_hmap_free_key
+                        cx_hmap_free_key_(&e->key);
+                        memcpy(&e->key, key, sizeof(cx_hmap_key));
+#endif
                         return e;
                     }
                     // For "Del" sets this bucket as deleted
@@ -455,31 +473,10 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
 
 #endif
 
-cx_hmap_api_ cx_hmap_name cx_hmap_name_(_clone)(const cx_hmap_name* m, size_t nbuckets) {
-
-    assert(m);
-    assert(nbuckets > 0);
-    cx_hmap_name cloned = *m; // copy possible allocator
-    cloned.nbuckets_ = nbuckets;
-    cloned.count_ = 0;
-    cloned.deleted_ = 0;
-    cloned.buckets_ = cx_hmap_alloc_(&cloned, cloned.nbuckets_ * sizeof(*cloned.buckets_));
-    const size_t allocSize = cloned.nbuckets_ * sizeof(*cloned.status_);
-    cloned.status_ = cx_hmap_alloc_(&cloned, allocSize);
-    memset(cloned.status_, cx_hmap_empty_, allocSize);
-    for (size_t i = 0; i < m->nbuckets_; i++) {
-        if (m->status_[i] == cx_hmap_full_) {
-            cx_hmap_name_(_entry)* e = &m->buckets_[i];
-            cx_hmap_name_(_set)(&cloned, e->key, e->val);
-        }
-    }
-    return cloned;         
-}
-
 cx_hmap_api_ void cx_hmap_name_(_free)(cx_hmap_name* m) {
 
     assert(m);
-    cx_hmap_name_(_free_internal_)(m);
+    cx_hmap_name_(_free_entries_)(m);
     cx_hmap_free_(m, m->buckets_, m->nbuckets_ * sizeof(*m->buckets_));
     cx_hmap_free_(m, m->status_, m->nbuckets_ * sizeof(*m->status_));
     m->buckets_ = NULL;
@@ -512,7 +509,7 @@ cx_hmap_api_ bool cx_hmap_name_(_del)(cx_hmap_name* m, cx_hmap_key k) {
 cx_hmap_api_ void cx_hmap_name_(_clear)(cx_hmap_name* m) {
 
     assert(m);
-    cx_hmap_name_(_free_internal_)(m);
+    cx_hmap_name_(_free_entries_)(m);
     if (m->count_ == 0) {
         return;
     }
