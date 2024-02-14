@@ -19,7 +19,7 @@ int main() {
     LOGW("START");
     cxAllocPoolTests();
     cxArrayTests();
-    cxHmapTests();
+    test_hmap();
     cxStrTests();
     cxQueueTests();
     cx_list_tests();

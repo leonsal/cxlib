@@ -12,7 +12,7 @@
 #include "cx_str.h"
 
 // Map type of allocated C string key -> allocated cxstr value
-#define cx_hmap_name map1str
+#define cx_hmap_name hmap1
 #define cx_hmap_key  char*
 #define cx_hmap_val  cxstr
 #define cx_hmap_cmp_key(k1,k2,s)    strcmp(*(char**)k1,*(char**)k2)
@@ -28,11 +28,11 @@
 #include "logger.h"
 
 
-void test_map1str(size_t size, size_t nbuckets, const CxAllocator* alloc);
+void test_hmap1(size_t size, size_t nbuckets, const CxAllocator* alloc);
 
-void cxHmapTests(void) {
+void test_hmap(void) {
 
-    test_map1str(100, 50, cxDefaultAllocator());
+    test_hmap1(100, 50, cxDefaultAllocator());
 }
 
 
@@ -65,67 +65,67 @@ static char* numstr(size_t val) {
     return buf;
 }
 
-void test_map1str(size_t size, size_t nbuckets, const CxAllocator* alloc) {
+void test_hmap1(size_t size, size_t nbuckets, const CxAllocator* alloc) {
 
     LOGI("%s: size=%lu nbuckets=%lu alloc=%p", __func__, size, nbuckets, alloc);
     // Initializes map and sets entries
-    map1str m = map1str_init(alloc, nbuckets);
+    hmap1 m = hmap1_init(alloc, nbuckets);
     // Tests clearing empty map
-    map1str_clear(&m);
-    CHK(map1str_count(&m) == 0);
+    hmap1_clear(&m);
+    CHK(hmap1_count(&m) == 0);
 
     // Fill map
     for (size_t  i = 0; i < size; i++) {
         // The key and val are allocated and 'MOVED' to the map
         char* key = newstr(i, alloc);
         cxstr val = newcxstr(i*2, alloc);
-        map1str_set(&m, key, val);
+        hmap1_set(&m, key, val);
     }
     // Checks entries directly
     for (size_t  i = 0; i < size; i++) {
-        cxstr* val = map1str_get(&m, numstr(i));
+        cxstr* val = hmap1_get(&m, numstr(i));
         CHK(val && cxstr_cmp(val, numstr(i*2))==0);
     }
-    CHK(map1str_count(&m) == size);
+    CHK(hmap1_count(&m) == size);
 
     // Checks entries using iterator
-    map1str_iter iter1 = {};
+    hmap1_iter iter1 = {};
     size_t counter = 0;
     while (true) {
-        map1str_entry* e = map1str_next(&m, &iter1);
+        hmap1_entry* e = hmap1_next(&m, &iter1);
         if (e == NULL) {
             break;
         }
         CHK(cxstr_cmp(&e->val, numstr(atoi(e->key)*2))==0);
         counter++;
     }
-    CHK(counter == map1str_count(&m));
+    CHK(counter == hmap1_count(&m));
 
     // Overwrites all keys
     for (size_t i = 0; i < size; i++) {
         char* key = newstr(i, alloc);
         cxstr val = newcxstr(i*3, alloc);
-        map1str_set(&m, key, val);
+        hmap1_set(&m, key, val);
     }
-    CHK(map1str_count(&m) == size);
+    CHK(hmap1_count(&m) == size);
 
     // Checks entries directly
     for (size_t  i = 0; i < size; i++) {
-        cxstr* val = map1str_get(&m, numstr(i));
+        cxstr* val = hmap1_get(&m, numstr(i));
         CHK(val && cxstr_cmp(val, numstr(i*3))==0);
     }
 
     // Delete even keys
     for (size_t i = 0; i < size; i++) {
         if (i % 2 == 0) {
-            map1str_del(&m, numstr(i));
+            hmap1_del(&m, numstr(i));
         }
     }
-    CHK(map1str_count(&m) == size/2);
+    CHK(hmap1_count(&m) == size/2);
 
     // Checks entries
     for (size_t  i = 0; i < size; i++) {
-        cxstr* val = map1str_get(&m, numstr(i));
+        cxstr* val = hmap1_get(&m, numstr(i));
         if (i % 2 == 0) {
             CHK(val == NULL);
         }
@@ -136,26 +136,26 @@ void test_map1str(size_t size, size_t nbuckets, const CxAllocator* alloc) {
 
     // Overwrites all keys
     for (size_t i = 0; i < size; i++) {
-        map1str_set(&m, newstr(i,alloc), newcxstr(i*4.0, alloc));
+        hmap1_set(&m, newstr(i,alloc), newcxstr(i*4.0, alloc));
     }
     // Checks entries directly
     for (size_t  i = 0; i < size; i++) {
-        cxstr* val = map1str_get(&m, numstr(i));
+        cxstr* val = hmap1_get(&m, numstr(i));
         CHK(val && cxstr_cmp(val, numstr(i*4))==0);
     }
-    CHK(map1str_count(&m) == size);
+    CHK(hmap1_count(&m) == size);
 
     // Delete odd keys
     for (size_t i = 0; i < size; i++) {
         if (i % 2) {
-            map1str_del(&m, numstr(i));
+            hmap1_del(&m, numstr(i));
         }
     }
-    CHK(map1str_count(&m) == size/2);
+    CHK(hmap1_count(&m) == size/2);
 
     // Checks entries
     for (size_t  i = 0; i < size; i++) {
-        cxstr* val = map1str_get(&m, numstr(i));
+        cxstr* val = hmap1_get(&m, numstr(i));
         if (i % 2) {
             CHK(val == NULL);
         }
@@ -164,12 +164,12 @@ void test_map1str(size_t size, size_t nbuckets, const CxAllocator* alloc) {
         }
     }
     if (0) {
-        map1str_stats stats = map1str_get_stats(&m);
-        map1str_print_stats(&stats);
+        hmap1_stats stats = hmap1_get_stats(&m);
+        hmap1_print_stats(&stats);
     }
 
-    map1str_clear(&m);
-    CHK(map1str_count(&m) == 0);
-    map1str_free(&m);
+    hmap1_clear(&m);
+    CHK(hmap1_count(&m) == 0);
+    hmap1_free(&m);
 }
 

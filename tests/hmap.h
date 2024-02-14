@@ -2,6 +2,6 @@
 #include <stdlib.h>
 #include "cx_alloc.h"
 
-void cxHmapTests(void);
+void test_hmap(void);
 
 
