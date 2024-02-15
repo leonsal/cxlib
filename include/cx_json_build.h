@@ -5,19 +5,19 @@
 #include "cx_writer.h"
 
 // Type for replacer function
-typedef void (*CxJsonBuildReplacer)(CxVar* val, void* userdata);
+typedef CxVar* (*CxJsonBuildReplacer)(CxVar* val, void* userdata);
 
 // Type for JSON build configuration
 typedef struct CxJsonBuildCfg {
-    CxJsonBuildReplacer replacer_fn;
-    void*               replacer_data;
+    CxJsonBuildReplacer replacer_fn;        // Optional replacer function
+    void*               replacer_data;      // Optional replacer data
 } CxJsonBuildCfg;
 
 // Builds JSON string from the supplied CxVar using the specified configuration.
 // If a replacer function was defined, the CxVar may be modified.
 // The generated JSON is written using the supplied CxWriter interface.
 // Return non-zero error if CxVar cannot be encoded in JSON format.
-int cx_json_build(CxVar* var, CxJsonBuildCfg* cfg, const CxWriter* out); 
+int cx_json_build(CxVar* var, const CxJsonBuildCfg* cfg, const CxWriter* out); 
 
 #endif
 

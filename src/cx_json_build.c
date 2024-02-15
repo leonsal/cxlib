@@ -12,7 +12,7 @@ typedef struct BuildState {
     const CxWriter* out;
 } BuildState;
 
-static inline void cx_json_build_replacer(CxVar* val, void* userdata){};
+static inline CxVar* cx_json_build_replacer(CxVar* val, void* userdata){ return val;};
 static int cx_json_build_val(BuildState* bs, CxVar* var);
 static int cx_json_build_null(BuildState* bs, const CxVar* var);
 static int cx_json_build_bool(BuildState* bs, const CxVar* var);
@@ -29,7 +29,7 @@ static int cx_json_build_map(BuildState* bs, const CxVar* var);
 #define CHKRES(CALL)    {int res = CALL; if (res) { return res; }}
 
 
-int cx_json_build(CxVar* var, CxJsonBuildCfg* cfg, const CxWriter* out) {
+int cx_json_build(CxVar* var, const CxJsonBuildCfg* cfg, const CxWriter* out) {
 
     BuildState bs = {.out = out};
     if (cfg != NULL) {
@@ -44,7 +44,7 @@ int cx_json_build(CxVar* var, CxJsonBuildCfg* cfg, const CxWriter* out) {
 static int cx_json_build_val(BuildState* bs, CxVar* var) {
 
     int res;
-    bs->cfg.replacer_fn(var, bs);
+    bs->cfg.replacer_fn(var, bs->cfg.replacer_data);
     switch(cx_var_get_type(var)) {
         case CxVarNull:
             res = cx_json_build_null(bs, var);
