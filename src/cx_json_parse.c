@@ -24,7 +24,7 @@ typedef struct ParseState {
     jsmntok_t*      tok_last;   // Pointer to last token
 } ParseState;
 
-static inline void cx_json_parse_replacer(CxVar** val, void* userdata){};
+static inline void cx_json_parse_replacer(CxVar* val, void* userdata){};
 static int cx_json_parse_token(ParseState* ps, CxVar* var);
 static int cx_json_parse_prim(ParseState* ps, CxVar* var);
 static int cx_json_parse_str_token(ParseState* ps, cxstr* str);
@@ -109,7 +109,7 @@ static int cx_json_parse_token(ParseState* ps, CxVar* var) {
             break;
     }
     if (res == 0) {
-        ps->cfg.replacer_fn(&var, ps->cfg.replacer_data);
+        ps->cfg.replacer_fn(var, ps->cfg.replacer_data);
     }
     return res;
 }

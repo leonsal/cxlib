@@ -5,7 +5,7 @@
 #include "cx_var.h"
 
 // Type for replacer function
-typedef void (*CxJsonParseReplacer)(CxVar** val, void* userdata);
+typedef void (*CxJsonParseReplacer)(CxVar* val, void* userdata);
 
 // Type for JSON parse configuration
 typedef struct CxJsonParseCfg {
