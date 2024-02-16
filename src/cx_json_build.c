@@ -44,6 +44,7 @@ int cx_json_build(CxVar* var, const CxJsonBuildCfg* cfg, const CxWriter* out) {
 static int cx_json_build_val(BuildState* bs, CxVar* var) {
 
     int res;
+    bs->cfg.replacer_fn(var, bs->cfg.replacer_data);
     switch(cx_var_get_type(var)) {
         case CxVarNull:
             res = cx_json_build_null(bs, var);
@@ -72,7 +73,6 @@ static int cx_json_build_val(BuildState* bs, CxVar* var) {
     if (res < 0) {
         return 1;
     }
-    bs->cfg.replacer_fn(var, bs->cfg.replacer_data);
     return 0;
 }
 
