@@ -192,6 +192,8 @@ CxVar* cx_var_set_buf(CxVar* var, void* data, size_t len) {
     cxvar_buf_clear(var->v.buf);
     if (data != NULL) {
         cxvar_buf_pushn(var->v.buf, data, len);
+    } else {
+        cxvar_buf_setlen(var->v.buf, len);
     }
     return var;
 }
