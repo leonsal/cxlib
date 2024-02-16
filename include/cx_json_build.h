@@ -5,7 +5,7 @@
 #include "cx_writer.h"
 
 // Type for replacer function
-typedef CxVar* (*CxJsonBuildReplacer)(CxVar* val, void* userdata);
+typedef void (*CxJsonBuildReplacer)(CxVar* val, void* userdata);
 
 // Type for JSON build configuration
 typedef struct CxJsonBuildCfg {

@@ -15,7 +15,7 @@
 #include "cx_str.h"
 
 
-static CxVar* json_replacer(CxVar* var, void* userdata);
+static void json_replacer(CxVar* var, void* userdata);
 static int cxstring_write(cxstr* str, void* data, size_t len);
 
 void json_build_tests(void) {
@@ -76,7 +76,6 @@ static int cxstring_write(cxstr* str, void* data, size_t len) {
     return len;
 }
 
-static CxVar* json_replacer(CxVar* var, void* userdata) {
-    return var;
+static void json_replacer(CxVar* var, void* userdata) {
 }
 
