@@ -17,13 +17,14 @@
 #include "jsmn.h"
 
 typedef struct ParseState {
-    const CxAllocator* alloc;
-    const char* data;       // JSON string to parse
-    int         count;      // Number of tokens
-    jsmntok_t*  tok;        // Pointer to current token
-    jsmntok_t*  tok_last;   // Pointer to last token
+    CxJsonParseCfg  cfg;        // Copy of configuration
+    const char*     data;       // JSON string to parse
+    int             count;      // Number of tokens
+    jsmntok_t*      tok;        // Pointer to current token
+    jsmntok_t*      tok_last;   // Pointer to last token
 } ParseState;
 
+static inline void cx_json_parse_replacer(CxVar** val, void* userdata){};
 static int cx_json_parse_token(ParseState* ps, CxVar* var);
 static int cx_json_parse_prim(ParseState* ps, CxVar* var);
 static int cx_json_parse_str_token(ParseState* ps, cxstr* str);
@@ -33,7 +34,19 @@ static int cx_json_parse_obj(ParseState* ps, CxVar* var);
 
 #define CHK(CALL) {int res = CALL; if (res) {return res;}}
 
-int cx_json_parse(const char* data, size_t len, CxVar* var, const CxAllocator* alloc) {
+int cx_json_parse(const char* data, size_t len, CxVar* var, const CxJsonParseCfg* pcfg) {
+
+    // Sets configuration to use
+    CxJsonParseCfg cfg = {0};
+    if (pcfg) {
+        cfg = *pcfg;
+    }
+    if (cfg.alloc == NULL) {
+        cfg.alloc = cxDefaultAllocator();
+    }
+    if (cfg.replacer_fn == NULL) {
+        cfg.replacer_fn = cx_json_parse_replacer;
+    }
 
     // Count the number of tokens
     jsmn_parser p;
@@ -45,18 +58,18 @@ int cx_json_parse(const char* data, size_t len, CxVar* var, const CxAllocator* a
 
     // Allocate memory for tokens arra
     size_t nalloc = sizeof(jsmntok_t) * count;
-    jsmntok_t* tokens = cx_alloc_malloc(alloc, nalloc);
+    jsmntok_t* tokens = cx_alloc_malloc(cfg.alloc, nalloc);
 
     // Parses the data again
     jsmn_init(&p);
     int res = jsmn_parse(&p, data, len, tokens, count);
     if (res < 0) {
-        cx_alloc_free(alloc, tokens, nalloc); 
+        cx_alloc_free(cfg.alloc, tokens, nalloc); 
         return res;
     }
 
     ParseState ps = {
-        .alloc = alloc,
+        .cfg = cfg,
         .data = data,
         .count = count,
         .tok = &tokens[0],
@@ -70,7 +83,7 @@ int cx_json_parse(const char* data, size_t len, CxVar* var, const CxAllocator* a
         }
     }
 
-    cx_alloc_free(alloc, tokens, nalloc); 
+    cx_alloc_free(cfg.alloc, tokens, nalloc); 
     return res;
 }
 
@@ -95,13 +108,16 @@ static int cx_json_parse_token(ParseState* ps, CxVar* var) {
             res = 1;
             break;
     }
+    if (res == 0) {
+        ps->cfg.replacer_fn(&var, ps->cfg.replacer_data);
+    }
     return res;
 }
 
 
 static int cx_json_parse_prim(ParseState* ps, CxVar* var) {
 
-    cxstr prim = cxstr_init(ps->alloc);
+    cxstr prim = cxstr_init(ps->cfg.alloc);
     const char* pstart = &ps->data[ps->tok->start];
     cxstr_cpyn(&prim, pstart, ps->tok->end - ps->tok->start);
     int res = 0;
@@ -237,7 +253,7 @@ static int cx_json_parse_str_token(ParseState* ps, cxstr* str) {
 
 static int cx_json_parse_str(ParseState* ps, CxVar* var) {
 
-    cxstr str = cxstr_init(ps->alloc);
+    cxstr str = cxstr_init(ps->cfg.alloc);
     CHK(cx_json_parse_str_token(ps, &str));
     cx_var_set_str(var, str.data);
     cxstr_free(&str);
@@ -266,7 +282,7 @@ static int cx_json_parse_obj(ParseState* ps, CxVar* var) {
     ps->tok++;
     for (; obj_len > 0; obj_len--) {
         // Key
-        cxstr key = cxstr_init(ps->alloc);
+        cxstr key = cxstr_init(ps->cfg.alloc);
         CHK(cx_json_parse_str_token(ps, &key));
         ps->tok++;
         // Value
