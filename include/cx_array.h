@@ -52,6 +52,10 @@ Defines optional array element comparison function used in find().
 If not defined, uses 'memcmp()'
     #define cx_array_cmp_el <cmp_func>
 
+Define optional function to free array element
+By default no function is defined.
+    #define cx_array_free_el(val*) <free_func>
+
 Sets if all array functions are prefixed with 'static'
     #define cx_array_static
 
@@ -212,6 +216,13 @@ Finds element in the array returning its index or -1 if not found.
     #define cx_array_allocator cxDefaultAllocator()
 #endif
 
+// Default free element function
+#ifndef cx_array_free_el
+    #define cx_array_free_el_(el)
+#else
+    #define cx_array_free_el_(el) cx_array_free_el(el)
+#endif
+
 // Use custom instance allocator
 #ifdef cx_array_instance_allocator
     #define cx_array_alloc_field_\
@@ -259,6 +270,7 @@ cx_array_api_ void cx_array_name_(_pusha)(cx_array_name* a, const cx_array_name*
 cx_array_api_ cx_array_type cx_array_name_(_pop)(cx_array_name* a);
 cx_array_api_ cx_array_type* cx_array_name_(_at)(cx_array_name* a, size_t idx);
 cx_array_api_ cx_array_type cx_array_name_(_last)(const cx_array_name* a);
+cx_array_api_ void cx_array_name_(_set)(cx_array_name* a, size_t idx, cx_array_type v);
 cx_array_api_ void cx_array_name_(_reserve)(cx_array_name* a, size_t n);
 cx_array_api_ void cx_array_name_(_insn)(cx_array_name* a, cx_array_type* src, size_t n, size_t idx);
 cx_array_api_ void cx_array_name_(_ins)(cx_array_name* a, cx_array_type v, size_t idx);
@@ -274,28 +286,28 @@ cx_array_api_ ssize_t cx_array_name_(_find)(cx_array_name* a, cx_array_type v);
 //
 #ifdef cx_array_implement
 
-    // Internal array reallocation function
-static void cx_array_name_(_grow_)(cx_array_name* a, size_t addLen, size_t minCap) {
+// Internal array reallocation function
+static void cx_array_name_(_grow_)(cx_array_name* a, size_t add_len, size_t min_cap) {
 
     // Compute the minimum capacity needed
-    size_t minLen = a->len_ + addLen;
-    if (minLen > minCap) {
-        minCap = minLen;
+    const size_t min_len = a->len_ + add_len;
+    if (min_len > min_cap) {
+        min_cap = min_len;
     }
-    if (minCap <= a->cap_) {
+    if (min_cap <= a->cap_) {
         return;
     }
 
-    // Increase needed capacity to guarantee O(1) amortized
-    if (minCap < 2 * a->cap_) {
-        minCap = 2 * a->cap_;
+    // Increase needed capacity
+    if (min_cap < 2 * a->cap_) {
+        min_cap = 2 * a->cap_;
     }
-    else if (minCap < 4) {
-        minCap = 4;
+    else if (min_cap < 4) {
+        min_cap = 4;
     }
 
 #ifdef cx_array_error_handler
-    if (minCap > cx_array_max_cap_) {
+    if (min_cap > cx_array_max_cap_) {
         cx_array_error_handler("capacity exceeded", __func__);
         return;
     }
@@ -303,7 +315,7 @@ static void cx_array_name_(_grow_)(cx_array_name* a, size_t addLen, size_t minCa
 
     // Allocates new capacity
     const size_t elemSize = sizeof(*(a->data));
-    const size_t allocSize = elemSize * minCap;
+    const size_t allocSize = elemSize * min_cap;
     void* new = cx_array_alloc_(a, allocSize);
     if (new == NULL) {
         return;
@@ -313,25 +325,31 @@ static void cx_array_name_(_grow_)(cx_array_name* a, size_t addLen, size_t minCa
     memcpy(new, a->data, a->len_ * elemSize);
     cx_array_free_(a, a->data, a->len_ * elemSize);
     a->data = new;
-    a->cap_ = minCap;
+    a->cap_ = min_cap;
 }
 
 
 #ifdef cx_array_instance_allocator
 
+    // Initialize array defined with custom allocator
     cx_array_api_ cx_array_name cx_array_name_(_init)(const CxAllocator* alloc) {
+
         return (cx_array_name) {
             .alloc_ = alloc == NULL ? cxDefaultAllocator() : alloc,
         };
     }
 #else
 
+    // Initialize array
     cx_array_api_ cx_array_name cx_array_name_(_init)(void) {
+
         return (cx_array_name){0};
     }
 #endif
 
 cx_array_api_ void cx_array_name_(_free)(cx_array_name* a) {
+
+    cx_array_name_(_clear)(a);
     cx_array_free_(a, a->data, a->cap_ * sizeof(*(a->data)));
     a->len_ = 0;
     a->cap_ = 0;
@@ -339,10 +357,17 @@ cx_array_api_ void cx_array_name_(_free)(cx_array_name* a) {
 }
 
 cx_array_api_ void cx_array_name_(_clear)(cx_array_name* a) {
+
+#ifdef cx_array_free_el
+    for (size_t i = 0; i < a->len_; i++) {
+        cx_array_free_el_(&a->data[i]);
+    }
+#endif
     a->len_ = 0;
 }
 
 cx_array_api_ cx_array_name cx_array_name_(_clone)(cx_array_name* a) {
+
     const size_t alloc_size = a->len_ * sizeof(*(a->data));
     cx_array_name cloned = *a;
     cloned.data  = cx_array_alloc_(a, alloc_size),
@@ -405,12 +430,13 @@ cx_array_api_ cx_array_type cx_array_name_(_pop)(cx_array_name* a) {
 }
 
 cx_array_api_ cx_array_type* cx_array_name_(_at)(cx_array_name* a, size_t idx) {
-#ifdef cx_array_error_handler
+
     if (idx > a->len_) {
+#ifdef cx_array_error_handler
         cx_array_error_handler("invalid index",__func__);
+#endif
         return NULL;
     }
-#endif
     return &a->data[idx];
 }
 
@@ -423,6 +449,18 @@ cx_array_api_ cx_array_type cx_array_name_(_last)(const cx_array_name* a) {
     }
 #endif
     return a->data[a->len_-1];
+}
+
+cx_array_api_ void cx_array_name_(_set)(cx_array_name* a, size_t idx, cx_array_type v) {
+
+#ifdef cx_array_error_handler
+    if (idx >= a->len_) {
+        cx_array_error_handler("invalid index",__func__);
+        return;
+    }
+#endif
+    cx_array_free_el_(&a->data[idx]);
+    a->data[idx] = v;
 }
 
 cx_array_api_ void cx_array_name_(_reserve)(cx_array_name* a, size_t n) {
@@ -455,10 +493,17 @@ cx_array_api_ void cx_array_name_(_insa)(cx_array_name* a, const cx_array_name* 
 }
 
 cx_array_api_ void cx_array_name_(_deln)(cx_array_name* a, size_t idx, size_t n) {
+
 #ifdef cx_array_error_handler
-    if (idx > a->len_) {
+    if (idx >= a->len_) {
         cx_array_error_handler("invalid index",__func__);
         return;
+    }
+#endif
+
+#ifdef cx_array_free_el
+    for (size_t i = idx; i < idx + n; i++) {
+        cx_array_free_el_(&a->data[i]);
     }
 #endif
     n = n > a->len_ - idx ? a->len_ - idx : n;
@@ -467,25 +512,30 @@ cx_array_api_ void cx_array_name_(_deln)(cx_array_name* a, size_t idx, size_t n)
 }
 
 cx_array_api_ void cx_array_name_(_del)(cx_array_name* a, size_t idx) {
+
     cx_array_name_(_deln)(a, idx, 1);
 }
 
 cx_array_api_ void cx_array_name_(_delswap)(cx_array_name* a, size_t idx) {
+
 #ifdef cx_array_error_handler
     if (idx >= a->len_) {
         cx_array_error_handler("invalid index",__func__);
         return;
     }
 #endif
+    cx_array_free_el_(&a->data[idx]);
     a->data[idx] = cx_array_name_(_last)(a);
     a->len_--;
 }
 
 cx_array_api_ void cx_array_name_(_sort)(cx_array_name* a, int (*f)(const cx_array_type*, const cx_array_type*)) {
+
     qsort(a->data,a->len_,sizeof(*(a->data)),(int (*)(const void*,const void*))f);
 }
 
 cx_array_api_ ssize_t cx_array_name_(_find)(cx_array_name* a, cx_array_type v) {
+
     for (ssize_t i = 0; i < a->len_; i++) {
         if (cx_array_cmp_el(&a->data[i], &v, sizeof(v)) == 0) {
             return i;
@@ -503,6 +553,8 @@ cx_array_api_ ssize_t cx_array_name_(_find)(cx_array_name* a, cx_array_type v) {
 #undef cx_array_error_handler
 #undef cx_array_allocator
 #undef cx_array_instance_allocator
+#undef cx_array_cmp_el
+#undef cx_array_free_el
 #undef cx_array_static
 #undef cx_array_inline
 #undef cx_array_implement
@@ -522,5 +574,6 @@ cx_array_api_ ssize_t cx_array_name_(_find)(cx_array_name* a, cx_array_type v) {
 #undef cx_array_alloc_global_
 #undef cx_array_alloc_
 #undef cx_array_free_
+#undef cx_array_free_el_
 
 

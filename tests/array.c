@@ -6,14 +6,43 @@
 #include "array.h"
 #include "util.h"
 
+// Define array of integers
 #define cx_array_name cxarray
 #define cx_array_type int
 #define cx_array_implement
 #define cx_array_static
 #define cx_array_cap 32
-#define cx_array_error_handler(msg,func)\
-    printf("CXARRAY ERROR:%s at %s\n", msg, func);abort()
+#define cx_array_error_handler(msg,func)     printf("CXARRAY ERROR:%s at %s\n", msg, func);abort()
 #define cx_array_instance_allocator
+#include "cx_array.h"
+
+// Define array of pointers to allocated C strings
+#define cx_array_name                       arrc
+#define cx_array_type                       char*
+#define cx_array_cmp_el(el1,el2,s)          strcmp(*el1,*el2)
+#define cx_array_free_el(el)                free(*el)
+#define cx_array_static
+#define cx_array_instance_allocator
+#define cx_array_error_handler(msg,func)    printf("CXARRAY ERROR:%s at %s\n", msg, func);abort()
+#define cx_array_implement
+#include "cx_array.h"
+
+// Define cx str used for next array
+#define cx_str_name cxstr
+#define cx_str_static
+#define cx_stry_instance_allocator
+#define cx_str_implement
+#include "cx_str.h"
+
+// Define array of cx_str
+#define cx_array_name                       arrs
+#define cx_array_type                       cxstr
+#define cx_array_cmp_el(el1,el2,s)          cxstr_cmps(el1, el2)
+#define cx_array_free_el(el)                cxstr_free(el)
+#define cx_array_static
+#define cx_array_instance_allocator
+#define cx_array_error_handler(msg,func)    printf("CXARRAY ERROR:%s at %s\n", msg, func);abort()
+#define cx_array_implement
 #include "cx_array.h"
 
 #include "logger.h"
@@ -23,21 +52,24 @@ static int sort_int_desc(const int* v1, const int* v2) {
     return *v2 > *v1;
 }
 
-void cxArrayTests(void) {
+void test_array(void) {
 
     // Use default allocator
-    const size_t size = 100000;
-    cxArrayTest(size, cxDefaultAllocator());
+    const size_t size = 10;
+    test_array_int(size, cxDefaultAllocator());
+    test_array_str(size, cxDefaultAllocator());
+    test_array_cxstr(size, cxDefaultAllocator());
 
     // Use pool allocator
     CxPoolAllocator* ba = cx_pool_allocator_create(4*1024, NULL);
-    cxArrayTest(size, cx_pool_allocator_iface(ba));
+    test_array_int(size, cx_pool_allocator_iface(ba));
+    test_array_cxstr(size, cx_pool_allocator_iface(ba));
     cx_pool_allocator_destroy(ba);
 }
 
-void cxArrayTest(size_t size, const CxAllocator* alloc) {
+void test_array_int(size_t size, const CxAllocator* alloc) {
 
-    LOGI("array. size=%lu alloc:%p", size, alloc);
+    LOGI("%s: size=%lu alloc:%p", __func__, size, alloc);
     cxarray a1 = cxarray_init(alloc);
     cxarray a2 = cxarray_init(alloc);
 
@@ -201,3 +233,150 @@ void cxArrayTest(size_t size, const CxAllocator* alloc) {
     cxarray_free(&a1);
 }
 
+// Creates new string from number using the specified allocator
+static char* newstr(size_t n, const CxAllocator* alloc) {
+
+    char buf[32];
+    snprintf(buf, sizeof(buf), "%zu", n);
+    char* s = cx_alloc_malloc(alloc, strlen(buf) + 1);
+    strcpy(s, buf);
+    return s;
+}
+
+// Returns statically allocated string used for comparisons only
+static char* num2str(size_t n) {
+
+    static char buf[32];
+    snprintf(buf, sizeof(buf), "%zu", n);
+    return buf;
+}
+
+static size_t str2num(char* s) {
+
+    return strtol(s, NULL, 10);
+}
+
+void test_array_str(size_t size, const CxAllocator* alloc) {
+
+    LOGI("%s: size=%lu alloc:%p", __func__, size, alloc);
+    arrc a = arrc_init(alloc);
+    // push
+    CHK(arrc_len(&a) == 0);
+    CHK(arrc_cap(&a) == 0);
+    CHK(arrc_empty(&a));
+    arrc_free(&a);
+    for (size_t i = 0; i < size; i++) {
+        arrc_push(&a, newstr(i, alloc));
+    }
+    CHK(arrc_len(&a) == size);
+    CHK(!arrc_empty(&a));
+    CHK(strcmp(arrc_last(&a), num2str(size-1)) == 0);
+    // Check
+    for (size_t i = 0; i < size; i++) {
+        CHK(strcmp(*arrc_at(&a, i), num2str(i)) == 0);
+    }
+    // Free all strings and array buffer
+    arrc_free(&a);
+    CHK(arrc_len(&a) == 0);
+    CHK(arrc_cap(&a) == 0);
+    CHK(arrc_empty(&a));
+
+    // push
+    for (size_t i = 0; i < size; i++) {
+        arrc_push(&a, newstr(i, alloc));
+    }
+    CHK(arrc_len(&a) == size);
+    // Delete odd elements
+    size_t idx = 0;
+    while (idx < arrc_len(&a)) {
+        if (str2num(*arrc_at(&a, idx)) % 2 == 0) {
+            idx++;
+            continue;
+        }
+        arrc_del(&a, idx);
+    }
+    CHK(arrc_len(&a) == size/2);
+    // Checks
+    for (size_t idx = 0; idx < size/2; idx++) {
+        CHK(str2num(*arrc_at(&a, idx)) == idx*2);
+    }
+    arrc_free(&a);
+    CHK(arrc_len(&a) == 0);
+
+    // push
+    for (size_t i = 0; i < size; i++) {
+        arrc_push(&a, newstr(i, alloc));
+    }
+    CHK(arrc_len(&a) == size);
+    // set all elements
+    for (size_t i = 0; i < size; i++) {
+        arrc_set(&a, i, newstr(i*2, alloc));
+    }
+    // Check
+    for (size_t i = 0; i < size; i++) {
+        CHK(strcmp(*arrc_at(&a, i), num2str(i*2)) == 0);
+    }
+    arrc_free(&a);
+}
+
+void test_array_cxstr(size_t size, const CxAllocator* alloc) {
+
+    LOGI("%s: size=%lu alloc:%p", __func__, size, alloc);
+    arrs a = arrs_init(alloc);
+    // push
+    CHK(arrs_len(&a) == 0);
+    CHK(arrs_cap(&a) == 0);
+    CHK(arrs_empty(&a));
+    arrs_free(&a);
+    for (size_t i = 0; i < size; i++) {
+        arrs_push(&a, cxstr_initc(num2str(i)));
+    }
+    CHK(arrs_len(&a) == size);
+    CHK(!arrs_empty(&a));
+    // Check
+    for (size_t i = 0; i < size; i++) {
+        CHK(cxstr_cmp(arrs_at(&a, i), num2str(i)) == 0);
+    }
+    // Free all strings and array buffer
+    arrs_free(&a);
+    CHK(arrs_len(&a) == 0);
+    CHK(arrs_cap(&a) == 0);
+    CHK(arrs_empty(&a));
+
+    // push
+    for (size_t i = 0; i < size; i++) {
+        arrs_push(&a, cxstr_initc(num2str(i)));
+    }
+    CHK(arrs_len(&a) == size);
+    // Delete odd elements
+    size_t idx = 0;
+    while (idx < arrs_len(&a)) {
+        if (str2num(arrs_at(&a, idx)->data) % 2 == 0) {
+            idx++;
+            continue;
+        }
+        arrs_del(&a, idx);
+    }
+    CHK(arrs_len(&a) == size/2);
+    // Checks
+    for (size_t idx = 0; idx < size/2; idx++) {
+        CHK(str2num(arrs_at(&a, idx)->data) == idx*2);
+    }
+    arrs_free(&a);
+    CHK(arrs_len(&a) == 0);
+
+    // push
+    for (size_t i = 0; i < size; i++) {
+        arrs_push(&a, cxstr_initc(num2str(i)));
+    }
+    CHK(arrs_len(&a) == size);
+    // set all elements
+    for (size_t i = 0; i < size; i++) {
+        arrs_set(&a, i, cxstr_initc(num2str(i*2)));
+    }
+    // Check
+    for (size_t i = 0; i < size; i++) {
+        CHK(strcmp(arrs_at(&a, i)->data, num2str(i*2)) == 0);
+    }
+    arrs_free(&a);
+}

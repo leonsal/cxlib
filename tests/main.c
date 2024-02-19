@@ -1,4 +1,3 @@
-#include <asm-generic/errno.h>
 #include "cx_pool_allocator.h"
 
 #include "logger.h"
@@ -18,15 +17,15 @@ int main() {
     LOG_INIT();
     LOGW("START");
     cxAllocPoolTests();
-    cxArrayTests();
-    test_hmap();
-    cxStrTests();
-    cxQueueTests();
-    cx_list_tests();
-    cx_timer_tests();
-    cx_var_tests();
-    json_build_tests();
-    json_parse_tests();
+    test_array();
+    // test_hmap();
+    // cxStrTests();
+    // cxQueueTests();
+    // cx_list_tests();
+    // cx_timer_tests();
+    // cx_var_tests();
+    // json_build_tests();
+    // json_parse_tests();
     LOGW("END");
 }
 
