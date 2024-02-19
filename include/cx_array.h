@@ -31,13 +31,10 @@ Define the name of the array type (mandatory):
 Define the type of the array elements (mandatory):
     #define cx_array_type <name>
 
-Define optional array maximum capacity (default = 32):
-    #define cx_array_cap <8|16|32>
-
 Define optional error handler function with type:
 void (*handler)(const char* err_msg, const char* func_name)
 which will be called if error is detected  (default = no handler):
-    #define cx_array_error_handler <func>
+    #define cx_array_error_handler(msg,fname) <func>
 
 Define optional custom allocator pointer or function which return pointer to allocator.
 Uses default allocator if not defined.
@@ -50,11 +47,11 @@ If set, it is necessary to initialize each array with the desired allocator.
 
 Defines optional array element comparison function used in find().
 If not defined, uses 'memcmp()'
-    #define cx_array_cmp_el <cmp_func>
+    #define cx_array_cmp_el(el1*,el2*,size) <cmp_func>
 
 Define optional function to free array element
 By default no function is defined.
-    #define cx_array_free_el(val*) <free_func>
+    #define cx_array_free_el(el*) <free_func>
 
 Sets if all array functions are prefixed with 'static'
     #define cx_array_static
@@ -80,14 +77,26 @@ Initialize array NOT defined with custom allocator.
 It is equivalent to zero initialize the array struct.
     cxarray cxarray_init();
 
-Free array allocated memory
+Free array allocated memory used.
+The array can be reused.
+    void cxarray_free(cxarray* s);
+
+Clear array setting the number of elements to 0.
+The currently used memory is not deallocated.
     void cxarray_free(cxarray* s);
 
 Clone array returning a copy
+This is valid only for array of primitive types.
     cxarray cxarray_clone(const cxarray a);
 
+Returns the current capacity of the array in number of elements
+    size_t cxarray_cap(cxarray* a);
+
+Returns the current length of the array in number of elements
+    size_t cxarray_len(cxarray* a);
+
 Returns it the array is empty (length == 0)
-    bool cxarray_empty(const cxarray* a);
+    bool cxarray_empty(cxarray* a);
 
 Sets the capacity of the array at least 'cap'
     void cxarray_setcap(cxarray* a, size_t cap);
@@ -119,6 +128,12 @@ Error handler is called if defined and array is empty.
 
 Reserve capacity for at least new 'n' elements in the array.
     void cxarray_reserve(cxarray* a, size_t n);
+
+Sets the element at the specified index.
+    void cxarray_set(cxarray* a, size_t idx, cxarray_type el);
+
+Reserves capacity for at least new 'n' elements in the array.
+    void cxarray_reserver(cxarray* a, size_t n);
 
 Inserts 'n' elements from 'src' into the array at index 'idx'.
 Error handler is called if defined and index is invalid,
@@ -173,28 +188,6 @@ Finds element in the array returning its index or -1 if not found.
 #define cx_array_concat1_(a, b) cx_array_concat2_(a, b)
 #define cx_array_name_(name) cx_array_concat1_(cx_array_name, name)
 
-// Array maximum capacity in number of bits
-#define cx_array_cap8_     8
-#define cx_array_cap16_    16
-#define cx_array_cap32_    32
-
-// Default capacity
-#ifndef cx_array_cap
-    #define cx_array_cap  cx_array_cap32_
-#endif
-#if cx_array_cap == cx_array_cap8_
-    #define cx_array_cap_type_ uint8_t
-    #define cx_array_max_cap_  (UINT8_MAX)
-#elif cx_array_cap == cx_array_cap16_
-    #define cx_array_cap_type_ uint16_t
-    #define cx_array_max_cap_  (UINT16_MAX)
-#elif cx_array_cap == cx_array_cap32_
-    #define cx_array_cap_type_ uint32_t
-    #define cx_array_max_cap_  (UINT32_MAX)
-#else
-    #error "invalid cx array capacity bits"
-#endif
-
 // API attributes
 #if defined(cx_array_static) && defined(cx_array_inline)
     #define cx_array_api_ static inline
@@ -208,7 +201,7 @@ Finds element in the array returning its index or -1 if not found.
 
 // Default element comparison function
 #ifndef cx_array_cmp_el
-    #define cx_array_cmp_el memcmp
+    #define cx_array_cmp_el(el1,el2,s) memcmp(el1,el2,s)
 #endif
 
 // Default array allocator
@@ -246,9 +239,9 @@ Finds element in the array returning its index or -1 if not found.
 //
 typedef struct cx_array_name {
     cx_array_alloc_field_
-    cx_array_cap_type_  len_;
-    cx_array_cap_type_  cap_;
-    cx_array_type*      data;
+    size_t          len_;
+    size_t          cap_;
+    cx_array_type*  data;
 } cx_array_name;
 
 #ifdef cx_array_instance_allocator
@@ -305,13 +298,6 @@ static void cx_array_name_(_grow_)(cx_array_name* a, size_t add_len, size_t min_
     else if (min_cap < 4) {
         min_cap = 4;
     }
-
-#ifdef cx_array_error_handler
-    if (min_cap > cx_array_max_cap_) {
-        cx_array_error_handler("capacity exceeded", __func__);
-        return;
-    }
-#endif
 
     // Allocates new capacity
     const size_t elemSize = sizeof(*(a->data));

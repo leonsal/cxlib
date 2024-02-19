@@ -55,7 +55,7 @@ static int sort_int_desc(const int* v1, const int* v2) {
 void test_array(void) {
 
     // Use default allocator
-    const size_t size = 10;
+    const size_t size = 1000;
     test_array_int(size, cxDefaultAllocator());
     test_array_str(size, cxDefaultAllocator());
     test_array_cxstr(size, cxDefaultAllocator());

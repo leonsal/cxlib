@@ -328,7 +328,7 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
         // Clear the old map nodes and buckets, but KEEP the entries.
         cx_hmap_name_(_free_internal_)(m, false, true);
         *m = new;
-        printf("RESIZED:%lu\n", m->nbuckets_);
+        //printf("RESIZED:%lu\n", m->nbuckets_);
     }
 
     // Creates a new entry and inserts it after specified parent
