@@ -332,7 +332,7 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
     }
 
     // Creates a new entry and inserts it after specified parent
-    cx_hmap_name_(_entry)* cx_hmap_name_(_add_entry_)(cx_hmap_name* m, cx_hmap_name_(_entry)* par, cx_hmap_key* key) {
+    cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_add_entry_)(cx_hmap_name* m, cx_hmap_name_(_entry)* par, cx_hmap_key* key) {
 
         cx_hmap_name_(_entry)* new = cx_hmap_alloc_(m, sizeof(cx_hmap_name_(_entry)));
         memcpy(&new->key, key, sizeof(cx_hmap_key));
@@ -343,7 +343,7 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
     }
 
     // Map operations
-    cx_hmap_name_(_entry)* cx_hmap_name_(_oper_)(cx_hmap_name* m, int op, cx_hmap_key* key) {
+    cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_oper_)(cx_hmap_name* m, int op, cx_hmap_key* key) {
 
         if (m->buckets_ == NULL) {
             if (op == cx_hmap_op_get_) {
@@ -594,6 +594,7 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
 }
 
 #ifdef cx_hmap_stats
+    #include <stdio.h>
 
     typedef struct cx_hmap_name_(_stats) {
         size_t nbuckets;        // Number of buckets
