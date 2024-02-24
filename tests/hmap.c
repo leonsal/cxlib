@@ -15,8 +15,8 @@
 #define cx_hmap_name hmap1
 #define cx_hmap_key  char*
 #define cx_hmap_val  cxstr
-#define cx_hmap_cmp_key(k1,k2,s)    strcmp(*(char**)k1,*(char**)k2)
-#define cx_hmap_hash_key(k,s)       cx_hmap_hash_fnv1a32(*((char**)k), strlen(*(char**)k))
+#define cx_hmap_cmp_key(k1,k2,s)    cx_hmap_cmp_key_str(k1,k2)
+#define cx_hmap_hash_key(k,s)       cx_hmap_hash_key_str(k,s)
 #define cx_hmap_free_key(k)         free(*k)
 #define cx_hmap_free_val(k)         cxstr_free(k)
 #define cx_hmap_instance_allocator

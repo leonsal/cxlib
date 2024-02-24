@@ -294,11 +294,13 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
     #define cx_hmap_op_get_ (1)
     #define cx_hmap_op_del_ (2)
 
+    size_t cx_hmap_next_prime(size_t n);
+
     // Declaration of function to hash keys
     uint32_t cx_hmap_hash_fnv1a32(const void *buf, size_t len);
 
     // Declaration of function to compare keys of C strings pointers.
-    int cx_hmap_cmp_key_str(const void* k1, const void* k2, size_t size);
+    int cx_hmap_cmp_key_str(const void* k1, const void* k2);
 
     // Declaration of function to hash keys of C strings pointers.
     size_t cx_hmap_hash_key_str(void* key, size_t keySize);
