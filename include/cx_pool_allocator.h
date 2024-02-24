@@ -41,7 +41,7 @@ void cx_pool_allocator_clear(CxPoolAllocator* a);
 void cx_pool_allocator_free(CxPoolAllocator* a);
 
 // Returns allocator interface 
-const CxAllocator* cx_pool_allocator_iface(CxPoolAllocator* a);
+const CxAllocator* cx_pool_allocator_iface(const CxPoolAllocator* a);
 
 // Returns allocator statistics
 CxPoolAllocatorStats cx_pool_allocator_stats(CxPoolAllocator* a);

@@ -187,7 +187,7 @@ void cx_pool_allocator_free(CxPoolAllocator* a) {
 
 static void cxAllocPoolDummyFree(void* ctx, void* p, size_t n) {}
 
-const CxAllocator* cx_pool_allocator_iface(CxPoolAllocator* a) {
+const CxAllocator* cx_pool_allocator_iface(const CxPoolAllocator* a) {
 
     return &a->iface;
 }
