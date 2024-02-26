@@ -316,7 +316,7 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
         }
 
         cx_hmap_name new = *m; // copy eventual allocator
-        new.nbuckets_ = m->nbuckets_ * 2;
+        new.nbuckets_ = cx_hmap_next_prime(m->nbuckets_ + 1);
         new.count_ = 0;
         new.buckets_ = NULL;
         cx_hmap_name_(_iter) iter = {0};
@@ -480,7 +480,7 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
     cx_hmap_api_ cx_hmap_name cx_hmap_name_(_init)(const CxAllocator* alloc, size_t nbuckets) {
         return (cx_hmap_name){
             .alloc_ = alloc == NULL ? cxDefaultAllocator() : alloc,
-            .nbuckets_ = nbuckets == 0 ? cx_hmap_def_nbuckets : nbuckets,
+            .nbuckets_ = cx_hmap_next_prime(nbuckets),
         };
     }
 
@@ -488,7 +488,7 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
 
     cx_hmap_api_ cx_hmap_name cx_hmap_name_(_init)(size_t nbuckets) {
         return (cx_hmap_name){
-            .nbuckets_ = nbuckets == 0 ? cx_hmap_def_nbuckets : nbuckets,
+            .nbuckets_ = cx_hmap_next_prime(nbuckets),
         };
     }
 
