@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include "util.h"
+#include "logger.h"
 
 typedef struct ARR_(_Entry){uint64_t key; uint64_t val;} ARR_(_Entry);
 #define cx_array_name ARR_()
@@ -14,6 +15,7 @@ typedef struct ARR_(_Entry){uint64_t key; uint64_t val;} ARR_(_Entry);
 
 void BENCH_(HMAP)(const CxAllocator* alloc, size_t elcount, size_t lookups) {
 
+    LOGI("%s: elcount:%zu lookups:%zu", __func__, elcount, lookups);
     // Creates array for comparison
     ARR_() a = ARR_(_init)(alloc);
 
@@ -75,10 +77,8 @@ void BENCH_(HMAP)(const CxAllocator* alloc, size_t elcount, size_t lookups) {
         a_sum += a_elapsed;
     }
 
-    printf("elcount: %zu\n", elcount);
-    printf("lookups: %zu\n", lookups);
-    printf("array low:%5zuns high:%6zuns avg:%5zuns found:%zu\n", a_low, a_high, a_sum/lookups, a_found);
-    printf("hmap  low:%5zuns high:%6zuns avg:%5zuns found:%zu\n", m_low, m_high, m_sum/lookups, m_found);
+    LOGI("\tarray low:%5zuns high:%6zuns avg:%5zuns found:%zu", a_low, a_high, a_sum/lookups, a_found);
+    LOGI("\thmap  low:%5zuns high:%6zuns avg:%5zuns found:%zu", m_low, m_high, m_sum/lookups, m_found);
 
     ARR_(_free)(&a);
     HMAP_(_free)(&m);

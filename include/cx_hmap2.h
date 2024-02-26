@@ -351,7 +351,7 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
         // Free original keeping ENTRIES.
         cx_hmap_free_(m, m->buckets_, m->nbuckets_ * sizeof(*m->buckets_));
         cx_hmap_free_(m, m->status_, m->nbuckets_ * sizeof(*m->status_));
-        printf("RESIZED:%lu/%lu/%lu\n", m->nbuckets_,m->count_,new.count_);
+        //printf("RESIZED:%lu/%lu/%lu\n", m->nbuckets_,m->count_,new.count_);
         *m = new;
     }
 

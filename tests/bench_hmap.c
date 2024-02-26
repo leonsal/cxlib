@@ -41,7 +41,7 @@
 
 void bench_hmap() {
 
-    const size_t elcount = 10000;
+    const size_t elcount = 1000;
     const size_t lookups = elcount * 10;
     bench_hmap1(cxDefaultAllocator(), elcount, lookups);
     bench_hmap2(cxDefaultAllocator(), elcount, lookups);
