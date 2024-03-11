@@ -18,6 +18,7 @@ set(SOURCES
     json_build.c
     json_parse.c
     bench_hmap.c
+    tpool.c
 )
 
 add_subdirectory(.. cxlib)
