@@ -522,7 +522,7 @@ cx_array_api_ void cx_array_name_(_sort)(cx_array_name* a, int (*f)(const cx_arr
 
 cx_array_api_ ssize_t cx_array_name_(_find)(cx_array_name* a, cx_array_type v) {
 
-    for (ssize_t i = 0; i < a->len_; i++) {
+    for (ssize_t i = 0; i < (ssize_t)a->len_; i++) {
         if (cx_array_cmp_el(&a->data[i], &v, sizeof(v)) == 0) {
             return i;
         }
