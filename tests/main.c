@@ -11,7 +11,7 @@
 #include "var.h"
 #include "json_build.h"
 #include "json_parse.h"
-
+#include "tpool.h"
 #include "bench_hmap.h"
 
 int main() {
@@ -24,11 +24,12 @@ int main() {
     cxStrTests();
     cxQueueTests();
     cx_list_tests();
-    // cx_timer_tests();
+    //// cx_timer_tests();
     cx_var_tests();
-    //json_build_tests();
+    ////json_build_tests();
     json_parse_tests();
-    bench_hmap();
+    //bench_hmap();
+    tpool_tests();
     LOGW("END");
 }
 

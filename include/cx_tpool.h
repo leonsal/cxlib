@@ -23,7 +23,7 @@ size_t cx_tpool_work_len(CxThreadPool* tp);
 void cx_tpool_work_clear(CxThreadPool* tp);
 
 // Adds worker to the thread pool
-typedef void* (*CxThreadPoolWorker)(void*);
+typedef void (*CxThreadPoolWorker)(void*);
 int cx_tpool_run(CxThreadPool* tp, CxThreadPoolWorker worker, void* param);
 
 #endif
