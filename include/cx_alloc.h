@@ -1,6 +1,7 @@
 #ifndef CX_ALLOC_H
 #define CX_ALLOC_H
 #include <stddef.h>
+#include <string.h>
 
 // Types for allocator methods
 typedef struct CxAllocator CxAllocator;
@@ -25,16 +26,29 @@ const CxAllocator* cxDefaultAllocator();
 // Sets default allocator error function
 void cx_def_allocator_set_error_fn(CxAllocatorErrorFn fn, void *userdata);
 
+// Allocates memory using the specified allocator
+static inline void* cx_alloc_malloc(const CxAllocator* alloc, size_t size) {
+    return alloc->alloc(alloc->ctx, size);
+}
 
-// Utility macros for calling allocator functions
-#define cx_alloc_malloc(a,size)\
-    a->alloc(a->ctx,size)
+// Allocates memory using the specified allocator and fills the allocated area with zeros.
+static inline void* cx_alloc_mallocz(const CxAllocator* alloc, size_t size) {
+    void* p = alloc->alloc(alloc->ctx, size);
+    if (p) {
+        memset(p, 0, size);
+    }
+    return p;
+}
 
-#define cx_alloc_free(a,ptr,size)\
-    a->free(a->ctx,ptr,size)
+// Free memory using the specified allocator
+static inline void cx_alloc_free(const CxAllocator* alloc, void* ptr, size_t size) {
+    alloc->free(alloc->ctx, ptr, size);
+}
 
-#define cx_alloc_realloc(a,old_ptr,old_size,size)\
-    a->realloc(a->ctx,old_ptr,old_size,size)
+// Reallocates memory using the specified allocator
+static inline void* cx_alloc_realloc(const CxAllocator* alloc, void* old_ptr, size_t old_size, size_t size) {
+    return alloc->realloc(alloc->ctx, old_ptr, old_size, size);
+}
 
 #endif
 
