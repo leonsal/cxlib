@@ -285,19 +285,19 @@ cx_str_api_ void cx_str_name_(_insn)(cx_str_name* s, const char* src, size_t n, 
 cx_str_api_ void cx_str_name_(_ins)(cx_str_name* s, const char* src, size_t idx);
 cx_str_api_ void cx_str_name_(_inss)(cx_str_name* s, const cx_str_name* src, size_t idx);
 cx_str_api_ void cx_str_name_(_deln)(cx_str_name* s, size_t idx, size_t n);
-cx_str_api_ int  cx_str_name_(_cmpn)(cx_str_name* s, const char* src, size_t n);
-cx_str_api_ int  cx_str_name_(_cmp)(cx_str_name* s, const char* src);
-cx_str_api_ int  cx_str_name_(_cmps)(cx_str_name* s, const cx_str_name* src);
+cx_str_api_ int  cx_str_name_(_cmpn)(const cx_str_name* s, const char* src, size_t n);
+cx_str_api_ int  cx_str_name_(_cmp)(const cx_str_name* s, const char* src);
+cx_str_api_ int  cx_str_name_(_cmps)(const cx_str_name* s, const cx_str_name* src);
 cx_str_api_ int  cx_str_name_(_icmp)(cx_str_name* s, const char* src);
 cx_str_api_ int  cx_str_name_(_icmps)(cx_str_name* s, const cx_str_name* src);
 cx_str_api_ void cx_str_name_(_vprintf)(cx_str_name* s, const char *fmt, va_list ap);
 cx_str_api_ void cx_str_name_(_printf)(cx_str_name* s, const char *fmt, ...);
-cx_str_api_ ptrdiff_t cx_str_name_(_findn)(cx_str_name* s, size_t start, const char *src, size_t n);
-cx_str_api_ ptrdiff_t cx_str_name_(_find)(cx_str_name* s, const char *src);
-cx_str_api_ ptrdiff_t cx_str_name_(_finds)(cx_str_name* s, const cx_str_name* src);
-cx_str_api_ ptrdiff_t cx_str_name_(_findcp)(cx_str_name* s, int32_t cp);
-cx_str_api_ ptrdiff_t cx_str_name_(_ifind)(cx_str_name* s, const char *src);
-cx_str_api_ ptrdiff_t cx_str_name_(_ifinds)(cx_str_name* s, const cx_str_name* src);
+cx_str_api_ ptrdiff_t cx_str_name_(_findn)(const cx_str_name* s, size_t start, const char *src, size_t n);
+cx_str_api_ ptrdiff_t cx_str_name_(_find)(const cx_str_name* s, const char *src);
+cx_str_api_ ptrdiff_t cx_str_name_(_finds)(const cx_str_name* s, const cx_str_name* src);
+cx_str_api_ ptrdiff_t cx_str_name_(_findcp)(const cx_str_name* s, int32_t cp);
+cx_str_api_ ptrdiff_t cx_str_name_(_ifind)(const cx_str_name* s, const char *src);
+cx_str_api_ ptrdiff_t cx_str_name_(_ifinds)(const cx_str_name* s, const cx_str_name* src);
 cx_str_api_ void cx_str_name_(_substr)(const cx_str_name* s, size_t start, size_t len, cx_str_name* dst);
 cx_str_api_ void cx_str_name_(_replace)(cx_str_name* s, const char* old, const char* new, size_t count);
 cx_str_api_ bool cx_str_name_(_validu8)(const cx_str_name* s);
@@ -555,7 +555,7 @@ cx_str_api_ void cx_str_name_(_deln)(cx_str_name* s, size_t idx, size_t n) {
     }
 }
 
-cx_str_api_ int  cx_str_name_(_cmpn)(cx_str_name* s, const char* src, size_t n) {
+cx_str_api_ int  cx_str_name_(_cmpn)(const cx_str_name* s, const char* src, size_t n) {
 
     if (s->len_ > n) {
         return 1;
@@ -566,12 +566,12 @@ cx_str_api_ int  cx_str_name_(_cmpn)(cx_str_name* s, const char* src, size_t n) 
     return memcmp(s->data, src, n);
 }
 
-cx_str_api_ int cx_str_name_(_cmp)(cx_str_name* s, const char* src) {
+cx_str_api_ int cx_str_name_(_cmp)(const cx_str_name* s, const char* src) {
 
     return cx_str_name_(_cmpn)(s, src, strlen(src));
 }
 
-cx_str_api_ int cx_str_name_(_cmps)(cx_str_name* s, const cx_str_name* src) {
+cx_str_api_ int cx_str_name_(_cmps)(const cx_str_name* s, const cx_str_name* src) {
 
     return cx_str_name_(_cmpn)(s, src->data, src->len_);
 }
@@ -653,7 +653,7 @@ cx_str_api_ void cx_str_name_(_printf)(cx_str_name* s, const char *fmt, ...) {
     va_end(ap);
 }
 
-cx_str_api_ ptrdiff_t cx_str_name_(_findn)(cx_str_name* s, size_t start, const char *src, size_t n) {
+cx_str_api_ ptrdiff_t cx_str_name_(_findn)(const cx_str_name* s, size_t start, const char *src, size_t n) {
 
     if (start >= s->len_) {
         return -1;
@@ -670,17 +670,17 @@ cx_str_api_ ptrdiff_t cx_str_name_(_findn)(cx_str_name* s, size_t start, const c
     return -1;
 }
 
-cx_str_api_ ptrdiff_t cx_str_name_(_find)(cx_str_name* s, const char *src) {
+cx_str_api_ ptrdiff_t cx_str_name_(_find)(const cx_str_name* s, const char *src) {
 
     return cx_str_name_(_findn)(s, 0, src, strlen(src));
 }
 
-cx_str_api_ ptrdiff_t cx_str_name_(_finds)(cx_str_name* s, const cx_str_name* src) {
+cx_str_api_ ptrdiff_t cx_str_name_(_finds)(const cx_str_name* s, const cx_str_name* src) {
 
     return cx_str_name_(_findn)(s, 0, src->data, src->len_);
 }
 
-cx_str_api_ ptrdiff_t cx_str_name_(_findcp)(cx_str_name* s, int32_t cp) {
+cx_str_api_ ptrdiff_t cx_str_name_(_findcp)(const cx_str_name* s, int32_t cp) {
 
     char* n = utf8chr(s->data, cp);
     if (n == NULL) {
@@ -689,7 +689,7 @@ cx_str_api_ ptrdiff_t cx_str_name_(_findcp)(cx_str_name* s, int32_t cp) {
     return n - s->data;
 }
 
-cx_str_api_ ptrdiff_t cx_str_name_(_ifind)(cx_str_name* s, const char *src) {
+cx_str_api_ ptrdiff_t cx_str_name_(_ifind)(const cx_str_name* s, const char *src) {
 
     char *n = utf8casestr(s->data, src);
     if (n == NULL) {
@@ -698,7 +698,7 @@ cx_str_api_ ptrdiff_t cx_str_name_(_ifind)(cx_str_name* s, const char *src) {
     return n - s->data;
 }
 
-cx_str_api_ ptrdiff_t cx_str_name_(_ifinds)(cx_str_name* s, const cx_str_name* src) {
+cx_str_api_ ptrdiff_t cx_str_name_(_ifinds)(const cx_str_name* s, const cx_str_name* src) {
 
     if (s->len_ < src->len_) {
         return -1;
