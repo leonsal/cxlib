@@ -42,7 +42,7 @@ int cx_json_parse(const char* data, size_t len, CxVar* var, const CxJsonParseCfg
         cfg = *pcfg;
     }
     if (cfg.alloc == NULL) {
-        cfg.alloc = cxDefaultAllocator();
+        cfg.alloc = cx_def_allocator();
     }
     if (cfg.replacer_fn == NULL) {
         cfg.replacer_fn = cx_json_parse_replacer;

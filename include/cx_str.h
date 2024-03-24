@@ -219,7 +219,7 @@ Return 0 if equal, -1 or 1 (as memcmp())
 
 // Default array allocator
 #ifndef cx_str_allocator
-    #define cx_str_allocator cxDefaultAllocator()
+    #define cx_str_allocator cx_def_allocator()
 #endif
 
 // Use custom instance allocator

@@ -50,7 +50,7 @@ static const CxAllocator CxDefaultAllocator = {
 };
 
 // Returns default allocator interface
-const CxAllocator* cxDefaultAllocator() {
+const CxAllocator* cx_def_allocator() {
     return &CxDefaultAllocator;
 }
 

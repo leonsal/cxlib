@@ -21,7 +21,7 @@ typedef struct CxAllocator {
 typedef void (*CxAllocatorErrorFn)(const char* emsg, void *userdata);
 
 // Returns the default allocator (malloc/free)
-const CxAllocator* cxDefaultAllocator();
+const CxAllocator* cx_def_allocator();
 
 // Sets default allocator error function
 void cx_def_allocator_set_error_fn(CxAllocatorErrorFn fn, void *userdata);

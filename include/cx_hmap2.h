@@ -19,7 +19,7 @@ Example
 int main() {
 
     // Optionally sets this map type allocator:
-    //map_allocator = cxDefaultAllocator();
+    //map_allocator = cx_def_allocator();
 
     // Initialize map with default number of buckets
     map m1 = map_init(0);
@@ -231,7 +231,7 @@ Returns statistics for the specified map (if enabled)
 
 // Default allocator
 #ifndef cx_hmap_allocator
-    #define cx_hmap_allocator cxDefaultAllocator()
+    #define cx_hmap_allocator cx_def_allocator()
 #endif
 
 // Use custom instance allocator
@@ -457,7 +457,7 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
 
     cx_hmap_api_ cx_hmap_name cx_hmap_name_(_init)(const CxAllocator* alloc, size_t nbuckets) {
         return (cx_hmap_name){
-            .alloc_ = alloc == NULL ? cxDefaultAllocator() : alloc,
+            .alloc_ = alloc == NULL ? cx_def_allocator() : alloc,
             .nbuckets_ = nbuckets == 0 ? cx_hmap_def_nbuckets : nbuckets,
         };
     }

@@ -32,7 +32,7 @@ void test_hmap1(size_t size, size_t nbuckets, const CxAllocator* alloc);
 
 void test_hmap(void) {
 
-    test_hmap1(100, 50, cxDefaultAllocator());
+    test_hmap1(100, 50, cx_def_allocator());
 }
 
 

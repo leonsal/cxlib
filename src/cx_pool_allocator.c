@@ -43,7 +43,7 @@ static inline uintptr_t alignForward(uintptr_t ptr, size_t align);
 CxPoolAllocator* cx_pool_allocator_create(size_t blockSize, const CxAllocator* alloc) {
 
     if (alloc == NULL) {
-        alloc = cxDefaultAllocator();
+        alloc = cx_def_allocator();
     }
     CxPoolAllocator* a = cx_alloc_malloc(alloc, sizeof(CxPoolAllocator));
     a->alloc = alloc;

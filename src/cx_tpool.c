@@ -32,7 +32,7 @@ CxThreadPool* cx_tpool_new(const CxAllocator* alloc, size_t nthreads, size_t wsi
 
     // Allocates thread pool state
     if (alloc == NULL) {
-        alloc = cxDefaultAllocator();
+        alloc = cx_def_allocator();
     }
     CxThreadPool* tp = cx_alloc_malloc(alloc, sizeof(CxThreadPool));
     if (tp == NULL) {

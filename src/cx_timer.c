@@ -55,7 +55,7 @@ static bool cx_timer_del_task(CxTimer* tm, size_t task_id);
 CxTimer* cx_timer_create(const CxAllocator* alloc) {
 
     if (alloc == NULL) {
-        alloc = cxDefaultAllocator();
+        alloc = cx_def_allocator();
     }
     CxTimer* tm = cx_alloc_malloc(alloc, sizeof(CxTimer));
     if (tm == NULL) {

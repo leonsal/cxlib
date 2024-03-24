@@ -20,7 +20,7 @@
 void cxStrTests(void) {
 
     // Use default allocator
-    cxStrTest(cxDefaultAllocator()); 
+    cxStrTest(cx_def_allocator()); 
 
     // Use pool allocator
     CxPoolAllocator* ba = cx_pool_allocator_create(4*1024, NULL);

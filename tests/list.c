@@ -19,7 +19,7 @@
 void cx_list_tests(void) {
 
     // Use default 'malloc/free' allocator
-    cx_list_test(cxDefaultAllocator());
+    cx_list_test(cx_def_allocator());
 
     // Use pool allocator
     CxPoolAllocator* pa = cx_pool_allocator_create(4*1024, NULL);

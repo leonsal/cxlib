@@ -179,7 +179,7 @@ The pointer to the current element is returned.
 
 // Default list allocator
 #ifndef cx_list_allocator
-    #define cx_list_allocator cxDefaultAllocator()
+    #define cx_list_allocator cx_def_allocator()
 #endif
 
 // Use custom instance allocator
@@ -275,7 +275,7 @@ cx_list_api_ void cx_list_name_(_del_el_)(cx_list_name* l, cx_list_name_(_el)* e
 #ifdef cx_list_instance_allocator
     cx_list_api_ cx_list_name cx_list_name_(_init)(const CxAllocator* alloc) {
         return (cx_list_name) {
-            .alloc = alloc == NULL ? cxDefaultAllocator() : alloc,
+            .alloc = alloc == NULL ? cx_def_allocator() : alloc,
         };
     }
 #else

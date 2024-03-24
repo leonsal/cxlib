@@ -21,7 +21,7 @@ static int cxstring_write(cxstr* str, void* data, size_t len);
 void json_build_tests(void) {
 
     // Use default 'malloc/free' allocator
-    json_build_test(cxDefaultAllocator());
+    json_build_test(cx_def_allocator());
 
     // Use pool allocator
     CxPoolAllocator* pa = cx_pool_allocator_create(4*1024, NULL);

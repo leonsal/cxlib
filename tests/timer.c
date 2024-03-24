@@ -37,7 +37,7 @@ static void periodic_func(CxTimer* tm, void* arg);
 void cx_timer_tests() {
 
     // Tests with default allocator
-    cx_timer_test(cxDefaultAllocator());
+    cx_timer_test(cx_def_allocator());
 
     // Tests with pool allocator
     CxPoolAllocator* pa = cx_pool_allocator_create(4*1024, NULL);

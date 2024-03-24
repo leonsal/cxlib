@@ -206,7 +206,7 @@ Finds element in the array returning its index or -1 if not found.
 
 // Default array allocator
 #ifndef cx_array_allocator
-    #define cx_array_allocator cxDefaultAllocator()
+    #define cx_array_allocator cx_def_allocator()
 #endif
 
 // Default free element function
@@ -321,7 +321,7 @@ static void cx_array_name_(_grow_)(cx_array_name* a, size_t add_len, size_t min_
     cx_array_api_ cx_array_name cx_array_name_(_init)(const CxAllocator* alloc) {
 
         return (cx_array_name) {
-            .alloc_ = alloc == NULL ? cxDefaultAllocator() : alloc,
+            .alloc_ = alloc == NULL ? cx_def_allocator() : alloc,
         };
     }
 #else

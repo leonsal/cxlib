@@ -56,9 +56,9 @@ void test_array(void) {
 
     // Use default allocator
     const size_t size = 1000;
-    test_array_int(size, cxDefaultAllocator());
-    test_array_str(size, cxDefaultAllocator());
-    test_array_cxstr(size, cxDefaultAllocator());
+    test_array_int(size, cx_def_allocator());
+    test_array_str(size, cx_def_allocator());
+    test_array_cxstr(size, cx_def_allocator());
 
     // Use pool allocator
     CxPoolAllocator* ba = cx_pool_allocator_create(4*1024, NULL);
