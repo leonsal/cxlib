@@ -3,7 +3,7 @@
 
 static int cx_writer_file_write(void* ctx, const void* data, size_t len) {
 
-    size_t res = fwrite(data, len, 1, ctx);
+    size_t res = fwrite(data, 1, len, ctx);
     if (res == len) {
         return (int)res;
     }
