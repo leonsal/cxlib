@@ -16,6 +16,7 @@ set(SOURCES
     src/cx_json_build.c
     src/cx_json_parse.c
     src/cx_tpool.c
+    src/cx_writer.c
 )
 
 add_library(cxlib ${SOURCES})

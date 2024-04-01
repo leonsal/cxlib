@@ -3,6 +3,7 @@
 
 #include <stddef.h>
 #include <string.h>
+#include <stdio.h>
 
 // Type for write function
 // Returns number of bytes written or negative error
@@ -21,5 +22,10 @@ static inline int cx_writer_write(const CxWriter* w, const void* data, size_t le
 static inline int cx_writer_write_str(const CxWriter* w, const char* data) {
     return w->write(w->ctx, data, strlen(data));
 }
+
+// Returns writer for file
+CxWriter cx_writer_file(FILE* f);
+
+
 #endif
 
