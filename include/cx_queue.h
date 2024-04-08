@@ -201,7 +201,7 @@ Resets the queue, enabling the reuse of a previously closed queue.
 
 // Default allocator
 #ifndef cx_queue_allocator
-    #define cx_queue_allocator cxDefaultAllocator()
+    #define cx_queue_allocator cx_def_allocator()
 #endif
 
 // Use custom instance allocator
