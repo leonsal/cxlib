@@ -40,9 +40,6 @@ Define the name of the queue type (mandatory):
 Define the type of the queue elements (mandatory):
     #define cx_queue_type <name>
 
-Define optional queue maximum capacity (default = 32):
-    #define cx_queue_cap <8|16|32>
-
 Define optional custom allocator pointer or function which return pointer to allocator.
 Uses default allocator if not defined.
 This allocator will be used for all instances of this queue type.
@@ -166,28 +163,6 @@ Resets the queue, enabling the reuse of a previously closed queue.
 #define cx_queue_concat1_(a, b) cx_queue_concat2_(a, b)
 #define cx_queue_name_(name) cx_queue_concat1_(cx_queue_name, name)
 
-// queue maximum capacity in number of bits
-#define cx_queue_cap8_     8
-#define cx_queue_cap16_    16
-#define cx_queue_cap32_    32
-
-// Default capacity
-#ifndef cx_queue_cap
-    #define cx_queue_cap  cx_queue_cap32_
-#endif
-#if cx_queue_cap == cx_queue_cap8_
-    #define cx_queue_cap_type_ uint8_t
-    #define cx_queue_max_cap_  (UINT8_MAX)
-#elif cx_queue_cap == cx_queue_cap16_
-    #define cx_queue_cap_type_ uint16_t
-    #define cx_queue_max_cap_  (UINT16_MAX)
-#elif cx_queue_cap == cx_queue_cap32_
-    #define cx_queue_cap_type_ uint32_t
-    #define cx_queue_max_cap_  (UINT32_MAX)
-#else
-    #error "invalid cx queue capacity bits"
-#endif
-
 // API attributes
 #if defined(cx_queue_static) && defined(cx_queue_inline)
     #define cx_queue_api_ static inline
@@ -230,10 +205,10 @@ typedef struct cx_queue_name {
     pthread_cond_t      hasData_;   // Cond var signaled when data is available
     pthread_cond_t      hasSpace_;  // Cond var signaled when space is available
     bool                closed;     // Queue closed flag
-    cx_queue_cap_type_  cap_;       // capacity in number of elements
-    cx_queue_cap_type_  len_;       // current length in number of elements
-    cx_queue_cap_type_  in_;        // input index
-    cx_queue_cap_type_  out_;       // output index
+    size_t              cap_;       // capacity in number of elements
+    size_t              len_;       // current length in number of elements
+    size_t              in_;        // input index
+    size_t              out_;       // output index
     cx_queue_type*      data_;      // pointer to queue data
 } cx_queue_name;
 
@@ -243,7 +218,7 @@ typedef struct cx_queue_name {
     cx_queue_api_ cx_queue_name cx_queue_name_(_init)(size_t cap);
 #endif
 cx_queue_api_ void cx_queue_name_(_free)(cx_queue_name* q);
-cx_queue_api_ size_t cx_queue_name_(_cap)(cx_queue_name* q);
+cx_queue_api_ size_t cx_queue_name_(_cap)(const cx_queue_name* q);
 cx_queue_api_ size_t cx_queue_name_(_len)(cx_queue_name* q);
 cx_queue_api_ bool cx_queue_name_(_empty)(cx_queue_name* q);
 cx_queue_api_ int cx_queue_name_(_putn)(cx_queue_name* q, const cx_queue_type* src, size_t n);
@@ -308,7 +283,7 @@ cx_queue_api_ void cx_queue_name_(_free)(cx_queue_name* q) {
     q->data_ = NULL;
 }
 
-cx_queue_api_ size_t cx_queue_name_(_cap)(cx_queue_name* q) {
+cx_queue_api_ size_t cx_queue_name_(_cap)(const cx_queue_name* q) {
 
     return q->cap_;
 }
@@ -350,7 +325,7 @@ cx_queue_api_ int cx_queue_name_(_putn)(cx_queue_name* q, const cx_queue_type* s
     }
 
     // Copy data to queue
-    size_t space = q->cap_ - q->in_;
+    const size_t space = q->cap_ - q->in_;
     if (n <= space) {
         memcpy(&q->data_[q->in_], src, n* sizeof(*q->data_));
     } else {
@@ -579,12 +554,6 @@ cx_queue_api_ int cx_queue_name_(_reset)(cx_queue_name* q) {
 #undef cx_queue_concat2_
 #undef cx_queue_concat1_
 #undef cx_queue_name_
-#undef cx_queue_cap8_
-#undef cx_queue_cap16_
-#undef cx_queue_cap32_
-#undef cx_queue_cap64_
-#undef cx_queue_cap_type_
-#undef cx_queue_max_cap_
 #undef cx_queue_api_
 #undef cx_queue_alloc_field_
 #undef cx_queue_alloc_
