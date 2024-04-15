@@ -327,7 +327,7 @@ cx_queue_api_ int cx_queue_name_(_putn)(cx_queue_name* q, const cx_queue_type* s
     // Copy data to queue
     const size_t space = q->cap_ - q->in_;
     if (n <= space) {
-        memcpy(&q->data_[q->in_], src, n* sizeof(*q->data_));
+        memcpy(&q->data_[q->in_], src, n * sizeof(*q->data_));
     } else {
         memcpy(&q->data_[q->in_], src, space * sizeof(*q->data_));
         memcpy(q->data_, src+space, (n-space) * sizeof(*q->data_));
