@@ -41,8 +41,7 @@ void tpool_test(const CxAllocator* alloc, size_t nthreads, size_t nworks) {
     tp = cx_tpool_new(alloc, nthreads, nworks);
     Work work = {};
     for (size_t i = 0; i < nworks; i++) {
-        int res = cx_tpool_run(tp, tpool_worker, &work);
-        assert(res == 0);
+        CHKZ(cx_tpool_run(tp, tpool_worker, &work));
     }
     cx_tpool_del(tp);
     CHK(work.counter == nworks);
