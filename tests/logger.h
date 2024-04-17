@@ -10,7 +10,7 @@ extern logger default_logger;
 #define LOG_INIT()\
     default_logger = logger_init();\
     logger_set_flags(&default_logger, CX_LOG_FLAG_TIME|CX_LOG_FLAG_US|CX_LOG_FLAG_COLOR);\
-    logger_add_handler(&default_logger, logger_console_handler, NULL, CX_LOG_DEBUG)
+    logger_add_handler(&default_logger, logger_console_handler, NULL)
 
 #define LOGD(...) logger_deb(&default_logger, __VA_ARGS__)
 #define LOGI(...) logger_info(&default_logger, __VA_ARGS__)

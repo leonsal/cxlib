@@ -1,3 +1,4 @@
+#include <ctype.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -103,7 +104,6 @@ typedef void (*cx_log_name_(_handler))(cx_log_name* l, CxLogEvent *ev);
 typedef struct cx_log_name_(_handler_info) {
     cx_log_name_(_handler) hfunc;
     void*           hdata;
-    CxLogLevel      level;
 } cx_log_name_(_handler_info);
 
 typedef struct cx_log_name {
@@ -116,12 +116,15 @@ typedef struct cx_log_name {
 
 cx_log_api_ cx_log_name cx_log_name_(_init)();
 cx_log_api_ void cx_log_name_(_free)(cx_log_name* l);
-cx_log_api_ void cx_log_name_(_set_level)(cx_log_name* l, CxLogLevel level);
+cx_log_api_ CxLogLevel cx_log_name_(_get_level)(cx_log_name* l);
+cx_log_api_ int cx_log_name_(_set_level)(cx_log_name* l, CxLogLevel level);
+cx_log_api_ const char* cx_log_name_(_get_level_str)(cx_log_name* l);
+cx_log_api_ int cx_log_name_(_set_level_str)(cx_log_name* l, const char* lstr);
 cx_log_api_ void cx_log_name_(_set_flags)(cx_log_name* l, CxLogFlag flags);
 cx_log_api_ void cx_log_name_(_enable)(cx_log_name* l, bool enable); 
 cx_log_api_ CxLogFlag cx_log_name_(_flags)(const cx_log_name* l);
 cx_log_api_ void cx_log_name_(_emit)(cx_log_name* l, CxLogLevel level, const char *fmt, va_list ap);
-cx_log_api_ int cx_log_name_(_add_handler)(cx_log_name* l, cx_log_name_(_handler) h, void* data, CxLogLevel level);
+cx_log_api_ int cx_log_name_(_add_handler)(cx_log_name* l, cx_log_name_(_handler) h, void* data);
 cx_log_api_ int cx_log_name_(_del_handler)(cx_log_name* l, cx_log_name_(_handler) h);
 cx_log_api_ void cx_log_name_(_console_handler)(cx_log_name* l, CxLogEvent *ev);
 cx_log_api_ void cx_log_name_(_file_handler)(cx_log_name* l, CxLogEvent *ev);
@@ -136,7 +139,7 @@ cx_log_api_ void cx_log_name_(_fatal)(cx_log_name* l, const char* fmt, ...) __at
 // Implementation
 //
 #ifdef cx_log_implement
-    const char* cx_log_name_(_level_strings)[] = {
+    static const char* cx_log_name_(_level_strings)[] = {
         "DEBUG", "INFO", "WARN", "ERROR", "FATAL",
     };
 
@@ -158,8 +161,40 @@ cx_log_api_ void cx_log_name_(_fatal)(cx_log_name* l, const char* fmt, ...) __at
 #endif
     }
 
-    cx_log_api_ void cx_log_name_(_set_level)(cx_log_name* l, CxLogLevel level) {
+    cx_log_api_ CxLogLevel cx_log_name_(_get_level)(cx_log_name* l) {
+        return l->level_;
+    }
+
+    cx_log_api_ int cx_log_name_(_set_level)(cx_log_name* l, CxLogLevel level) {
+        if (level > CX_LOG_FATAL) {
+            return 1;
+        }
         l->level_ = level;
+        return 0;
+    }
+
+    cx_log_api_ const char* cx_log_name_(_get_level_str)(cx_log_name* l) {
+        return cx_log_name_(_level_strings)[l->level_];
+    }
+
+    cx_log_api_ int cx_log_name_(_set_level_str)(cx_log_name* l, const char* lstr) {
+        char upper[32];
+        const size_t len = strlen(lstr);
+        if (len >= sizeof(upper)) {
+            return 1;
+        }
+        for (size_t i = 0; i < len; i++) {
+            upper[i] = toupper(lstr[i]);
+        }
+        upper[len] = 0;
+        const size_t lcount = sizeof(cx_log_name_(_level_strings))/sizeof(const char*);
+        for (size_t i = 0; i < lcount; i++) {
+            if (strcmp(cx_log_name_(_level_strings)[i], upper) == 0) {
+                l->level_ = i;
+                return 0;
+            }
+        }
+        return 1;
     }
 
     cx_log_api_ void cx_log_name_(_set_flags)(cx_log_name* l, CxLogFlag flags) {
@@ -177,6 +212,10 @@ cx_log_api_ void cx_log_name_(_fatal)(cx_log_name* l, const char* fmt, ...) __at
     cx_log_api_ void cx_log_name_(_emit)(cx_log_name* l, CxLogLevel level, const char* fmt, va_list ap) {
 
         if (l->disabled_) {
+            return;
+        }
+
+        if (level < l->level_) {
             return;
         }
 
@@ -219,12 +258,10 @@ cx_log_api_ void cx_log_name_(_fatal)(cx_log_name* l, const char* fmt, ...) __at
         // Call installed handlers
         for (size_t i = 0; i < cx_log_max_handlers && l->handlers_[i].hfunc; i++) {
             cx_log_name_(_handler_info)* hi = &l->handlers_[i];
-            if (level >= hi->level) {
-                va_copy(ev.ap,ap);
-                ev.hdata = hi->hdata;
-                hi->hfunc(l, &ev);
-                va_end(ev.ap);
-            }
+            va_copy(ev.ap,ap);
+            ev.hdata = hi->hdata;
+            hi->hfunc(l, &ev);
+            va_end(ev.ap);
         }
         cx_log_unlock_(l);
 
@@ -233,11 +270,11 @@ cx_log_api_ void cx_log_name_(_fatal)(cx_log_name* l, const char* fmt, ...) __at
         }
     }
 
-    cx_log_api_ int cx_log_name_(_add_handler)(cx_log_name* l, cx_log_name_(_handler) h, void* data, CxLogLevel level) {
+    cx_log_api_ int cx_log_name_(_add_handler)(cx_log_name* l, cx_log_name_(_handler) h, void* data) {
 
         for (size_t i = 0; i < cx_log_max_handlers; i++) {
             if (!l->handlers_[i].hfunc) {
-                l->handlers_[i] = (cx_log_name_(_handler_info)){h, data, level};
+                l->handlers_[i] = (cx_log_name_(_handler_info)){h, data};
                 return i;
             }
         }
