@@ -84,7 +84,7 @@ CxVar* cx_var_new(const CxAllocator* alloc) {
     const CxAllocator* al = alloc != NULL ? alloc : cx_def_allocator();
     CxVar* var = cx_alloc_malloc(al, sizeof(CxVar));
     *var = (CxVar) {
-        .alloc = alloc,
+        .alloc = al,
         .type = CxVarUndef
     };
     return var;
