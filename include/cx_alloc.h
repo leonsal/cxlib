@@ -1,5 +1,6 @@
 #ifndef CX_ALLOC_H
 #define CX_ALLOC_H
+
 #include <stddef.h>
 #include <string.h>
 
@@ -26,28 +27,33 @@ const CxAllocator* cx_def_allocator();
 // Sets default allocator error function
 void cx_def_allocator_set_error_fn(CxAllocatorErrorFn fn, void *userdata);
 
-// Allocates memory using the specified allocator
+// Allocates memory using the specified allocator or NULL for default allocator
 static inline void* cx_alloc_malloc(const CxAllocator* alloc, size_t size) {
-    return alloc->alloc(alloc->ctx, size);
+    const CxAllocator* al = alloc ? alloc : cx_def_allocator();
+    return al->alloc(al->ctx, size);
 }
 
-// Allocates memory using the specified allocator and fills the allocated area with zeros.
+// Allocates memory using the specified allocator or NULL for default allocator.
+// Fills allocated area with zeros.
 static inline void* cx_alloc_mallocz(const CxAllocator* alloc, size_t size) {
-    void* p = alloc->alloc(alloc->ctx, size);
+    const CxAllocator* al = alloc ? alloc : cx_def_allocator();
+    void* p = al->alloc(al->ctx, size);
     if (p) {
         memset(p, 0, size);
     }
     return p;
 }
 
-// Free memory using the specified allocator
+// Free memory using the specified allocator or NULL for default allocator
 static inline void cx_alloc_free(const CxAllocator* alloc, void* ptr, size_t size) {
-    alloc->free(alloc->ctx, ptr, size);
+    const CxAllocator* al = alloc ? alloc : cx_def_allocator();
+    al->free(al->ctx, ptr, size);
 }
 
-// Reallocates memory using the specified allocator
+// Reallocates memory using the specified allocator or NULL for default allocator
 static inline void* cx_alloc_realloc(const CxAllocator* alloc, void* old_ptr, size_t old_size, size_t size) {
-    return alloc->realloc(alloc->ctx, old_ptr, old_size, size);
+    const CxAllocator* al = alloc ? alloc : cx_def_allocator();
+    return al->realloc(al->ctx, old_ptr, old_size, size);
 }
 
 #endif
