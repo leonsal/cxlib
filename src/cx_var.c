@@ -182,7 +182,7 @@ CxVar* cx_var_set_map(CxVar* var) {
     return var;
 }
 
-CxVar* cx_var_set_buf(CxVar* var, void* data, size_t len) {
+CxVar* cx_var_set_buf(CxVar* var, const void* data, size_t len) {
 
     if (var->type != CxVarBuf) {
         cx_var_free_cont(var);
@@ -192,7 +192,7 @@ CxVar* cx_var_set_buf(CxVar* var, void* data, size_t len) {
     }
     cxvar_buf_clear(var->v.buf);
     if (data != NULL) {
-        cxvar_buf_pushn(var->v.buf, data, len);
+        cxvar_buf_pushn(var->v.buf, (uint8_t*)data, len);
     } else {
         cxvar_buf_setlen(var->v.buf, len);
     }
@@ -590,6 +590,151 @@ CxVar* cx_var_get_map_buf(const CxVar* map, const char* key, const void** data, 
         return NULL;
     }
 }
+
+CxVar* cx_var_cpy_val(const CxVar* src, CxVar* dst) {
+
+    switch (src->type) {
+        case CxVarUndef:
+            cx_var_set_undef(dst);
+            break;
+        case CxVarNull:
+            cx_var_set_null(dst);
+            break;
+        case CxVarBool:
+            {
+                bool val;
+                cx_var_get_bool(src, &val);
+                cx_var_set_bool(dst, val);
+            }
+            break;
+        case CxVarInt:
+            {
+                int64_t val;
+                cx_var_get_int(src, &val);
+                cx_var_set_int(dst, val);
+            }
+            break;
+        case CxVarFloat:
+            {
+                double val;
+                cx_var_get_float(src, &val);
+                cx_var_set_float(dst, src->v.f64);
+            }
+            break;
+        case CxVarStr:
+            {
+                const char* pstr;
+                cx_var_get_str(src, &pstr);
+                cx_var_set_str(dst, pstr);
+            }
+            break;
+        case CxVarBuf:
+            {
+                const void* pdata;
+                size_t len;
+                cx_var_get_buf(src, &pdata, &len);
+                cx_var_set_buf(dst, pdata, len);
+            }
+            break;
+        // Copy array types
+        case CxVarArr: {
+            cx_var_set_arr(dst);
+            cx_var_cpy_arr(src, dst);
+            break;
+        }
+        // Copy map types
+        case CxVarMap: {
+            cx_var_set_map(dst);
+            cx_var_cpy_map(src, dst);
+            break;
+        }
+        default:
+            assert(0);
+            return NULL;
+    }
+    return dst;
+}
+
+
+CxVar* cx_var_cpy_arr(const CxVar* src, CxVar* dst) {
+
+    size_t len;
+    if (cx_var_get_arr_len(src, &len) == NULL) {
+        return NULL;
+    }
+    for (size_t i = 0; i < len; i++) {
+        CxVar* src_val = cx_var_get_arr_val(src, i);
+        switch (src_val->type) {
+            // Copy primitive types
+            case CxVarUndef:
+            case CxVarNull:
+            case CxVarBool:
+            case CxVarInt:
+            case CxVarFloat:
+            case CxVarStr:
+            case CxVarBuf:
+                cx_var_push_arr_val(dst, src_val);
+                break;
+            // Copy array types
+            case CxVarArr: {
+                CxVar* dst_arr = cx_var_push_arr_arr(dst);
+                cx_var_cpy_arr(src_val, dst_arr);
+                break;
+            }
+            // Copy map types
+            case CxVarMap: {
+                CxVar* dst_map = cx_var_push_arr_map(dst);
+                cx_var_cpy_map(src_val, dst_map);
+                break;
+            }
+            default:
+                assert(0);
+                break;
+        }
+    }
+    return dst;
+}
+
+CxVar* cx_var_cpy_map(const CxVar* src, CxVar* dst) {
+
+    size_t len;
+    if (cx_var_get_map_len(src, &len) == NULL) {
+        return NULL;
+    }
+    for (size_t i = 0; i < len; i++) {
+        const char* key = cx_var_get_map_key(src, i);
+        CxVar* src_val = cx_var_get_map_val(src, key);
+        switch (src_val->type) {
+            // Copy primitive types
+            case CxVarUndef:
+            case CxVarNull:
+            case CxVarBool:
+            case CxVarInt:
+            case CxVarFloat:
+            case CxVarStr:
+            case CxVarBuf:
+                cx_var_set_map_val(dst, key, src_val);
+                break;
+            // Copy array types
+            case CxVarArr: {
+                CxVar* dst_arr = cx_var_set_map_arr(dst, key);
+                cx_var_cpy_arr(src_val, dst_arr);
+                break;
+            }
+            // Copy map types
+            case CxVarMap: {
+                CxVar* dst_map = cx_var_set_map_map(dst, key);
+                cx_var_cpy_map(src_val, dst_map);
+                break;
+            }
+            default:
+                assert(0);
+                break;
+        }
+    }
+    return dst;
+}
+
 
 static void cx_var_free_cont(CxVar* var) {
 

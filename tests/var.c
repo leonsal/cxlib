@@ -4,6 +4,8 @@
 #include "cx_alloc.h"
 #include "cx_pool_allocator.h"
 #include "cx_var.h"
+#include "cx_writer.h"
+#include "cx_json_build.h"
 
 #include "util.h"
 #include "logger.h"
@@ -150,6 +152,50 @@ void cx_var_test(const CxAllocator* alloc) {
         CHK(cx_var_get_arr_buf(arr, 8, &vbuf, &len) && len == 3 && memcmp(vbuf, (uint8_t[]){0,1,2}, 3) == 0);
 
         cx_var_del(arr);
+    }
+
+    // Copy map
+    {
+        CxVar* src = cx_var_new(alloc);
+        CxVar* arr = cx_var_set_arr(src);
+        cx_var_push_arr_int(arr, 1);
+
+        CxVar* dst = cx_var_new(alloc);
+        cx_var_cpy_val(src, dst);
+
+        // // Builds source map
+        // CxVar* src = cx_var_new(alloc);
+        // cx_var_set_map(src);
+        // cx_var_set_map_null(src, "null");
+        // cx_var_set_map_bool(src, "bool", true);
+        // cx_var_set_map_int(src, "int", 1);
+        // cx_var_set_map_float(src, "float", 1.1);
+        // cx_var_set_map_str(src, "str", "str1");
+        //
+        // CxVar* m1 = cx_var_set_map_map(src, "map");
+        // cx_var_set_map_int(m1, "int", 2);
+        // cx_var_set_map_float(m1, "float", 2.1);
+        // CxVar* ma = cx_var_set_map_arr(m1, "arr");
+        // cx_var_push_arr_int(ma, 5);
+        // cx_var_push_arr_str(ma, "str5");
+        //
+        // CxVar* a1 = cx_var_set_map_arr(src, "arr");
+        // cx_var_push_arr_int(a1, 3);
+        // cx_var_push_arr_float(a1, 3.1);
+        // CxVar* a1m = cx_var_push_arr_map(a1);
+        // cx_var_set_map_int(a1m, "int", 4);
+        // cx_var_set_map_float(a1m, "float", 4.1);
+        //
+        // // Destination map
+        // CxVar* dst = cx_var_new(alloc);
+        // cx_var_set_map(dst);
+        // cx_var_cpy_map(src, dst);
+        // //cx_var_cpy_val(src, dst);
+        // // CxWriter writer = cx_writer_file(stdout);
+        // // cx_json_build(dst, NULL, &writer);
+
+        cx_var_del(src);
+        cx_var_del(dst);
     }
 
 }

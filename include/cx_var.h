@@ -40,7 +40,7 @@ CxVar* cx_var_set_strn(CxVar* var, const char* str, size_t len);
 CxVar* cx_var_set_str(CxVar* var, const char* str);
 CxVar* cx_var_set_arr(CxVar* var);
 CxVar* cx_var_set_map(CxVar* var);
-CxVar* cx_var_set_buf(CxVar* var, void* data, size_t len);
+CxVar* cx_var_set_buf(CxVar* var, const void* data, size_t len);
 
 // Push CxVar into the array
 CxVar* cx_var_push_arr_val(CxVar* arr, CxVar* val);
@@ -127,6 +127,16 @@ CxVar* cx_var_get_map_arr(const CxVar* map, const char* key);
 CxVar* cx_var_get_map_map(const CxVar* map, const char* key);
 CxVar* cx_var_get_map_buf(const CxVar* map, const char* key, const void** data, size_t* len);
 
+// Copy source value to destination value
+CxVar* cx_var_cpy_val(const CxVar* src, CxVar* dst);
+
+// Copy source array to destination array, returning destination
+// Returns NULL if  source or destination is not an array.
+CxVar* cx_var_cpy_arr(const CxVar* src, CxVar* dst);
+
+// Copy source map to destination map, returning destination
+// Returns NULL if source or destination is not a map
+CxVar* cx_var_cpy_map(const CxVar* src, CxVar* dst);
 
 #endif
 
