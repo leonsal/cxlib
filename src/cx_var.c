@@ -85,7 +85,7 @@ CxVar* cx_var_new(const CxAllocator* alloc) {
     CxVar* var = cx_alloc_malloc(al, sizeof(CxVar));
     *var = (CxVar) {
         .alloc = al,
-        .type = CxVarUndef
+        .type = CxVarNull
     };
     return var;
 }
@@ -99,13 +99,6 @@ void cx_var_del(CxVar* var) {
 
     cx_var_free_cont(var);
     cx_alloc_free(var->alloc, var, sizeof(CxVar));
-}
-
-CxVar* cx_var_set_undef(CxVar* var) {
-
-    cx_var_free_cont(var);
-    var->type = CxVarUndef;
-    return var;
 }
 
 CxVar* cx_var_set_null(CxVar* var) {
@@ -321,11 +314,6 @@ CxVar* cx_var_set_map_buf(CxVar* map, const char* key, void* data, size_t len) {
 CxVarType cx_var_get_type(const CxVar* var) {
 
     return var->type;
-}
-
-bool cx_var_get_undef(const CxVar* var) {
-
-    return var->type == CxVarUndef ? true : false;
 }
 
 bool cx_var_get_null(const CxVar* var) {
@@ -594,9 +582,6 @@ CxVar* cx_var_get_map_buf(const CxVar* map, const char* key, const void** data, 
 CxVar* cx_var_cpy_val(const CxVar* src, CxVar* dst) {
 
     switch (src->type) {
-        case CxVarUndef:
-            cx_var_set_undef(dst);
-            break;
         case CxVarNull:
             cx_var_set_null(dst);
             break;
@@ -671,7 +656,6 @@ CxVar* cx_var_cpy_val(const CxVar* src, CxVar* dst) {
 static void cx_var_free_cont(CxVar* var) {
 
     switch (var->type) {
-        case CxVarUndef:
         case CxVarNull:
         case CxVarBool:
         case CxVarInt:

@@ -7,7 +7,6 @@
 #include "cx_alloc.h"
 
 typedef enum {
-    CxVarUndef,
     CxVarNull,
     CxVarBool,
     CxVarInt,
@@ -31,7 +30,6 @@ void cx_var_del(CxVar* var);
 // Sets the new type and/or value of a previously created CxVar.
 // If memory was allocated by the previous value, it is freed.
 // Returns pointer to the CxVar.
-CxVar* cx_var_set_undef(CxVar* var);
 CxVar* cx_var_set_null(CxVar* var);
 CxVar* cx_var_set_bool(CxVar* var, bool v);
 CxVar* cx_var_set_int(CxVar* var, int64_t v);
@@ -79,7 +77,6 @@ CxVarType cx_var_get_type(const CxVar* var);
 
 // Get value of CxVar
 // Returns false if CxVar is not of the requested type
-bool cx_var_get_undef(const CxVar* var);
 bool cx_var_get_null(const CxVar* var);
 bool cx_var_get_bool(const CxVar* var, bool *pval);
 bool cx_var_get_int(const CxVar* var, int64_t* pval);

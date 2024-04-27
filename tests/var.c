@@ -30,9 +30,6 @@ void cx_var_test(const CxAllocator* alloc) {
     {
         CxVar* var = cx_var_new(alloc);
 
-        cx_var_set_undef(var);
-        CHK(cx_var_get_undef(var));
-
         cx_var_set_null(var);
         CHK(cx_var_get_null(var));
 
