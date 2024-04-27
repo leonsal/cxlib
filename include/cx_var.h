@@ -130,13 +130,5 @@ CxVar* cx_var_get_map_buf(const CxVar* map, const char* key, const void** data, 
 // Copy source value to destination value
 CxVar* cx_var_cpy_val(const CxVar* src, CxVar* dst);
 
-// Copy source array to destination array, returning destination
-// Returns NULL if  source or destination is not an array.
-CxVar* cx_var_cpy_arr(const CxVar* src, CxVar* dst);
-
-// Copy source map to destination map, returning destination
-// Returns NULL if source or destination is not a map
-CxVar* cx_var_cpy_map(const CxVar* src, CxVar* dst);
-
 #endif
 
