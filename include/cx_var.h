@@ -128,6 +128,7 @@ CxVar* cx_var_get_map_map(const CxVar* map, const char* key);
 CxVar* cx_var_get_map_buf(const CxVar* map, const char* key, const void** data, size_t* len);
 
 // Copy source value to destination value
+// Returns pointer to destination value
 CxVar* cx_var_cpy_val(const CxVar* src, CxVar* dst);
 
 #endif
