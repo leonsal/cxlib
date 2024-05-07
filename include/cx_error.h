@@ -13,7 +13,7 @@ typedef struct CxError {
 
 // Generates CxError with code and error message
 #define CXERROR(CODE,EMSG)\
-    (CxError){.code=code, .emsg=EMSG, .func=__func__}
+    (CxError){.code=CODE, .emsg=EMSG, .func=__func__}
 
 // if ERR is not OK, prints error and aborts
 #define CXERROR_CHK(ERR)\
