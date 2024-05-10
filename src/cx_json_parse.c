@@ -1,7 +1,9 @@
 #include <stdlib.h>
 
 #define json_int_t  int64_t
+#define JSON_TRACK_SOURCE
 #include "json.h"
+
 #include "cx_alloc.h"
 #include "cx_json_parse.h"
 
