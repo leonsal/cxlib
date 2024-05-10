@@ -15,6 +15,8 @@ set(SOURCES
     src/cx_var.c
     src/cx_json_build.c
     src/cx_json_parse.c
+    src/json.c
+    src/json.h
     src/cx_tpool.c
     src/cx_writer.c
 )
