@@ -32,6 +32,7 @@ void json_parse_test(const CxAllocator* alloc) {
 
     CxJsonParseCfg cfg = {
         .alloc = alloc,
+        .comments = true,
     };
 
     {
@@ -115,7 +116,7 @@ void json_parse_test(const CxAllocator* alloc) {
     }
 
     {
-        const char* json = "{\"k1\":null, \"k2\":false, \"k3\": -124, \"k4\": -0.8, \"k5\": \"strel\", \"k6\": {\"k61\": \"params\"}}";
+        const char* json = "{\"k1\":null, // COMMENT\n \"k2\":false, \"k3\": -124, \"k4\": -0.8, \"k5\": \"strel\", \"k6\": {\"k61\": \"params\"}}// COMMENT";
         CxVar* map = cx_var_new(alloc);
         CXERROR_CHK(cx_json_parse(json, strlen(json), map, &cfg));
 
@@ -131,7 +132,7 @@ void json_parse_test(const CxAllocator* alloc) {
     }
 
     {
-        const char* json = "[\"1\", {\"k1\":1, \"k2\":[2], \"k3\": 3}, null]";
+        const char* json = "[\"1\", {\"k1\":1, \"k2\":[2], \"k3\": 3}, /* COMMENT */ null]";
         CxVar* arr = cx_var_new(alloc);
         CXERROR_CHK(cx_json_parse(json, strlen(json), arr, &cfg));
 
