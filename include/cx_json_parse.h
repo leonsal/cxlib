@@ -16,8 +16,8 @@ typedef struct CxJsonParseCfg {
     void*               replacer_data;      // Optional replacer data
 } CxJsonParseCfg;
 
-// Parses JSON string and builds CxVar.
-// Return non-zero error code
+// Parses JSON string setting the specified CxVar which needs to be previously allocated.
+// The returned error, if present, must be freed using CXERROR_FREE()
 CxError cx_json_parse(const char* data, size_t len, CxVar* var, const CxJsonParseCfg* cfg); 
 
 #endif
