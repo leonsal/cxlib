@@ -1,23 +1,21 @@
 #ifndef LOGGER_H
 #define LOGGER_H
 
-// Declare logger type
-#define cx_log_name logger
-#define cx_log_tsafe
-#include "cx_log.h"
+#include "cx_logger.h"
 
-extern logger default_logger;
-#define LOG_INIT()\
-    default_logger = logger_init();\
-    logger_set_flags(&default_logger, CX_LOG_FLAG_TIME|CX_LOG_FLAG_US|CX_LOG_FLAG_COLOR);\
-    logger_add_handler(&default_logger, logger_console_handler, NULL)
+// Global logger defined in 'main'
+extern CxLogger* g_logger;
 
-#define LOGD(...) logger_deb(&default_logger, __VA_ARGS__)
-#define LOGI(...) logger_info(&default_logger, __VA_ARGS__)
-#define LOGW(...) logger_warn(&default_logger, __VA_ARGS__)
-#define LOGE(...) logger_error(&default_logger, __VA_ARGS__)
-#define LOGF(...) logger_error(&default_logger, __VA_ARGS__)
+// Utility macros
+#define LOGD(...) cx_logger_log(g_logger, CxLoggerDebug, __VA_ARGS__)
+#define LOGI(...) cx_logger_log(g_logger, CxLoggerInfo, __VA_ARGS__)
+#define LOGW(...) cx_logger_log(g_logger, CxLoggerWarn, __VA_ARGS__)
+#define LOGE(...) cx_logger_log(g_logger, CxLoggerError, __VA_ARGS__)
+#define LOGF(...) cx_logger_log(g_logger, CxLoggerFatal, __VA_ARGS__)
 
 #endif
+
+
+
 
 

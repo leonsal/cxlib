@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <assert.h>
 #include <time.h>
 
 #include "cx_alloc.h"

@@ -7,7 +7,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR})
 set(SOURCES
     main.c
     alloc.c
-    logger.c
+    #logger.c
     array.c
     hmap.c
     string.c

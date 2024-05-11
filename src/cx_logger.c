@@ -2,6 +2,9 @@
 #include <pthread.h>
 
 #include "cx_logger.h"
+#ifndef CX_LOGGER_MAX_HANDLER
+#define CX_LOGGER_MAX_HANDLERS (8)
+#endif
 
 // Terminal color codes
 #define TERM_RESET          "\x1b[0m"
@@ -27,23 +30,15 @@ typedef struct HandlerInfo {
     void*           data;       // Optional associated handler data
 } HandlerInfo;
 
-// Define dynamic array of HandlerInfo
-#define cx_array_name arr_handler
-#define cx_array_type HandlerInfo
-#define cx_array_instance_allocator
-#define cx_array_static
-#define cx_array_implement
-#include "cx_array.h"
-
 // CxLogger state
 typedef struct CxLogger {
     const CxAllocator*  alloc;
+    pthread_mutex_t     lock;
     const char*         prefix;
     bool                enabled;
     CxLoggerFlags       flags;
     CxLoggerLevel       level;
-    arr_handler         handlers;
-    pthread_mutex_t     lock;
+    HandlerInfo handlers[CX_LOGGER_MAX_HANDLERS];
 } CxLogger;
 
 // Level names
@@ -66,7 +61,6 @@ CxLogger* cx_logger_new(const CxAllocator* alloc, const char* prefix) {
     logger->alloc = use_alloc;
     logger->prefix = prefix;
     logger->enabled = true;
-    logger->handlers = arr_handler_init(alloc);
     CXCHKZ(pthread_mutex_init(&logger->lock, NULL));
 
     return logger;
@@ -74,7 +68,6 @@ CxLogger* cx_logger_new(const CxAllocator* alloc, const char* prefix) {
 
 void cx_logger_del(CxLogger* logger) {
 
-    arr_handler_free(&logger->handlers);
     CXCHKZ(pthread_mutex_destroy(&logger->lock));
     cx_alloc_free(logger->alloc, logger, sizeof(CxLogger));
 }
@@ -143,20 +136,27 @@ CxError cx_logger_set_enabled(CxLogger* logger, bool enabled) {
 
 CxError cx_logger_add_handler(CxLogger* logger, CxLoggerHandler handler, void* handler_data) {
 
-    for (size_t i = 0; i < arr_handler_len(&logger->handlers); i++) {
-        const HandlerInfo* hinfo = &logger->handlers.data[i];
+    for (size_t i = 0; i < CX_LOGGER_MAX_HANDLERS; i++) {
+        const HandlerInfo* hinfo = &logger->handlers[i];
         if (hinfo->handler && hinfo->handler == handler && hinfo->data == handler_data) {
             return CXERROR(1, "handler already installed");
         }
     }
-    arr_handler_push(&logger->handlers, (HandlerInfo){.handler = handler, .data = handler_data});
-    return CXERROR_OK();
+    for (size_t i = 0; i < CX_LOGGER_MAX_HANDLERS; i++) {
+        HandlerInfo* hinfo = &logger->handlers[i];
+        if (hinfo->handler == NULL) {
+            hinfo->handler = handler;
+            hinfo->data = handler_data;
+            return CXERROR_OK();
+        }
+    }
+    return CXERROR(1, "handler count exceeded");
 }
 
 void cx_logger_del_handler(CxLogger* logger, CxLoggerHandler handler, void* handler_data) {
 
-    for (size_t i = 0; i < arr_handler_len(&logger->handlers); i++) {
-        HandlerInfo* hinfo = &logger->handlers.data[i];
+    for (size_t i = 0; i < CX_LOGGER_MAX_HANDLERS; i++) {
+        HandlerInfo* hinfo = &logger->handlers[i];
         if (hinfo->handler == handler && hinfo->data == handler_data) {
             hinfo->handler = NULL;
             return;
@@ -226,8 +226,11 @@ void cx_logger_log(CxLogger* logger, CxLoggerLevel level, const char* fmt, ...) 
     va_start(ap, fmt);
 
     // Call installed handlers
-    for (size_t i = 0; i < arr_handler_len(&logger->handlers); i++) {
-        const HandlerInfo* hinfo = &logger->handlers.data[i];
+    for (size_t i = 0; i < CX_LOGGER_MAX_HANDLERS; i++) {
+        const HandlerInfo* hinfo = &logger->handlers[i];
+        if (hinfo->handler == NULL) {
+            continue;
+        }
         va_copy(ev.ap, ap);
         ev.hdata = hinfo->data;
         CXCHKZ(pthread_mutex_lock(&logger->lock));
