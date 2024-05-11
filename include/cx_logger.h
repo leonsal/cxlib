@@ -48,6 +48,9 @@ CxLoggerLevel cx_logger_get_level(const CxLogger* logger);
 // Sets the log level
 CxError cx_logger_set_level(CxLogger* logger, CxLoggerLevel level);
 
+// Get the current log level string
+const char* cx_logger_get_level_str(const CxLogger* logger);
+
 // Sets the log level by the level name string
 CxError cx_logger_set_level_str(CxLogger* logger, const char* level_str);
 
