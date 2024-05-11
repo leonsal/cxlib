@@ -7,8 +7,10 @@ set(SOURCES
     include/cx_str.h
     include/cx_hmap.h
     include/cx_queue.h
+    include/cx_logger.h
     src/cx_alloc.c
     src/cx_pool_allocator.c
+    src/cx_logger.c
     src/cx_str.c
     src/cx_hmap.c
     src/cx_timer.c
