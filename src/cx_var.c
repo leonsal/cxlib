@@ -348,6 +348,19 @@ bool cx_var_get_float(const CxVar* var, double* pval) {
     return true;
 }
 
+bool cx_var_get_num(const CxVar* var, double* pval) {
+
+    if (var->type == CxVarInt) {
+        *pval = var->v.i64;
+        return true;
+    }
+    if (var->type == CxVarFloat) {
+        *pval = var->v.f64;
+        return true;
+    }
+    return false;
+}
+
 bool cx_var_get_str(const CxVar* var, const char** pval) {
 
     if (var->type != CxVarStr) {
@@ -421,6 +434,16 @@ CxVar* cx_var_get_arr_float(const CxVar* arr, size_t index, double* pfloat) {
 
     CxVar* val = cx_var_get_arr_val(arr, index);
     if (val && cx_var_get_float(val, pfloat)) {
+        return (CxVar*)val;
+    } else {
+        return NULL;
+    }
+}
+
+CxVar* cx_var_get_arr_num(const CxVar* arr, size_t index, double* pfloat) {
+
+    CxVar* val = cx_var_get_arr_val(arr, index);
+    if (val && cx_var_get_num(val, pfloat)) {
         return (CxVar*)val;
     } else {
         return NULL;
@@ -533,6 +556,16 @@ CxVar* cx_var_get_map_float(const CxVar* map, const char* key, double* pfloat) {
 
     CxVar* val = cx_var_get_map_val(map, key);
     if (val && cx_var_get_float(val, pfloat)) {
+        return (CxVar*)val;
+    } else {
+        return NULL;
+    }
+}
+
+CxVar* cx_var_get_map_num(const CxVar* map, const char* key, double* pfloat) {
+
+    CxVar* val = cx_var_get_map_val(map, key);
+    if (val && cx_var_get_num(val, pfloat)) {
         return (CxVar*)val;
     } else {
         return NULL;
