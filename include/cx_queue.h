@@ -120,6 +120,12 @@ Returns ECANCELED if the queue is closed.
 Returns ETIMEDOUT if timeout expires.
     int cxqueue_getnw(cxqueue* q, cxtype* src, size_t n, struct timespec reltime);
 
+Get 'n' elements or less from the output (back) of the queue.
+Blocks till there is any data in the queue.
+Updates 'read' with the number of elements read (read <= n)
+Returns ECANCELED if the queue is closed.
+    int cxqueue_getnl(cxqueue* q, cxtype* src, size_t n, size_t* read);
+
 Get one element from output (back) of the queue.
 Blocks till there is element to remove.
 Returns ECANCELED if the queue is closed.
@@ -227,6 +233,7 @@ cx_queue_api_ int cx_queue_name_(_put)(cx_queue_name* q, const cx_queue_type v);
 cx_queue_api_ int cx_queue_name_(_putw)(cx_queue_name* q, const cx_queue_type v, struct timespec reltime);
 cx_queue_api_ int cx_queue_name_(_getn)(cx_queue_name* q, cx_queue_type* dst, size_t n);
 cx_queue_api_ int cx_queue_name_(_getnw)(cx_queue_name* q, cx_queue_type* dst, size_t n, struct timespec reltime);
+cx_queue_api_ int cx_queue_name_(_getnl)(cx_queue_name* q, cx_queue_type* dst, size_t n, size_t* read);
 cx_queue_api_ int cx_queue_name_(_get)(cx_queue_name* q, cx_queue_type* v);
 cx_queue_api_ int cx_queue_name_(_getw)(cx_queue_name* q, cx_queue_type* v, struct timespec reltime);
 cx_queue_api_ int cx_queue_name_(_close)(cx_queue_name* q);
@@ -487,6 +494,47 @@ cx_queue_api_ int cx_queue_name_(_getnw)(cx_queue_name* q, cx_queue_type* dst, s
     if ((error = pthread_cond_signal(&q->hasSpace_))) {
         return error;
     }
+    return pthread_mutex_unlock(&q->lock_);
+}
+
+cx_queue_api_ int cx_queue_name_(_getnl)(cx_queue_name* q, cx_queue_type* dst, size_t n, size_t* read) {
+
+    // Waits for data in the queue
+    int error = pthread_mutex_lock(&q->lock_);
+    if (error) {
+        return error;
+    }
+    while (q->len_ == 0 && !error && !q->closed) {
+        error = pthread_cond_wait(&q->hasData_, &q->lock_);
+    }
+    if (error) {
+        pthread_mutex_unlock(&q->lock_);
+        return error;
+    }
+    if (q->len_ == 0 && q->closed) {
+        pthread_mutex_unlock(&q->lock_);
+        return ECANCELED;
+    }
+
+    // Number of elements to get from queue
+    n = q->len_ > n ? n : q->len_;
+
+    // Copy data from queue
+    const size_t space = q->cap_ - q->out_;
+    if (n <= space) {
+        memcpy(dst, &q->data_[q->out_], n* sizeof(*q->data_));
+    } else {
+        memcpy(dst, &q->data_[q->out_], space * sizeof(*q->data_));
+        memcpy(dst + space, q->data_, (n-space) * sizeof(*q->data_));
+    }
+    q->out_ = (q->out_ + n) % q->cap_;
+    q->len_ -= n;
+
+    // Signal that there is free space in the queue
+    if ((error = pthread_cond_signal(&q->hasSpace_))) {
+        return error;
+    }
+    *read = n;
     return pthread_mutex_unlock(&q->lock_);
 }
 
