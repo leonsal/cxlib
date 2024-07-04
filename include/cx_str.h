@@ -328,11 +328,16 @@ cx_str_api_ void cx_str_name_(_rtrim)(cx_str_name* s, const char* cset);
 // The requested 'new_len' does not count the nul terminating byte.
 static void cx_str_name_(_grow_)(cx_str_name* s, size_t new_len) {
 
-    if (new_len <= s->len_) {
-        return;
-    }
-    if (new_len + 1 < s->cap_) {
-        return;
+    // Special case for empty string
+    if (new_len == 0 && s->data == NULL) {
+        new_len = 1;
+    } else {
+        if (new_len <= s->len_) {
+            return;
+        }
+        if (new_len + 1 < s->cap_) {
+            return;
+        }
     }
     size_t new_cap = 2 * new_len;
 

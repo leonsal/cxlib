@@ -22,7 +22,7 @@ void cxStrTests(void) {
     // Use default allocator
     cxStrTest(cx_def_allocator()); 
 
-    // Use pool allocator
+   // Use pool allocator
     CxPoolAllocator* ba = cx_pool_allocator_create(4*1024, NULL);
     cxStrTest(cx_pool_allocator_iface(ba));
     cx_pool_allocator_destroy(ba);
@@ -41,6 +41,10 @@ void cxStrTest(const CxAllocator* alloc) {
     CHK(cxstr_cmp(&s1, "") == 0);
 
     // cpy
+    cxstr_cpy(&s1, "");
+    CHK(strlen(s1.data) == 0);
+    CHK(cxstr_len(&s1) == 0);
+
     cxstr_cpyn(&s1, "123\0x00456", 7);
     CHK(strlen(s1.data) == 3);
     CHK(cxstr_len(&s1) == 7);

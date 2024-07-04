@@ -63,6 +63,10 @@ void cx_var_test(const CxAllocator* alloc) {
         const char* sets = NULL;
         const char* gets = NULL;
 
+        sets = "";
+        cx_var_set_str(var, sets);
+        CHK(cx_var_get_str(var, &gets) && strcmp(gets, sets) == 0);
+
         sets = "123";
         cx_var_set_str(var, sets);
         CHK(cx_var_get_str(var, &gets) && strcmp(gets, sets) == 0);
@@ -71,9 +75,6 @@ void cx_var_test(const CxAllocator* alloc) {
         cx_var_set_str(var, sets);
         CHK(cx_var_get_str(var, &gets) && strcmp(gets, sets) == 0);
 
-        sets = "";
-        cx_var_set_str(var, sets);
-        CHK(cx_var_get_str(var, &gets) && strcmp(gets, sets) == 0);
 
         cx_var_del(var);
     }
