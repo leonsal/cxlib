@@ -43,19 +43,19 @@ CxLogger* cx_logger_new(const CxAllocator* alloc, const char* prefix);
 void cx_logger_del(CxLogger* logger);
 
 // Get the current log level
-CxLoggerLevel cx_logger_get_level(const CxLogger* logger);
+CxLoggerLevel cx_logger_get_level(CxLogger* logger);
 
 // Sets the log level
 CxError cx_logger_set_level(CxLogger* logger, CxLoggerLevel level);
 
 // Get the current log level string
-const char* cx_logger_get_level_str(const CxLogger* logger);
+const char* cx_logger_get_level_str(CxLogger* logger);
 
 // Sets the log level by the level name string
 CxError cx_logger_set_level_str(CxLogger* logger, const char* level_str);
 
 // Get current logger flags
-CxLoggerFlags cx_logger_get_flags(const CxLogger* logger);
+CxLoggerFlags cx_logger_get_flags(CxLogger* logger);
 
 // Set the logger flags
 CxError cx_logger_set_flags(CxLogger* logger, CxLoggerFlags flags);

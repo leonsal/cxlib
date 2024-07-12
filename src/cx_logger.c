@@ -72,23 +72,35 @@ void cx_logger_del(CxLogger* logger) {
     cx_alloc_free(logger->alloc, logger, sizeof(CxLogger));
 }
 
-CxLoggerLevel cx_logger_get_level(const CxLogger* logger) {
+CxLoggerLevel cx_logger_get_level(CxLogger* logger) {
 
-    return logger->level;
+    CXCHKZ(pthread_mutex_lock(&logger->lock));
+    CxLoggerLevel level = logger->level;
+    CXCHKZ(pthread_mutex_unlock(&logger->lock));
+    return level;
 }
 
 CxError cx_logger_set_level(CxLogger* logger, CxLoggerLevel level) {
 
+    CxError error = {0};
+    CXCHKZ(pthread_mutex_lock(&logger->lock));
     if (level < 0 || level >= CxLoggerFatal) {
-        return CXERROR(1, "invalid log level");
+        error = CXERROR(1, "invalid log level");
+        goto exit;
     }
     logger->level = level;
-    return CXERROR_OK();
+
+exit:
+    CXCHKZ(pthread_mutex_unlock(&logger->lock));
+    return error;
 }
 
-const char* cx_logger_get_level_str(const CxLogger* logger) {
+const char* cx_logger_get_level_str(CxLogger* logger) {
 
-    return level_strings[logger->level];
+    CXCHKZ(pthread_mutex_lock(&logger->lock));
+    const char* level_str = level_strings[logger->level];
+    CXCHKZ(pthread_mutex_unlock(&logger->lock));
+    return level_str;
 }
 
 CxError cx_logger_set_level_str(CxLogger* logger, const char* level) {
@@ -111,35 +123,47 @@ CxError cx_logger_set_level_str(CxLogger* logger, const char* level) {
             break;
         }
         if (strcmp(curr, upper) == 0){
+            CXCHKZ(pthread_mutex_lock(&logger->lock));
             logger->level = i;
+            CXCHKZ(pthread_mutex_unlock(&logger->lock));
             return CXERROR_OK();
         }
     }
     return CXERROR(1, "invalid level name");
 }
 
-CxLoggerFlags cx_logger_get_flags(const CxLogger* logger) {
+CxLoggerFlags cx_logger_get_flags(CxLogger* logger) {
 
-    return logger->flags;
+    CXCHKZ(pthread_mutex_lock(&logger->lock));
+    CxLoggerFlags flags = logger->flags;
+    CXCHKZ(pthread_mutex_unlock(&logger->lock));
+    return flags;
 }
 
 CxError cx_logger_set_flags(CxLogger* logger, CxLoggerFlags flags) {
 
+    CXCHKZ(pthread_mutex_lock(&logger->lock));
     logger->flags = flags;
+    CXCHKZ(pthread_mutex_unlock(&logger->lock));
     return CXERROR_OK();
 }
 
 CxError cx_logger_set_enabled(CxLogger* logger, bool enabled) {
 
+    CXCHKZ(pthread_mutex_lock(&logger->lock));
     logger->enabled = enabled;
+    CXCHKZ(pthread_mutex_unlock(&logger->lock));
 }
 
 CxError cx_logger_add_handler(CxLogger* logger, CxLoggerHandler handler, void* handler_data) {
 
+    CxError error = {0};
+    CXCHKZ(pthread_mutex_lock(&logger->lock));
     for (size_t i = 0; i < CX_LOGGER_MAX_HANDLERS; i++) {
         const HandlerInfo* hinfo = &logger->handlers[i];
         if (hinfo->handler && hinfo->handler == handler && hinfo->data == handler_data) {
-            return CXERROR(1, "handler already installed");
+            error = CXERROR(1, "handler already installed");
+            goto exit;
         }
     }
     for (size_t i = 0; i < CX_LOGGER_MAX_HANDLERS; i++) {
@@ -147,31 +171,40 @@ CxError cx_logger_add_handler(CxLogger* logger, CxLoggerHandler handler, void* h
         if (hinfo->handler == NULL) {
             hinfo->handler = handler;
             hinfo->data = handler_data;
-            return CXERROR_OK();
+            goto exit;
         }
     }
-    return CXERROR(1, "handler count exceeded");
+    error = CXERROR(1, "handler count exceeded");
+
+exit:
+    CXCHKZ(pthread_mutex_unlock(&logger->lock));
+    return error;
 }
 
 void cx_logger_del_handler(CxLogger* logger, CxLoggerHandler handler, void* handler_data) {
 
+    CXCHKZ(pthread_mutex_lock(&logger->lock));
     for (size_t i = 0; i < CX_LOGGER_MAX_HANDLERS; i++) {
         HandlerInfo* hinfo = &logger->handlers[i];
         if (hinfo->handler == handler && hinfo->data == handler_data) {
             hinfo->handler = NULL;
-            return;
+            goto exit;
         }
     }
+
+exit:
+    CXCHKZ(pthread_mutex_unlock(&logger->lock));
 }
 
 void cx_logger_log(CxLogger* logger, CxLoggerLevel level, const char* fmt, ...) {
 
+    CXCHKZ(pthread_mutex_lock(&logger->lock));
     if (!logger->enabled) {
-        return;
+        goto exit;
     }
 
     if (level < logger->level) {
-        return;
+        goto exit;
     }
 
     // Initializes log event
@@ -233,12 +266,12 @@ void cx_logger_log(CxLogger* logger, CxLoggerLevel level, const char* fmt, ...) 
         }
         va_copy(ev.ap, ap);
         ev.hdata = hinfo->data;
-        CXCHKZ(pthread_mutex_lock(&logger->lock));
         hinfo->handler(logger, &ev);
-        CXCHKZ(pthread_mutex_unlock(&logger->lock));
         va_end(ev.ap);
     }
 
+exit:
+    CXCHKZ(pthread_mutex_unlock(&logger->lock));
     if (level == CxLoggerFatal) {
         abort();
     }
