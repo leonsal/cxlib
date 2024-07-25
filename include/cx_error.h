@@ -6,7 +6,7 @@
 #include <stdio.h>
 
 typedef struct CxError {
-    const char* msg;        // Static or dynamically allocated error message
+    char*       msg;        // Static or dynamically allocated error message
     const char* func;       // static string with name of function where the CXERROR macro was called
     int         code;       // Optional error code
     int         alloc_;     // Used internally to indicate if error message was allocated
@@ -28,7 +28,7 @@ typedef struct CxError {
 #define CXERROR_MAX_DMSG    (256)
 static inline CxError cx_error_printf(int code, const char* func, const char* fmt, ...) {
     CxError error = {.code=code, .func = func, .alloc_=1};
-    error.msg = (const char*)malloc(CXERROR_MAX_DMSG);
+    error.msg = (char*)malloc(CXERROR_MAX_DMSG);
     if (error.msg == NULL) {
         abort();
     }
@@ -55,7 +55,7 @@ static inline CxError cx_error_printf(int code, const char* func, const char* fm
 #define CXERR_CHK(ERR)\
     {if (ERR.msg) {printf("CXERROR file:%s line:%d code:%d func:%s %s\n", __FILE__, __LINE__, ERR.code, ERR.func, ERR.msg); abort();}}
 
-// If ERR is not OK, returns the CxErr
+// If ERR is not OK, returns the CxError struct
 #define CXERR_RET(ERR)\
     {if (ERR.msg) {return ERR;}}
 
