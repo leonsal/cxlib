@@ -6,25 +6,29 @@
 #include <stdio.h>
 
 typedef struct CxError {
-    int         code;       // Error code (0 == no error)
+    const char* msg;        // Static or dynamically allocated error message
     const char* func;       // static string with name of function where the CXERROR macro was called
-    char*       msg;        // Static or dynamically allocated error message
+    int         code;       // Optional error code
     int         alloc_;     // Used internally to indicate if error message was allocated
 } CxError;
 
 // Generates empty CxError (no error)
-#define CXERROR_OK()\
-    (CxError){}
+#define CXOK()\
+    (CxError){0}
 
-// Generates CxError with code and static error message
-#define CXERROR(CODE,MSG)\
-    (CxError){.code=CODE, .msg=(char*)MSG, .func=__func__}
+// Generates CxError from specified static message
+#define CXERR(MSG)\
+    (CxError){.msg=(char*)MSG, .func=__func__, .code=1}
 
-// Generates CxError with code and dynamically allocated error message (printf syntax)
+// Generates CxError from specified error code and static message
+#define CXERR2(CODE,MSG)\
+    (CxError){.msg=(char*)MSG, .func=__func__, .code=CODE}
+
+// Generates CxError with specified error code and dynamically allocated error message (printf syntax)
 #define CXERROR_MAX_DMSG    (256)
 static inline CxError cx_error_printf(int code, const char* func, const char* fmt, ...) {
     CxError error = {.code=code, .func = func, .alloc_=1};
-    error.msg = malloc(CXERROR_MAX_DMSG);
+    error.msg = (const char*)malloc(CXERROR_MAX_DMSG);
     if (error.msg == NULL) {
         abort();
     }
@@ -34,24 +38,26 @@ static inline CxError cx_error_printf(int code, const char* func, const char* fm
     va_end(args);
     return error;
 }
-#define CXERRORF(CODE, ...)\
-    cx_error_printf(CODE, __func__,  __VA_ARGS__)
+
+// Generates CxError with dynamically allocated and formatted error messsage
+#define CXERRF(FMT, ...)\
+    cx_error_printf(1,__func__,FMT,__VA_ARGS__)
+
+// Generates CxError with specified error code and dynamically allocated and formatted error messsage
+#define CXERRF2(CODE,FMT, ...)\
+    cx_error_printf(CODE,__func__,FMT,__VA_ARGS__)
 
 // Free CxError with dynamically allocated error message
-#define CXERROR_FREE(ERR)\
-    {if (ERR.alloc_) {free(ERR.msg); ERR.msg=NULL;}}
+#define CXERR_FREE(ERR)\
+    {if (ERR.alloc_ && ERR.msg) {free(ERR.msg); ERR.msg=NULL;}}
 
 // if ERR is not OK, prints error and aborts
-#define CXERROR_CHK(ERR)\
-    {if (ERR.code) {printf("CXERROR file:%s line:%d code:%d func:%s %s\n", __FILE__, __LINE__, ERR.code, ERR.func, ERR.msg); abort();}}
+#define CXERR_CHK(ERR)\
+    {if (ERR.msg) {printf("CXERROR file:%s line:%d code:%d func:%s %s\n", __FILE__, __LINE__, ERR.code, ERR.func, ERR.msg); abort();}}
 
 // If ERR is not OK, returns the CxErr
-#define CXERROR_RET(ERR)\
-    {const CxError err = (ERR); if (err.code) {return err;}}
-
-// If INTERR (int error number) is not zero returns CxError
-#define CXERROR_RETNZ(INTERR,MSG)\
-    {if ((INTERR)) {return (CxError){.code=INTERR, .msg=MSG, .func=__func__};}}
+#define CXERR_RET(ERR)\
+    {if (ERR.msg) {return ERR;}}
 
 // If COND is not true, prints error and aborts
 #define CXCHK(COND)\

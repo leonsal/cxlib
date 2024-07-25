@@ -38,7 +38,7 @@ void json_parse_test(const CxAllocator* alloc) {
     {
         const char* json = "null";
         CxVar* var = cx_var_new(alloc);
-        CXERROR_CHK(cx_json_parse(json, strlen(json), var, &cfg));
+        CXERR_CHK(cx_json_parse(json, strlen(json), var, &cfg));
         CXCHK(cx_var_get_type(var) == CxVarNull);
         cx_var_del(var);
     }
@@ -46,7 +46,7 @@ void json_parse_test(const CxAllocator* alloc) {
     {
         const char* json = "false";
         CxVar* var = cx_var_new(alloc);
-        CXERROR_CHK(cx_json_parse(json, strlen(json), var, &cfg));
+        CXERR_CHK(cx_json_parse(json, strlen(json), var, &cfg));
         bool v;
         CHK(cx_var_get_bool(var, &v) && !v);
         cx_var_del(var);
@@ -55,7 +55,7 @@ void json_parse_test(const CxAllocator* alloc) {
     {
         const char* json = "true";
         CxVar* var = cx_var_new(alloc);
-        CXERROR_CHK(cx_json_parse(json, strlen(json), var, &cfg));
+        CXERR_CHK(cx_json_parse(json, strlen(json), var, &cfg));
         CHK(cx_var_get_bool(var, &vbool) && vbool);
         cx_var_del(var);
     }
@@ -63,7 +63,7 @@ void json_parse_test(const CxAllocator* alloc) {
     {
         const char* json = "-10";
         CxVar* var = cx_var_new(alloc);
-        CXERROR_CHK(cx_json_parse(json, strlen(json), var, &cfg));
+        CXERR_CHK(cx_json_parse(json, strlen(json), var, &cfg));
         CHK(cx_var_get_int(var, &vint) && vint == -10);
         cx_var_del(var);
     }
@@ -71,7 +71,7 @@ void json_parse_test(const CxAllocator* alloc) {
     {
         const char* json = "-0.45";
         CxVar* var = cx_var_new(alloc);
-        CXERROR_CHK(cx_json_parse(json, strlen(json), var, &cfg));
+        CXERR_CHK(cx_json_parse(json, strlen(json), var, &cfg));
         CHK(cx_var_get_float(var, &vfloat) && vfloat == -0.45);
         cx_var_del(var);
     }
@@ -79,7 +79,7 @@ void json_parse_test(const CxAllocator* alloc) {
     {
         const char* json = "\"string\"";
         CxVar* var = cx_var_new(alloc);
-        CXERROR_CHK(cx_json_parse(json, strlen(json), var, &cfg));
+        CXERR_CHK(cx_json_parse(json, strlen(json), var, &cfg));
         CHK(cx_var_get_str(var, &vstr) && (strcmp(vstr, "string") == 0));
         cx_var_del(var);
     }
@@ -87,7 +87,7 @@ void json_parse_test(const CxAllocator* alloc) {
     {
         const char* json = "\"_\\\"_\\\\_\\b_\\f_\\n_\\r_\\t_\"";
         CxVar* var = cx_var_new(alloc);
-        CXERROR_CHK(cx_json_parse(json, strlen(json), var, &cfg));
+        CXERR_CHK(cx_json_parse(json, strlen(json), var, &cfg));
         CHK(cx_var_get_str(var, &vstr) && (strcmp(vstr, "_\"_\\_\b_\f_\n_\r_\t_") == 0));
         cx_var_del(var);
     }
@@ -95,7 +95,7 @@ void json_parse_test(const CxAllocator* alloc) {
     {
         const char* json = "\"_\\u00A2_\\u0107_\"";
         CxVar* var = cx_var_new(alloc);
-        CXERROR_CHK(cx_json_parse(json, strlen(json), var, &cfg));
+        CXERR_CHK(cx_json_parse(json, strlen(json), var, &cfg));
         CHK(cx_var_get_str(var, &vstr) && (strcmp(vstr, "_\u00A2_\u0107_") == 0));
         cx_var_del(var);
     }
@@ -103,7 +103,7 @@ void json_parse_test(const CxAllocator* alloc) {
     {
         const char* json = "[null, false, true, 42000, -0.1, \"strel\"]";
         CxVar* arr = cx_var_new(alloc);
-        CXERROR_CHK(cx_json_parse(json, strlen(json), arr, &cfg));
+        CXERR_CHK(cx_json_parse(json, strlen(json), arr, &cfg));
 
         CXCHK(cx_var_get_arr_len(arr, &len) && len == 6);
         CXCHK(cx_var_get_arr_null(arr, 0));
@@ -118,7 +118,7 @@ void json_parse_test(const CxAllocator* alloc) {
     {
         const char* json = "{\"k1\":null, // COMMENT\n \"k2\":false, \"k3\": -124, \"k4\": -0.8, \"k5\": \"strel\", \"k6\": {\"k61\": \"params\"}}// COMMENT";
         CxVar* map = cx_var_new(alloc);
-        CXERROR_CHK(cx_json_parse(json, strlen(json), map, &cfg));
+        CXERR_CHK(cx_json_parse(json, strlen(json), map, &cfg));
 
         CXCHK(cx_var_get_map_len(map, &len) && len == 6);
         CXCHK(cx_var_get_map_null(map, "k1"));
@@ -134,7 +134,7 @@ void json_parse_test(const CxAllocator* alloc) {
     {
         const char* json = "[\"1\", {\"k1\":1, \"k2\":[2], \"k3\": 3}, /* COMMENT */ null]";
         CxVar* arr = cx_var_new(alloc);
-        CXERROR_CHK(cx_json_parse(json, strlen(json), arr, &cfg));
+        CXERR_CHK(cx_json_parse(json, strlen(json), arr, &cfg));
 
         CXCHK(cx_var_get_arr_len(arr, &len) && len == 3);
         CXCHK(cx_var_get_arr_str(arr, 0, &vstr) && strcmp(vstr, "1") == 0);

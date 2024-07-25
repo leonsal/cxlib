@@ -85,7 +85,7 @@ CxError cx_logger_set_level(CxLogger* logger, CxLoggerLevel level) {
     CxError error = {0};
     CXCHKZ(pthread_mutex_lock(&logger->lock));
     if (level < 0 || level >= CxLoggerFatal) {
-        error = CXERROR(1, "invalid log level");
+        error = CXERR("invalid log level");
         goto exit;
     }
     logger->level = level;
@@ -109,7 +109,7 @@ CxError cx_logger_set_level_str(CxLogger* logger, const char* level) {
     char upper[32];
     const size_t len = strlen(level);
     if (len >= sizeof(upper)-1) {
-        return CXERROR(1, "invalid level name");
+        return CXERR("invalid level name");
     }
     for (size_t i = 0; i < len; i++) {
         upper[i] = toupper(level[i]);
@@ -126,10 +126,10 @@ CxError cx_logger_set_level_str(CxLogger* logger, const char* level) {
             CXCHKZ(pthread_mutex_lock(&logger->lock));
             logger->level = i;
             CXCHKZ(pthread_mutex_unlock(&logger->lock));
-            return CXERROR_OK();
+            return CXOK();
         }
     }
-    return CXERROR(1, "invalid level name");
+    return CXERR("invalid level name");
 }
 
 CxLoggerFlags cx_logger_get_flags(CxLogger* logger) {
@@ -145,7 +145,7 @@ CxError cx_logger_set_flags(CxLogger* logger, CxLoggerFlags flags) {
     CXCHKZ(pthread_mutex_lock(&logger->lock));
     logger->flags = flags;
     CXCHKZ(pthread_mutex_unlock(&logger->lock));
-    return CXERROR_OK();
+    return CXOK();
 }
 
 CxError cx_logger_set_enabled(CxLogger* logger, bool enabled) {
@@ -162,7 +162,7 @@ CxError cx_logger_add_handler(CxLogger* logger, CxLoggerHandler handler, void* h
     for (size_t i = 0; i < CX_LOGGER_MAX_HANDLERS; i++) {
         const HandlerInfo* hinfo = &logger->handlers[i];
         if (hinfo->handler && hinfo->handler == handler && hinfo->data == handler_data) {
-            error = CXERROR(1, "handler already installed");
+            error = CXERR("handler already installed");
             goto exit;
         }
     }
@@ -174,7 +174,7 @@ CxError cx_logger_add_handler(CxLogger* logger, CxLoggerHandler handler, void* h
             goto exit;
         }
     }
-    error = CXERROR(1, "handler count exceeded");
+    error = CXERR("handler count exceeded");
 
 exit:
     CXCHKZ(pthread_mutex_unlock(&logger->lock));

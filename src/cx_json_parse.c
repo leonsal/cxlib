@@ -42,7 +42,7 @@ CxError cx_json_parse(const char* data, size_t len, CxVar* var, const CxJsonPars
     char errmsg[json_error_max+1];
     json_value* jval = json_parse_ex(&settings, data, len, errmsg);
     if (jval == NULL) {
-        return CXERRORF(1, "%s", errmsg);
+        return CXERRF("%s", errmsg);
     }
 
     // Converts json-parser return value to CxVar
@@ -88,10 +88,10 @@ static CxError cx_json_val2var(const CxJsonParseCfg* cfg, json_value* jval, CxVa
             cx_var_set_null(var);
             break;
         default:
-            return CXERROR(1, "invalid json type");
+            return CXERR("invalid json type");
     }
     cfg->replacer_fn(var, cfg->replacer_data);
-    return CXERROR_OK();
+    return CXOK();
 }
 
 static void* cx_json_parse_alloc(size_t size, int zero, void* user_data) {
