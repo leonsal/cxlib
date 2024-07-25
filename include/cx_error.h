@@ -24,7 +24,7 @@ typedef struct CxError {
 #define CXERR2(CODE,MSG)\
     (CxError){.msg=(char*)MSG, .func=__func__, .code=CODE}
 
-// Generates CxError with specified error code and dynamically allocated error message (printf syntax)
+// Internal function to generates CxError with specified error code and dynamically allocated error message (printf syntax)
 #define CXERROR_MAX_DMSG    (256)
 static inline CxError cx_error_printf(int code, const char* func, const char* fmt, ...) {
     CxError error = {.code=code, .func = func, .alloc_=1};
@@ -53,7 +53,7 @@ static inline CxError cx_error_printf(int code, const char* func, const char* fm
 
 // if ERR is not OK, prints error and aborts
 #define CXERR_CHK(ERR)\
-    {if (ERR.msg) {printf("CXERROR file:%s line:%d code:%d func:%s %s\n", __FILE__, __LINE__, ERR.code, ERR.func, ERR.msg); abort();}}
+    {if (ERR.msg) {printf("ERROR file:%s line:%d code:%d func:%s msg:%s\n", __FILE__, __LINE__, ERR.code, ERR.func, ERR.msg); abort();}}
 
 // If ERR is not OK, returns the CxError struct
 #define CXERR_RET(ERR)\
