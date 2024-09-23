@@ -1,5 +1,4 @@
 #include <stdlib.h>
-#include <string.h>
 #include <stdint.h>
 
 // FNV1-a hash function for 32 bit hashes.
@@ -16,16 +15,6 @@ uint32_t cx_hmap_hash_fnv1a32(const void *buf, size_t len) {
 	    hval *= FNV_32_PRIME;
     }
     return hval;
-}
-
-// Utility function for comparing C nul terminated strings
-int cx_hmap_cmp_key_str(const void* k1, const void* k2) {
-    return strcmp(*(char**)k1, *(char**)k2);
-}
-
-// Utility function for hashing C nul terminated strings
-size_t cx_hmap_hash_key_str(void* key, size_t keySize) {
-    return cx_hmap_hash_fnv1a32(*((char**)key), strlen(*(char**)key));
 }
 
 // Utility function for freeing key/val "malloc" allocated C nul terminated string

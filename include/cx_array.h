@@ -271,7 +271,7 @@ cx_array_api_ void cx_array_name_(_insa)(cx_array_name* a, const cx_array_name* 
 cx_array_api_ void cx_array_name_(_deln)(cx_array_name* a, size_t idx, size_t n);
 cx_array_api_ void cx_array_name_(_del)(cx_array_name* a, size_t idx);
 cx_array_api_ void cx_array_name_(_delswap)(cx_array_name* a, size_t i);
-cx_array_api_ void cx_array_name_(_sort)(cx_array_name* a, int (*f)(const cx_array_type*, const cx_array_type*));
+cx_array_api_ void cx_array_name_(_sort)(cx_array_name* a, int (*f)(cx_array_type*, cx_array_type*));
 cx_array_api_ ssize_t cx_array_name_(_find)(cx_array_name* a, cx_array_type v);
 
 //
@@ -515,7 +515,7 @@ cx_array_api_ void cx_array_name_(_delswap)(cx_array_name* a, size_t idx) {
     a->len_--;
 }
 
-cx_array_api_ void cx_array_name_(_sort)(cx_array_name* a, int (*f)(const cx_array_type*, const cx_array_type*)) {
+cx_array_api_ void cx_array_name_(_sort)(cx_array_name* a, int (*f)(cx_array_type*, cx_array_type*)) {
 
     qsort(a->data,a->len_,sizeof(*(a->data)),(int (*)(const void*,const void*))f);
 }

@@ -1,5 +1,4 @@
 #include "cx_pool_allocator.h"
-
 #include "cx_error.h"
 #include "cx_logger.h"
 
@@ -8,13 +7,14 @@
 #include "array.h"
 #include "hmap.h"
 #include "string.h"
-#include "queue.h"
+#include "cqueue.h"
 #include "list.h"
 #include "timer.h"
 #include "var.h"
 #include "json_build.h"
 #include "json_parse.h"
 #include "tpool.h"
+#include "bqueue.h"
 #include "bench_hmap.h"
 
 CxLogger* g_logger = NULL;
@@ -27,17 +27,21 @@ int main() {
     cx_logger_add_handler(g_logger, cx_logger_console_handler, NULL);
 
     LOGW("START");
+    test_bqueue(10, NULL);
+
     cxAllocPoolTests();
     test_array();
-    test_hmap();
+    test_hmapii(1000, 0, NULL);
+    test_hmapss(1000, 0, NULL);
+    test_hmapcc(1000, 0, NULL);
     cxStrTests();
-    cxQueueTests();
     cx_list_tests();
-    //// cx_timer_tests();
     cx_var_tests();
-    ////json_build_tests();
+    json_build_tests();
     json_parse_tests();
-    //bench_hmap();
+    cxQueueTests();
+    //// //// cx_timer_tests();
+    //// //bench_hmap();
     tpool_tests();
     LOGW("END");
 

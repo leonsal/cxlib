@@ -49,15 +49,16 @@ static inline CxError cx_error_printf(int code, const char* func, const char* fm
 
 // Free CxError with dynamically allocated error message
 #define CXERR_FREE(ERR)\
-    {if (ERR.alloc_ && ERR.msg) {free(ERR.msg); ERR.msg=NULL;}}
+    {CxError error=ERR; if (error.alloc_ && error.msg) {free(error.msg); error.msg=NULL;}}
 
 // if ERR is not OK, prints error and aborts
 #define CXERR_CHK(ERR)\
-    {if (ERR.msg) {printf("ERROR file:%s line:%d code:%d func:%s msg:%s\n", __FILE__, __LINE__, ERR.code, ERR.func, ERR.msg); abort();}}
+    {const CxError error=ERR;if (error.msg) {printf("ERROR file:%s line:%d code:%d func:%s msg:%s\n",\
+    __FILE__, __LINE__, error.code, error.func, error.msg); abort();}}
 
-// If ERR is not OK, returns the CxError struct
-#define CXERR_RET(ERR)\
-    {if (ERR.msg) {return ERR;}}
+// If function call returns error, returns this error
+#define CXERR_RET(FUNC)\
+    {CxError error=FUNC;if (error.msg) {return error;}}
 
 // If COND is not true, prints error and aborts
 #define CXCHK(COND)\

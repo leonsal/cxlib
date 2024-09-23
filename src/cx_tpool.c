@@ -9,14 +9,14 @@ typedef struct Work {
     void* param;            // User work pointer to function parameter
 } Work;
 
-// Define queue of Work
-#define cx_queue_name queue
-#define cx_queue_type Work
-#define cx_queue_static
-#define cx_queue_inline
-#define cx_queue_instance_allocator
-#define cx_queue_implement
-#include "cx_queue.h"
+// Define concurrent queue of Work
+#define cx_cqueue_name queue
+#define cx_cqueue_type Work
+#define cx_cqueue_static
+#define cx_cqueue_inline
+#define cx_cqueue_instance_allocator
+#define cx_cqueue_implement
+#include "cx_cqueue.h"
 
 // Thread pool state
 typedef struct CxThreadPool {

@@ -6,7 +6,7 @@ set(SOURCES
     include/cx_array.h
     include/cx_str.h
     include/cx_hmap.h
-    include/cx_queue.h
+    include/cx_cqueue.h
     include/cx_logger.h
     src/cx_alloc.c
     src/cx_pool_allocator.c
@@ -15,6 +15,7 @@ set(SOURCES
     src/cx_hmap.c
     src/cx_timer.c
     src/cx_var.c
+    src/cx_bqueue.c
     src/cx_json_build.c
     src/cx_json_parse.c
     src/json.c

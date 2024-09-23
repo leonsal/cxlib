@@ -48,7 +48,7 @@
 #include "logger.h"
 
 // Sort function
-static int sort_int_desc(const int* v1, const int* v2) {
+static int sort_int_desc(int* v1, int* v2) {
     return *v2 > *v1;
 }
 

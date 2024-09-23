@@ -2,17 +2,18 @@
 Hashmap Implementation
 ----------------------
 - Uses chaining.
-- Uses global type allocator initialized with default allocator.
-- Can be configured to use custom allocator per instance.
+- Can be configured to use global or custom allocator per instance.
 
 Example
 -------
 
-#include <stdio.h>
-#include <assert.h>
-#define cx_hmap_name map
-#define cx_hmap_key int
-#define cx_hmap_val double
+// Map for int -> double
+#define cx_hmap_name                map
+#define cx_hmap_key                 int
+#define cx_hmap_val                 double
+#define cx_hmap_cmp_key(pk1,pk2)    memcmp(pk1,pk2,sizeof(int))
+#define cx_hmap_hash_key(pk)        cx_hmap_hash_fnv1a32((char*)pk,sizeof(*pk))
+#define cx_hmap_static
 #define cx_hmap_implement
 #include "cx_hmap.h"
 
@@ -66,6 +67,24 @@ Define the type of the map key (mandatory):
 Define the type of the map value (mandatory):
     #define cx_hmap_val <type>
 
+Define the key comparison function (mandatory):
+    #define cx_hmap_cmp_key(pk1,pk2) <cmp_func>
+    example for map<int, T>:
+        #define cx_hmap_cmp_key(pk1,pk2) memcmp(pk1,pk2,sizeof(*pk1))
+    example for map<char*, T>:
+        #define cx_hmap_cmp_key(pk1,pk2) strcmp(pk1,pk2)
+    example for map<cxstr, T>
+        #define cx_hmap_cmp_key(pk1,pk2) cxstr_cmps(pk1,pk2)
+
+Define the key hash function (mandatory):
+    #define cx_hmap_hash_key(pk) <hash_func>
+    example for map<int, T>:
+        #define cx_hmap_hash_key(pk)    cx_hmap_hash_fnv1a32((char*)pk,sizeof(*pk))
+    example for map<char*, T>:
+        #define cx_hmap_hash_key(pk)    cx_hmap_hash_fnv1a32(*pk, strlen(*pk))
+    example for map<cxstr, T>
+        #define cx_hmap_hash_key(pk)    cx_hmap_hash_fnv1a32((pk)->data, (pk)->len_)
+
 Define the default initial number of buckets,
 when map is initialized with nbuckets = 0
     #define cx_hmap_def_nbuckets <n>
@@ -74,16 +93,6 @@ Define the load factor (number of entries/number of buckets)
 which, if exceeded, will imply in the rehash of the hash map
 (expensive operation)
     #define cx_hmap_load_factor <lf>
-
-Define the key comparison function:
-int (*cmp)(const void* k1, const void* k2, size_t size);
-The default comparison function is memcmp();
-    #define cx_hmap_cmp_key(pk1,pk2,s) <cmp_func>
-
-Define the key hash function:
-uint32_t (*hash)(const void* key, size_t size);
-The default hash function implements FNV-1a algorithm
-    #define cx_hmap_hash_key(pk,s) <hash_func>
 
 Define function to free the key of deleted entries:
 void (*free)(void* key);
@@ -178,6 +187,12 @@ Returns statistics for the specified map (if enabled)
 #ifndef cx_hmap_val
     #error "cx_hmap_val not defined"
 #endif
+#ifndef cx_hmap_cmp_key
+    #error "cx_hmap_cmp_key(pk1,pk2) not defined"
+#endif
+#ifndef cx_hmap_hash_key
+    #error "cx_hmap_hash_key(pk) not defined"
+#endif
 
 #ifndef cx_hmap_def_nbuckets
     #define cx_hmap_def_nbuckets (17)
@@ -187,15 +202,6 @@ Returns statistics for the specified map (if enabled)
     #define cx_hmap_load_factor (2.0)
 #endif
 
-// Default key comparison function
-#ifndef cx_hmap_cmp_key
-    #define cx_hmap_cmp_key(pk1,pk2,s) memcmp(pk1,pk2,s)
-#endif
-
-// Default key hash function
-#ifndef cx_hmap_hash_key
-    #define cx_hmap_hash_key(pk,s) cx_hmap_hash_fnv1a32(pk,s)
-#endif
 
 // Default free key function
 #ifndef cx_hmap_free_key
@@ -299,12 +305,6 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
     // Declaration of function to hash keys
     uint32_t cx_hmap_hash_fnv1a32(const void *buf, size_t len);
 
-    // Declaration of function to compare keys of C strings pointers.
-    int cx_hmap_cmp_key_str(const void* k1, const void* k2);
-
-    // Declaration of function to hash keys of C strings pointers.
-    size_t cx_hmap_hash_key_str(void* key, size_t keySize);
-
     // Declaration of function for freeing C strings
     void cx_hmap_free_str(char** str);
 
@@ -370,7 +370,8 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
         }
 
         // Hash the key, calculates the bucket index and get its pointer
-        const size_t hash = cx_hmap_hash_key((char*)key, sizeof(cx_hmap_key));
+        //const size_t hash = cx_hmap_hash_key((char*)key, sizeof(cx_hmap_key));
+        const size_t hash = cx_hmap_hash_key(key);
         const size_t idx = hash % m->nbuckets_;
         cx_hmap_name_(_entry)* e = m->buckets_ + idx;
 
@@ -387,7 +388,7 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
         }
 
         // This bucket is used, checks its key
-        if (cx_hmap_cmp_key(&e->key, key, sizeof(cx_hmap_key)) == 0) {
+        if (cx_hmap_cmp_key(&e->key, key) == 0) {
             // For "Get" just returns the pointer to this entry.
             if (op == cx_hmap_op_get_) {
                 return e;
@@ -436,7 +437,7 @@ cx_hmap_api_ cx_hmap_name_(_entry)* cx_hmap_name_(_next)(cx_hmap_name* m, cx_hma
         cx_hmap_name_(_entry)* prev = e;
         cx_hmap_name_(_entry)* curr = e->next_;
         while (curr != NULL) {
-            if (cx_hmap_cmp_key(&curr->key, key, sizeof(cx_hmap_key)) == 0) {
+            if (cx_hmap_cmp_key(&curr->key, key) == 0) {
                 // For "Get" just returns the pointer
                 if (op == cx_hmap_op_get_) {
                     return curr;
