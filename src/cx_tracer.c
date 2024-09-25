@@ -1,3 +1,4 @@
+#include <bits/time.h>
 #include <time.h>
 #include <unistd.h>
 #include <sys/types.h>
@@ -138,7 +139,7 @@ CxError cx_tracer_json_write(CxTracer* tr, CxWriter* out) {
         if (ev->scope == CxTracerScopeDefault) {
             cxstr_printf(&evstr, "}", 1);
         } else {
-            cxstr_printf(&evstr, "\"s\":%c}", (char)ev->scope);
+            cxstr_printf(&evstr, ",\"s\":\"%c\"}", (char)ev->scope);
         }
         if (i < tr->count - 1) {
             cxstr_printf(&evstr, ",\n", (char)ev->scope);
@@ -185,7 +186,7 @@ static inline CxTracerEvent* cx_tracer_append_event(CxTracer* tr, const char* na
 
     // Fills the event slot
     CxTracerEvent* ev = &tr->events[idx];
-    clock_gettime(CLOCK_REALTIME, &ev->ts);
+    clock_gettime(CLOCK_MONOTONIC, &ev->ts);
     ev->pid = getpid();
     ev->tid = thread_local_id;
     ev->scope = CxTracerScopeDefault;

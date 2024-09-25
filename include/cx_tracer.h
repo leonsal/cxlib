@@ -1,8 +1,6 @@
 #ifndef CX_TRACER_H
 #define CX_TRACER_H
 
-#include <stdio.h>
-#include <stddef.h>
 #include "cx_error.h"
 #include "cx_alloc.h"
 #include "cx_writer.h"
@@ -13,6 +11,13 @@ typedef enum {
     CxTracerScopeProcess = 'p',
     CxTracerScopeThread  = 't'
 } CxTracerScope;
+
+// Color names
+#define CxTracerBlack   "black"
+#define CxTracerGrey    "grey"
+#define CxTracerWhite   "white"
+#define CxTracerYellow  "yellow"
+#define CXTracerOlive   "olive"
 
 // Creates and returns new event tracer using specified custom allocator and capacity in number of events.
 // Pass NULL as the allocator to use the default system allocator.

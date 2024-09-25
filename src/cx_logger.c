@@ -153,6 +153,7 @@ CxError cx_logger_set_enabled(CxLogger* logger, bool enabled) {
     CXCHKZ(pthread_mutex_lock(&logger->lock));
     logger->enabled = enabled;
     CXCHKZ(pthread_mutex_unlock(&logger->lock));
+    return CXOK();
 }
 
 CxError cx_logger_add_handler(CxLogger* logger, CxLoggerHandler handler, void* handler_data) {
