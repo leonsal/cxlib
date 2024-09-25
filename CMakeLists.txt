@@ -8,6 +8,7 @@ set(SOURCES
     include/cx_hmap.h
     include/cx_cqueue.h
     include/cx_logger.h
+    include/cx_tracer.h
     src/cx_alloc.c
     src/cx_pool_allocator.c
     src/cx_logger.c
@@ -18,6 +19,7 @@ set(SOURCES
     src/cx_bqueue.c
     src/cx_json_build.c
     src/cx_json_parse.c
+    src/cx_tracer.c
     src/cx_task.c
     src/json.c
     src/json.h

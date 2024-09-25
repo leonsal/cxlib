@@ -3,19 +3,21 @@
 
 #include <stdio.h>
 #include <stddef.h>
+#include "cx_error.h"
+#include "cx_alloc.h"
 #include "cx_writer.h"
 
 typedef enum {
-    CxracerScopeDefault = ' ',
+    CxTracerScopeDefault = ' ',
     CxTracerScopeGlobal  = 'g',
     CxTracerScopeProcess = 'p',
     CxTracerScopeThread  = 't'
 } CxTracerScope;
 
-// Creates and returns pointer to new event tracer with
-// the specified capacity in number of events.
+// Creates and returns new event tracer using specified custom allocator and capacity in number of events.
+// Pass NULL as the allocator to use the default system allocator.
 typedef struct CxTracer CxTracer;
-CxTracer* cx_tracer_new(size_t cap);
+CxTracer* cx_tracer_new(const CxAllocator* alloc, size_t cap);
 
 // Deletes previously created instance of event tracer
 void cx_tracer_del(CxTracer* evt);
@@ -37,11 +39,11 @@ void cx_tracer_instant(CxTracer* tr, const char* name, const char* cat, CxTracer
 
 // Writes all events in JSON format to specified writer.
 // Returns positive error number.
-int cx_tracer_json_write(CxTracer* tr, CxWriter* out);
+CxError cx_tracer_json_write(CxTracer* tr, CxWriter* out);
 
 // Writes all events in JSON format to specified file
 // Returns positive error number.
-int cx_tracer_json_write_file(CxTracer* tr, const char* path);
+CxError cx_tracer_json_write_file(CxTracer* tr, const char* path);
 
 #endif
 
