@@ -1,11 +1,10 @@
-#include <bits/time.h>
 #include <time.h>
-#define _GNU_SOURCE
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/syscall.h>
 #include <pthread.h>
 
+// Define dynamic string with custom allocator used internally
 #include "cx_error.h"
 #define cx_str_name cxstr
 #define cx_str_static
@@ -16,22 +15,22 @@
 #include "cx_tracer.h"
 
 typedef struct CxTracerEvent {
-    cxstr       name;
-    cxstr       cat;
-    pid_t       pid;
-    int         tid;
-    char        ph;
-    CxTracerScope scope;
-    struct timespec ts;
+    cxstr               name;       // Event name
+    cxstr               cat;        // Event category
+    pid_t               pid;        // Associated process id
+    int                 tid;        // Associated thread id
+    char                ph;         // Event type
+    CxTracerScope       scope;      // Event scope
+    struct timespec     ts;         // Event timestamp
 } CxTracerEvent;
 
 typedef struct CxTracer {
-    const CxAllocator*  alloc;
-    CxTracerEvent*      events;
-    size_t              cap;
-    size_t              count;
-    size_t              next_tid;
-    pthread_mutex_t     lock;
+    const CxAllocator*  alloc;      // Custom allocator
+    CxTracerEvent*      events;     // Array of events
+    size_t              cap;        // Capacity of array of events
+    size_t              count;      // Current number of events
+    size_t              next_tid;   // Next thread ID
+    pthread_mutex_t     lock;       // For exclusive access to this state
 } CxTracer;
 
 // Thread local generated thread id
@@ -39,6 +38,8 @@ static _Thread_local int thread_local_id = 0;
 
 // Forward declaration of local functions
 static CxTracerEvent* cx_tracer_append_event(CxTracer* tr, const char* name, const char* cat);
+
+#define CXSTR_MIN_CAP  (32)
 
 CxTracer* cx_tracer_new(const CxAllocator* alloc, size_t cap) {
 
@@ -55,9 +56,9 @@ CxTracer* cx_tracer_new(const CxAllocator* alloc, size_t cap) {
     for (size_t i = 0; i < tr->cap; i++) {
         CxTracerEvent* ev = &tr->events[i];
         ev->name = cxstr_init(alloc);
-        cxstr_reserve(&ev->name, 32);
+        cxstr_reserve(&ev->name, CXSTR_MIN_CAP);
         ev->cat = cxstr_init(alloc);
-        cxstr_reserve(&ev->cat, 32);
+        cxstr_reserve(&ev->cat, CXSTR_MIN_CAP);
     }
 
     tr->count = 0;
@@ -67,11 +68,13 @@ CxTracer* cx_tracer_new(const CxAllocator* alloc, size_t cap) {
 
 void cx_tracer_del(CxTracer* tr) {
 
+    // Free individual events and the events array
     for (size_t i = 0; i < tr->cap; i++) {
         cxstr_free(&tr->events[i].name);
         cxstr_free(&tr->events[i].cat);
     }
     cx_alloc_free(tr->alloc, tr->events, sizeof(CxTracerEvent) * tr->cap);
+
     CXCHKZ(pthread_mutex_destroy(&tr->lock));
     cx_alloc_free(tr->alloc, tr, sizeof(CxTracer));
 }
