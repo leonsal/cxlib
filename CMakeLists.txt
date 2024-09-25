@@ -18,6 +18,7 @@ set(SOURCES
     src/cx_bqueue.c
     src/cx_json_build.c
     src/cx_json_parse.c
+    src/cx_task.c
     src/json.c
     src/json.h
     src/cx_tpool.c

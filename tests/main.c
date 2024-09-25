@@ -16,6 +16,7 @@
 #include "tpool.h"
 #include "bqueue.h"
 #include "bench_hmap.h"
+#include "task.h"
 
 CxLogger* g_logger = NULL;
 
@@ -27,22 +28,23 @@ int main() {
     cx_logger_add_handler(g_logger, cx_logger_console_handler, NULL);
 
     LOGW("START");
-    test_bqueue(10, NULL);
-
-    cxAllocPoolTests();
-    test_array();
-    test_hmapii(1000, 0, NULL);
-    test_hmapss(1000, 0, NULL);
-    test_hmapcc(1000, 0, NULL);
-    cxStrTests();
-    cx_list_tests();
-    cx_var_tests();
-    json_build_tests();
-    json_parse_tests();
-    cxQueueTests();
-    //// //// cx_timer_tests();
-    //// //bench_hmap();
-    tpool_tests();
+    task_tests();
+    // test_bqueue(10, NULL);
+    //
+    // cxAllocPoolTests();
+    // test_array();
+    // test_hmapii(1000, 0, NULL);
+    // test_hmapss(1000, 0, NULL);
+    // test_hmapcc(1000, 0, NULL);
+    // cxStrTests();
+    // cx_list_tests();
+    // cx_var_tests();
+    // json_build_tests();
+    // json_parse_tests();
+    // cxQueueTests();
+    // //// //// cx_timer_tests();
+    // //// //bench_hmap();
+    // tpool_tests();
     LOGW("END");
 
     cx_logger_del(g_logger);
