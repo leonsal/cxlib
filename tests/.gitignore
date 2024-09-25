@@ -3,4 +3,6 @@ build
 build_options
 gmon.out
 tests
+*.json
+
 

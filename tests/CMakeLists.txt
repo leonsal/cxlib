@@ -17,6 +17,7 @@ set(SOURCES
     json_parse.c
     tpool.c
     bqueue.c
+    tracer.c
     task.c
     #bench_hmap.c
     #timer.c 

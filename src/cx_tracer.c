@@ -4,15 +4,14 @@
 #include <sys/syscall.h>
 #include <pthread.h>
 
+#include "cx_tracer.h"
+
 // Define dynamic string with custom allocator used internally
-#include "cx_error.h"
 #define cx_str_name cxstr
 #define cx_str_static
 #define cx_str_instance_allocator
 #define cx_str_implement
 #include "cx_str.h"
-
-#include "cx_tracer.h"
 
 typedef struct CxTracerEvent {
     cxstr               name;       // Event name
@@ -37,7 +36,7 @@ typedef struct CxTracer {
 static _Thread_local int thread_local_id = 0;
 
 // Forward declaration of local functions
-static CxTracerEvent* cx_tracer_append_event(CxTracer* tr, const char* name, const char* cat);
+static inline CxTracerEvent* cx_tracer_append_event(CxTracer* tr, const char* name, const char* cat);
 
 #define CXSTR_MIN_CAP  (32)
 
@@ -167,7 +166,7 @@ CxError cx_tracer_json_write_file(CxTracer* tr, const char* path) {
     return err;
 }
 
-static CxTracerEvent* cx_tracer_append_event(CxTracer* tr, const char* name, const char* cat) {
+static inline CxTracerEvent* cx_tracer_append_event(CxTracer* tr, const char* name, const char* cat) {
 
     // Generates a unique id for the thread once
     CXCHKZ(pthread_mutex_lock(&tr->lock));

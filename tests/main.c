@@ -1,22 +1,23 @@
 #include "cx_pool_allocator.h"
 #include "cx_error.h"
 #include "cx_logger.h"
-
 #include "logger.h"
-#include "alloc.h"
-#include "array.h"
-#include "hmap.h"
-#include "string.h"
-#include "cqueue.h"
-#include "list.h"
-#include "timer.h"
-#include "var.h"
-#include "json_build.h"
-#include "json_parse.h"
-#include "tpool.h"
-#include "bqueue.h"
-#include "bench_hmap.h"
-#include "task.h"
+
+extern void test_tracer(const CxAllocator* alloc);
+// #include "alloc.h"
+// #include "array.h"
+// #include "hmap.h"
+// #include "string.h"
+// #include "cqueue.h"
+// #include "list.h"
+// #include "timer.h"
+// #include "var.h"
+// #include "json_build.h"
+// #include "json_parse.h"
+// #include "tpool.h"
+// #include "bqueue.h"
+// #include "bench_hmap.h"
+// #include "task.h"
 
 CxLogger* g_logger = NULL;
 
@@ -28,7 +29,8 @@ int main() {
     cx_logger_add_handler(g_logger, cx_logger_console_handler, NULL);
 
     LOGW("START");
-    task_tests();
+    test_tracer(NULL);
+    //task_tests();
     // test_bqueue(10, NULL);
     //
     // cxAllocPoolTests();
