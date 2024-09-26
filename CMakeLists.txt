@@ -4,11 +4,22 @@ project(cxlibproj C)
 set(SOURCES
     include/cx_alloc.h
     include/cx_array.h
-    include/cx_str.h
-    include/cx_hmap.h
+    include/cx_bqueue.h
     include/cx_cqueue.h
+    include/cx_error.h
+    include/cx_hmap.h
+    include/cx_hmap2.h
+    include/cx_json_build.h
+    include/cx_json_parse.h
     include/cx_logger.h
+    include/cx_pool_allocator.h
+    include/cx_queue.h
+    include/cx_str.h
+    include/cx_timer.h
+    include/cx_tpool.h
     include/cx_tracer.h
+    include/cx_var.h
+    include/cx_writer.h
     src/cx_alloc.c
     src/cx_pool_allocator.c
     src/cx_logger.c
