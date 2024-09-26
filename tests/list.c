@@ -5,8 +5,8 @@
 #include "cx_alloc.h"
 #include "cx_pool_allocator.h"
 #include "util.h"
-#include "list.h"
 #include "logger.h"
+#include "registry.h"
 
 #define cx_list_name list
 #define cx_list_type uint64_t
@@ -17,18 +17,7 @@
 #define cx_list_instance_allocator
 #include "cx_list.h"
 
-void cx_list_tests(void) {
-
-    // Use default 'malloc/free' allocator
-    cx_list_test(cx_def_allocator());
-
-    // Use pool allocator
-    CxPoolAllocator* pa = cx_pool_allocator_create(4*1024, NULL);
-    cx_list_test(cx_pool_allocator_iface(pa));
-    cx_pool_allocator_destroy(pa);
-}
-
-void cx_list_test(const CxAllocator* alloc) {
+void test_list1(const CxAllocator* alloc) {
 
     LOGI("list. alloc:%p", alloc);
     list l1 = list_init(alloc);
@@ -306,4 +295,20 @@ void cx_list_test(const CxAllocator* alloc) {
     list_free(&l1);
 }
 
+static void test_list(void) {
+
+    // Use default 'malloc/free' allocator
+    test_list1(cx_def_allocator());
+
+    // Use pool allocator
+    CxPoolAllocator* pa = cx_pool_allocator_create(4*1024, NULL);
+    test_list1(cx_pool_allocator_iface(pa));
+    cx_pool_allocator_destroy(pa);
+}
+
+__attribute__((constructor))
+static void reg_list(void) {
+
+    reg_add_test("list", test_list);
+}
 

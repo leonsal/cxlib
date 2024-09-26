@@ -4,7 +4,7 @@
 #include <stdio.h>
 
 #include "logger.h"
-#include "hmap.h"
+#include "registry.h"
 
 // Map int -> int
 #define cx_hmap_name                mapii
@@ -406,4 +406,16 @@ void test_hmapcc(size_t size, size_t nbuckets, const CxAllocator* alloc) {
     mapcc_free(&m);
 }
 
+void test_hmap(void) {
+
+    test_hmapii(1000, 0, NULL);
+    test_hmapss(1000, 0, NULL);
+    test_hmapcc(1000, 0, NULL);
+}
+
+__attribute__((constructor))
+static void reg_hmap(void) {
+
+    reg_add_test("hmap", test_hmap);
+}
 

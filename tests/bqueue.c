@@ -1,9 +1,8 @@
 #include <stdint.h>
 #include <stdbool.h>
-#include "cx_logger.h"
 #include "cx_bqueue.h"
 #include "logger.h"
-#include "bqueue.h"
+#include "registry.h"
 
 static bool chk_block(uint8_t* b, size_t size, uint8_t val) {
 
@@ -14,7 +13,7 @@ static bool chk_block(uint8_t* b, size_t size, uint8_t val) {
     }
     return true;
 }
-void test_bqueue(size_t count, const CxAllocator* alloc) {
+void test_bqueue1(size_t count, const CxAllocator* alloc) {
 
     LOGI("%s: count=%lu alloc=%p", __func__, count, alloc);
 
@@ -64,5 +63,16 @@ void test_bqueue(size_t count, const CxAllocator* alloc) {
 
     cx_bqueue_pstats(q);
     cx_bqueue_del(q);
+}
+
+void test_bqueue(void) {
+
+    test_bqueue1(10, NULL);
+}
+
+__attribute__((constructor))
+static void reg_bqueue(void) {
+
+    reg_add_test("bqueue", test_bqueue);
 }
 

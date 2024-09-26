@@ -9,23 +9,13 @@
 
 #include "util.h"
 #include "logger.h"
-#include "var.h"
+#include "registry.h"
 
 
-void cx_var_tests(void) {
 
-    // Use default 'malloc/free' allocator
-    cx_var_test(cx_def_allocator());
+static void test_var1(const CxAllocator* alloc) {
 
-    // Use pool allocator
-    CxPoolAllocator* pa = cx_pool_allocator_create(4*1024, NULL);
-    cx_var_test(cx_pool_allocator_iface(pa));
-    cx_pool_allocator_destroy(pa);
-}
-
-void cx_var_test(const CxAllocator* alloc) {
-
-    LOGI("var alloc=%p", alloc);
+    LOGI("%s: alloc=%p", __func__, alloc);
     // Primitives
     {
         CxVar* var = cx_var_new(alloc);
@@ -189,5 +179,22 @@ void cx_var_test(const CxAllocator* alloc) {
         cx_var_del(dst);
     }
 
+}
+
+static void test_var(void) {
+
+    // Use default 'malloc/free' allocator
+    test_var1(cx_def_allocator());
+
+    // Use pool allocator
+    CxPoolAllocator* pa = cx_pool_allocator_create(4*1024, NULL);
+    test_var1(cx_pool_allocator_iface(pa));
+    cx_pool_allocator_destroy(pa);
+}
+
+__attribute__((constructor))
+static void reg_var(void) {
+
+    reg_add_test("var", test_var);
 }
 

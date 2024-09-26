@@ -6,22 +6,11 @@
 #include "util.h"
 #include "logger.h"
 #include "cx_json_parse.h"
-#include "json_parse.h"
+#include "registry.h"
 
 
 
-void json_parse_tests(void) {
-
-    // Use default 'malloc/free' allocator
-    json_parse_test(cx_def_allocator());
-
-    // Use pool allocator
-    CxPoolAllocator* pa = cx_pool_allocator_create(4*1024, NULL);
-    json_parse_test(cx_pool_allocator_iface(pa));
-    cx_pool_allocator_destroy(pa);
-}
-
-void json_parse_test(const CxAllocator* alloc) {
+void test_json_parse1(const CxAllocator* alloc) {
 
     LOGI("json parse alloc:%p", alloc);
     size_t      len;
@@ -154,4 +143,20 @@ void json_parse_test(const CxAllocator* alloc) {
     }
 }
 
+void test_json_parse(void) {
+
+    // Use default 'malloc/free' allocator
+    test_json_parse1(cx_def_allocator());
+
+    // Use pool allocator
+    CxPoolAllocator* pa = cx_pool_allocator_create(4*1024, NULL);
+    test_json_parse1(cx_pool_allocator_iface(pa));
+    cx_pool_allocator_destroy(pa);
+}
+
+__attribute__((constructor))
+static void reg_json_parse(void) {
+
+    reg_add_test("json_parse", test_json_parse);
+}
 

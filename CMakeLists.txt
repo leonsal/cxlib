@@ -45,3 +45,7 @@ target_include_directories(cxlib
     PUBLIC ${PROJECT_SOURCE_DIR}/include
 )
 
+add_subdirectory(tests)
+
+
+

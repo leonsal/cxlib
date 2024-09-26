@@ -9,7 +9,7 @@
 #include "util.h"
 #include "logger.h"
 #include "cx_tpool.h"
-#include "tpool.h"
+#include "registry.h"
 
 typedef struct Work {
     atomic_int counter;
@@ -17,20 +17,8 @@ typedef struct Work {
 
 static void tpool_worker(void* arg);
 
-void tpool_tests(void) {
 
-    // Use default allocator
-    tpool_test(NULL, 1, 20);
-    tpool_test(NULL, 8, 20);
-
-    // Use pool allocator
-    CxPoolAllocator* pa = cx_pool_allocator_create(4*1024, NULL);
-    tpool_test(cx_pool_allocator_iface(pa), 1, 20);
-    tpool_test(cx_pool_allocator_iface(pa), 8, 20);
-    cx_pool_allocator_destroy(pa);
-}
-
-void tpool_test(const CxAllocator* alloc, size_t nthreads, size_t nworks) {
+void test_tpool1(const CxAllocator* alloc, size_t nthreads, size_t nworks) {
 
     LOGI("%s: alloc:%p nthreads=%zu nworks=%zu", __func__, alloc, nthreads, nworks);
 
@@ -51,5 +39,24 @@ static void tpool_worker(void *arg) {
 
     Work* work = arg;
     work->counter++;
+}
+
+static void test_tpool(void) {
+
+    // Use default allocator
+    test_tpool1(NULL, 1, 20);
+    test_tpool1(NULL, 8, 20);
+
+    // Use pool allocator
+    CxPoolAllocator* pa = cx_pool_allocator_create(4*1024, NULL);
+    test_tpool1(cx_pool_allocator_iface(pa), 1, 20);
+    test_tpool1(cx_pool_allocator_iface(pa), 8, 20);
+    cx_pool_allocator_destroy(pa);
+}
+
+__attribute__((constructor))
+static void reg_tpool(void) {
+
+    reg_add_test("tpool", test_tpool);
 }
 

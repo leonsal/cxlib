@@ -2,6 +2,8 @@
 #include <stdbool.h>
 #include <pthread.h>
 #include "cx_tracer.h"
+#include "logger.h"
+#include "registry.h"
 
 struct GenArgs {
     CxTracer*   tr;         // Tracer object
@@ -30,8 +32,9 @@ static void* gen_events(void* arg) {
 }
 
 
-void test_tracer(const CxAllocator* alloc) {
+void test_tracer1(const CxAllocator* alloc) {
 
+    LOGI("%s: alloc:%p", __func__,  alloc);
     CxTracer* tr = cx_tracer_new(alloc, 16*1024);
 
     // Creates event generation thread 1
@@ -83,5 +86,16 @@ void test_tracer(const CxAllocator* alloc) {
 
     cx_tracer_del(tr);
 
+}
+
+void test_tracer(void) {
+
+    test_tracer1(NULL);
+}
+
+__attribute__((constructor))
+static void reg_tracer(void) {
+
+    reg_add_test("tracer", test_tracer);
 }
 

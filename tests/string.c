@@ -13,22 +13,10 @@
 #define cx_str_instance_allocator
 #define cx_str_implement
 #include "cx_str.h"
-
-#include "string.h"
 #include "logger.h"
+#include "registry.h"
 
-void cxStrTests(void) {
-
-    // Use default allocator
-    cxStrTest(cx_def_allocator()); 
-
-   // Use pool allocator
-    CxPoolAllocator* ba = cx_pool_allocator_create(4*1024, NULL);
-    cxStrTest(cx_pool_allocator_iface(ba));
-    cx_pool_allocator_destroy(ba);
-}
-
-void cxStrTest(const CxAllocator* alloc) {
+static void test_string1(const CxAllocator* alloc) {
 
     LOGI("strings. alloc=%p", alloc);
 
@@ -179,4 +167,20 @@ void cxStrTest(const CxAllocator* alloc) {
     cxstr_free(&s2);
 }
 
+static void test_string(void) {
+
+    // Use default allocator
+    test_string1(cx_def_allocator()); 
+
+   // Use pool allocator
+    CxPoolAllocator* ba = cx_pool_allocator_create(4*1024, NULL);
+    test_string1(cx_pool_allocator_iface(ba));
+    cx_pool_allocator_destroy(ba);
+}
+
+__attribute__((constructor))
+static void reg_array(void) {
+
+    reg_add_test("string", test_string);
+}
 

@@ -3,18 +3,12 @@
 #include <stdlib.h>
 #include <time.h>
 
+#include "registry.h"
 #include "cx_pool_allocator.h"
-#include "alloc.h"
 #include "logger.h"
 
-void cxAllocPoolTests(void) {
 
-    cxAllocPoolTest(1000, 1*1024, 10);
-    cxAllocPoolTest(2000, 2*1024, 10);
-    cxAllocPoolTest(3000, 3*1024, 10);
-}
-
-void cxAllocPoolTest(size_t allocs, size_t blockSize, size_t ncycles) {
+static void test_alloc_pool(size_t allocs, size_t blockSize, size_t ncycles) {
 
     LOGI("alloc pool test. allocs=%lu blockSize=%lu cycles:%lu ", allocs, blockSize, ncycles);
 
@@ -68,7 +62,7 @@ void cxAllocPoolTest(size_t allocs, size_t blockSize, size_t ncycles) {
     free(groups);
 }
 
-void cxAllocPoolTestPrint(CxPoolAllocator* pa) {
+void test_alloc_pool_print(CxPoolAllocator* pa) {
 
     CxPoolAllocatorStats stats = cx_pool_allocator_stats(pa);
     printf("nallocs:%lu "
@@ -81,5 +75,18 @@ void cxAllocPoolTestPrint(CxPoolAllocator* pa) {
             stats.usedBlocks,
             stats.freeBlocks
     );
+}
+
+static void test_alloc(void) {
+
+    test_alloc_pool(999, 1*1024, 10);
+    test_alloc_pool(1999, 2*1024, 10);
+    test_alloc_pool(2999, 3*1024, 10);
+}
+
+__attribute__((constructor))
+static void reg_alloc(void) {
+
+    reg_add_test("alloc", test_alloc);
 }
 

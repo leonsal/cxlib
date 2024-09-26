@@ -1,2 +1,8 @@
 .cache
 build
+build_options
+gmon.out
+cxtests
+*.json
+
+

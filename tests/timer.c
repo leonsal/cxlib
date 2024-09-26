@@ -9,7 +9,7 @@
 #include "logger.h"
 #include "util.h"
 #include "cx_timer.h"
-#include "timer.h"
+#include "registry.h"
 
 // Timer function result
 typedef struct Result {
@@ -34,18 +34,8 @@ typedef struct State {
 static void timer_func(CxTimer* timer, void* arg);
 static void periodic_func(CxTimer* tm, void* arg);
 
-void cx_timer_tests() {
 
-    // Tests with default allocator
-    cx_timer_test(cx_def_allocator());
-
-    // Tests with pool allocator
-    CxPoolAllocator* pa = cx_pool_allocator_create(4*1024, NULL);
-    cx_timer_test(cx_pool_allocator_iface(pa));
-    cx_pool_allocator_destroy(pa);
-}
-
-void cx_timer_test(const CxAllocator* alloc) {
+void test_timer1(const CxAllocator* alloc) {
 
     LOGI("timer. alloc:%p", alloc);
 
@@ -147,5 +137,22 @@ static void periodic_func(CxTimer* tm, void* arg) {
     // Reactivates itself
     struct timespec delay = cx_timer_ts_from_secs(0.01);
     cx_timer_set(tm, delay, periodic_func, (void*)count, NULL);
+}
+
+void test_timer() {
+
+    // Tests with default allocator
+    test_timer1(cx_def_allocator());
+
+    // Tests with pool allocator
+    CxPoolAllocator* pa = cx_pool_allocator_create(4*1024, NULL);
+    test_timer1(cx_pool_allocator_iface(pa));
+    cx_pool_allocator_destroy(pa);
+}
+
+__attribute__((constructor))
+static void reg_timer(void) {
+
+    reg_add_test("timer", test_timer);
 }
 

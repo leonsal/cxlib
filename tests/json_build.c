@@ -3,10 +3,10 @@
 
 #include "cx_alloc.h"
 #include "cx_pool_allocator.h"
+#include "cx_json_build.h"
 #include "util.h"
 #include "logger.h"
-#include "cx_json_build.h"
-#include "json_build.h"
+#include "registry.h"
 
 #define cx_str_name cxstr
 #define cx_str_instance_allocator
@@ -18,18 +18,8 @@
 static void json_replacer(CxVar* var, void* userdata);
 static int cxstring_write(cxstr* str, void* data, size_t len);
 
-void json_build_tests(void) {
 
-    // Use default 'malloc/free' allocator
-    json_build_test(cx_def_allocator());
-
-    // Use pool allocator
-    CxPoolAllocator* pa = cx_pool_allocator_create(4*1024, NULL);
-    json_build_test(cx_pool_allocator_iface(pa));
-    cx_pool_allocator_destroy(pa);
-}
-
-void json_build_test(const CxAllocator* alloc) {
+void test_json_build1(const CxAllocator* alloc) {
 
     LOGI("json_build alloc:%p", alloc);
 
@@ -77,5 +67,22 @@ static int cxstring_write(cxstr* str, void* data, size_t len) {
 }
 
 static void json_replacer(CxVar* var, void* userdata) {
+}
+
+static void test_json_build(void) {
+
+    // Use default 'malloc/free' allocator
+    test_json_build1(cx_def_allocator());
+
+    // Use pool allocator
+    CxPoolAllocator* pa = cx_pool_allocator_create(4*1024, NULL);
+    test_json_build1(cx_pool_allocator_iface(pa));
+    cx_pool_allocator_destroy(pa);
+}
+
+__attribute__((constructor))
+static void reg_json_build(void) {
+
+    reg_add_test("json_build", test_json_build);
 }
 

@@ -3,7 +3,7 @@
 
 #include "cx_alloc.h"
 #include "cx_pool_allocator.h"
-#include "array.h"
+#include "registry.h"
 #include "util.h"
 
 // Define array of integers
@@ -52,20 +52,6 @@ static int sort_int_desc(int* v1, int* v2) {
     return *v2 > *v1;
 }
 
-void test_array(void) {
-
-    // Use default allocator
-    const size_t size = 1000;
-    test_array_int(size, cx_def_allocator());
-    test_array_str(size, cx_def_allocator());
-    test_array_cxstr(size, cx_def_allocator());
-
-    // Use pool allocator
-    CxPoolAllocator* ba = cx_pool_allocator_create(4*1024, NULL);
-    test_array_int(size, cx_pool_allocator_iface(ba));
-    test_array_cxstr(size, cx_pool_allocator_iface(ba));
-    cx_pool_allocator_destroy(ba);
-}
 
 void test_array_int(size_t size, const CxAllocator* alloc) {
 
@@ -380,3 +366,26 @@ void test_array_cxstr(size_t size, const CxAllocator* alloc) {
     }
     arrs_free(&a);
 }
+
+void test_array(void) {
+
+    // Use default allocator
+    const size_t size = 1000;
+    test_array_int(size, cx_def_allocator());
+    test_array_str(size, cx_def_allocator());
+    test_array_cxstr(size, cx_def_allocator());
+
+    // Use pool allocator
+    CxPoolAllocator* ba = cx_pool_allocator_create(4*1024, NULL);
+    test_array_int(size, cx_pool_allocator_iface(ba));
+    test_array_cxstr(size, cx_pool_allocator_iface(ba));
+    cx_pool_allocator_destroy(ba);
+}
+
+__attribute__((constructor))
+static void reg_array(void) {
+
+    reg_add_test("array", test_array);
+}
+
+

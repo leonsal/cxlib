@@ -1,12 +1,6 @@
-#
-# Cross platform makefile for driving CMake and other tools.
-# In windows it requires mingw32-make.exe.
-# >make help // to see the available commands and options
-#
-
 # Use this character to start a rule recipe
 .RECIPEPREFIX = >
-CLEANFILES=tests
+CLEANFILES=cxtests
 
 # Sets compiler option
 CC=-DCMAKE_C_COMPILER=gcc
@@ -132,14 +126,14 @@ pp:
 #
 .PHONY: d
 d: all
-> gdb tests
+> gdb cxtests
 
 #
 # Run target
 #
 .PHONY: r
 r: all
-> ./tests
+> ./cxtests
 
 #
 # Show help target
@@ -154,7 +148,6 @@ help:
 > $(info $(TAB)ninja=1		use ninja (default=makefiles))
 > $(info $(TAB)jobs=n		number of jobs (default=nproc))
 > $(info $(TAB)clang=1		use clang compiler (default=gcc))
-> $(info $(TAB)msvc=1		use msvc (default=gcc))
 > $(info $(TAB)release=1	release build (default=debug))
 > $(info $(TAB)debinfo=1	generates debug info)
 > $(info $(TAB)gprof=1		generates profiler info)

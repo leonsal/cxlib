@@ -5,6 +5,7 @@
 #include "cx_pool_allocator.h"
 #include "logger.h"
 #include "util.h"
+#include "registry.h"
 
 #define cx_cqueue_name qu64
 #define cx_cqueue_type uint64_t
@@ -58,7 +59,7 @@ static void* reader(void* arg) {
     return NULL;
 }
 
-void cxQueueTests(void) {
+void test_cqueue(void) {
 
     // Use pool allocator
     CxPoolAllocator* pa = cx_pool_allocator_create(4*1024, NULL);
@@ -198,6 +199,12 @@ void cxQueueTests(void) {
     }
 
     cx_pool_allocator_destroy(pa);
+}
+
+__attribute__((constructor))
+static void reg_cqueue(void) {
+
+    reg_add_test("cqueue", test_cqueue);
 }
 
 
