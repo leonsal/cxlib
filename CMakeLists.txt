@@ -42,7 +42,6 @@ set(SOURCES
 )
 
 add_library(cxlib ${SOURCES})
-set_property(TARGET cxlib PROPERTY C_STANDARD  11)
 target_include_directories(cxlib
     PUBLIC ${PROJECT_SOURCE_DIR}/include
 )
