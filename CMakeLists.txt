@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.16 FATAL_ERROR)
 project(cxlibproj C)
 
+option(CXLIB_BUILD_TESTS "Build the test program" ON)
+
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(SOURCES
     include/cx_alloc.h
@@ -45,7 +47,9 @@ target_include_directories(cxlib
     PUBLIC ${PROJECT_SOURCE_DIR}/include
 )
 
-add_subdirectory(tests)
+if (CXLIB_BUILD_TESTS)
+    add_subdirectory(tests)
+endif()
 
 
 
