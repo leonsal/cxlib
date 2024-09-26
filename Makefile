@@ -1,6 +1,6 @@
 # Use this character to start a rule recipe
 .RECIPEPREFIX = >
-CLEANFILES=cxtests
+CLEANFILES=cxtests *.json
 
 # Sets compiler option
 CC=-DCMAKE_C_COMPILER=gcc
