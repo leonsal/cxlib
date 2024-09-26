@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.16 FATAL_ERROR)
 project(cxlibproj C)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(SOURCES
     include/cx_alloc.h
     include/cx_array.h
