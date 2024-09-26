@@ -19,5 +19,4 @@ add_executable(cxtests
     task.c
 )
 target_link_libraries(cxtests cxlib m)
-target_include_directories(cxtests PRIVATE ${PROJECT_SOURCE_DIR}/include)
 
