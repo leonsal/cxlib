@@ -11,30 +11,32 @@
 #define cx_str_implement
 #include "cx_str.h"
 
-// Define internal array of task ids
-#define cx_array_name arr_tid
-#define cx_array_type size_t
+// Define internal array of pointers to CxTaskFlowTask
+#define cx_array_name arr_ptask
+#define cx_array_type CxTaskFlowTask*
 #define cx_array_static
 #define cx_array_implement
 #include "cx_array.h"
 
 // Task information
-typedef struct TaskInfo {
+typedef struct CxTaskFlowTask {
     CxTaskFlow*         tf;             // Associated Task Flow
     cxstr               name;           // Task unique name
-    CxTaskFlowTask    task_fn;        // Task function pointer
+    CxTaskFlowTaskFn    task_fn;        // Task function pointer
     void*               task_arg;       // Task argument pointer
-    arr_tid             inps;           // Array of task ids which are inputs of this one (dependencies)
-    arr_tid             outs;           // Array of task ids which depends on this one (dependants)
+    arr_ptask           inps;           // Array of pointers to tasks which are inputs of this one (dependencies)
+    arr_ptask           outs;           // Array of pointers to task which depends on this one (dependants)
     size_t              cycles;         // Task last cycle executed
-} TaskInfo;
+    void*               udata;          // Optional associated user data 
+} CxTaskFlowTask;
 
-// Define internal array of TaskInfo
+// Define internal array of CxTaskFlowTask
 #define cx_array_name arr_task
-#define cx_array_type TaskInfo
+#define cx_array_type CxTaskFlowTask
 #define cx_array_static
 #define cx_array_implement
 #include "cx_array.h"
+
 
 typedef struct CxTaskFlow {
     pthread_mutex_t     lock;           // For exclusive access
@@ -42,8 +44,8 @@ typedef struct CxTaskFlow {
     size_t              nthreads;
     CxThreadPool*       tpool;          // Thread pool
     bool                started;
-    size_t              cycles;
-    size_t              run_cycles;
+    size_t              cycles;         // Number of cycles to run (0=unlimited)
+    size_t              run_cycles;     // Number of cycles run
     arr_task            tasks;          // Array with all tasks
 } CxTaskFlow;
 
@@ -68,7 +70,7 @@ CxError cx_task_flow_del(CxTaskFlow* tr) {
 
 static void cx_task_wrapper(void* arg) {
 
-    TaskInfo* tinfo = arg;
+    CxTaskFlowTask* tinfo = arg;
     CxTaskFlow* tf = tinfo->tf;
     // Executes user task
     tinfo->task_fn(tinfo->task_arg);
@@ -77,7 +79,7 @@ static void cx_task_wrapper(void* arg) {
     CXCHKZ(pthread_mutex_lock(&tf->lock));
 
     // If this task has no outputs it is sink task
-    if (arr_tid_len(&tinfo->outs) == 0) {
+    if (arr_ptask_len(&tinfo->outs) == 0) {
 
 
         CXCHKZ(pthread_mutex_unlock(&tf->lock));
@@ -85,14 +87,13 @@ static void cx_task_wrapper(void* arg) {
     }
 
     // For each current task output, checks if its inputs are satisfied.
-    for (size_t to = 0; to < arr_tid_len(&tinfo->outs); to++) {
-        const size_t tid = tinfo->outs.data[to];
-        TaskInfo* tout = &tf->tasks.data[tid];
+    for (size_t to = 0; to < arr_ptask_len(&tinfo->outs); to++) {
+        CxTaskFlowTask* tout = &tf->tasks.data[to];
 
         // Checks if all the current output task inputs are satisfied
         bool inputs_ok = true;
-        for (size_t ti = 0; to < arr_tid_len(&tout->inps); to++) {
-            TaskInfo* tinp = &tf->tasks.data[ti];
+        for (size_t ti = 0; to < arr_ptask_len(&tout->inps); to++) {
+            CxTaskFlowTask* tinp = &tf->tasks.data[ti];
             if (tinp->cycles != tinfo->cycles) {
                 inputs_ok = false;
             }
@@ -118,8 +119,8 @@ CxError cx_task_flow_start(CxTaskFlow* ts, size_t cycles) {
 
     // Start tasks with no inputs (no dependencies)
     for (size_t i = 0; i < arr_task_len(&ts->tasks); i++) {
-        TaskInfo* tinfo = &ts->tasks.data[i];
-        if (arr_tid_len(&tinfo->inps) == 0) {
+        CxTaskFlowTask* tinfo = &ts->tasks.data[i];
+        if (arr_ptask_len(&tinfo->inps) == 0) {
             const int res = cx_tpool_run(ts->tpool, cx_task_wrapper, tinfo);
             if (res) {
                 return CXERR2(res, "Error starting thread");
@@ -140,53 +141,68 @@ size_t cx_task_flow_cycles(CxTaskFlow* ts) {
     return 0;
 }
 
-CxError cx_task_flow_add_task(CxTaskFlow* tf, const char* name, CxTaskFlowTask fn, void* arg, size_t* tid) {
+CxError cx_task_flow_add_task(CxTaskFlow* tf, const char* name, CxTaskFlowTaskFn fn, void* arg, void* udata, CxTaskFlowTask** ptask) {
 
     // The task runner must be stopped
 
     // Checks if new task name is not being used
     for (size_t i = 0; i < arr_task_len(&tf->tasks); i++) {
-        TaskInfo* pinfo = &tf->tasks.data[i];
-        if (cxstr_cmp(&pinfo->name, name) == 0) {
+        CxTaskFlowTask* task = &tf->tasks.data[i];
+        if (cxstr_cmp(&task->name, name) == 0) {
             return CXERR("Task name already present");
         }
     }
 
-    TaskInfo tinfo = {
+    CxTaskFlowTask task = {
         .tf = tf,
         .name = cxstr_initc(name),
         .task_fn = fn,
         .task_arg = arg,
+        .udata = udata,
     };
-    arr_task_push(&tf->tasks, tinfo);
-    *tid = arr_task_len(&tf->tasks) - 1;
+    arr_task_push(&tf->tasks, task);
+    const size_t idx = arr_task_len(&tf->tasks) - 1;
+    *ptask = &tf->tasks.data[idx];
 
     return CXOK();
 }
 
-CxError cx_task_flow_task_dep(CxTaskFlow* tr, size_t tid, size_t other) {
+CxError cx_task_flow_set_task_dep(CxTaskFlowTask* task, CxTaskFlowTask* dep) {
 
-    const size_t ntasks = arr_task_len(&tr->tasks);
-    if (tid >= ntasks) {
-        return CXERR("Invalid task id");
+    // Checks if both task pointers are valid
+    CxTaskFlow* tf = task->tf;
+    bool task_found = false;
+    bool dep_found = false;
+    for (size_t i = 0; i < arr_task_len(&tf->tasks); i++) {
+        CxTaskFlowTask* curr = &tf->tasks.data[i];
+        if (curr == task) {
+            task_found = true;
+            continue;
+        }
+        if (curr == dep) {
+            dep_found = true;
+            continue;
+        }
+
     }
-    if (other >= ntasks) {
-        return CXERR("Invalid dependency task id");
+    if (!task_found) {
+        return CXERR("Task not found");
     }
-    if (tid == other) {
+    if (!dep_found) {
+        return CXERR("Task dependency not found");
+    }
+    if (task == dep) {
         return CXERR("Task cannot depend on itself");
     }
 
-    TaskInfo* tinfo = &tr->tasks.data[tid];
-    for (size_t i = 0; i < arr_tid_len(&tinfo->inps); i++) {
-        if (tinfo->inps.data[i] == other) {
+    // Checks if dependency already set
+    for (size_t i = 0; i < arr_ptask_len(&task->inps); i++) {
+        if (task->inps.data[i] == dep) {
             return CXERR("Dependency already set");
         }
     }
-    arr_tid_push(&tinfo->inps, other);
 
-    tinfo = &tr->tasks.data[other];
-    arr_tid_push(&tinfo->outs, tid);
+    arr_ptask_push(&task->inps, dep);
     return CXOK();
 }
 

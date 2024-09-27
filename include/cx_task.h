@@ -1,9 +1,8 @@
-/* WORK IN PROGRESS */
-
-#ifndef CX_TASK_H
-#define CX_TASK_H
+#ifndef CX_TASK_FLOW_H
+#define CX_TASK_FLOW_H
 
 #include <stdlib.h>
+#include <stdbool.h>
 #include "cx_error.h"
 #include "cx_alloc.h"
 
@@ -21,16 +20,32 @@ CxError cx_task_flow_start(CxTaskFlow* tf, size_t cycles);
 // Waits for the current cycle to run and then stops the task runner.
 CxError cx_task_flow_stop(CxTaskFlow* tf);
 
+// Returns if the Task Flow is running
+bool cx_task_flow_running(CxTaskFlow* tf);
+
 // Returns the number of cycles run
 size_t cx_task_flow_cycles(CxTaskFlow* tf);
 
-// Creates task which will be run in the specified task runner.
+// Adds task in the Task Flow
 // The task runner must be stopped.
-typedef void (*CxTaskFlowTask)(void*);
-CxError cx_task_flow_add_task(CxTaskFlow* tf, const char* name, CxTaskFlowTask fn, void* arg, size_t* tid);
+typedef void (*CxTaskFlowTaskFn)(void*);
+typedef struct CxTaskFlowTask CxTaskFlowTask;
+CxError cx_task_flow_add_task(CxTaskFlow* tf, const char* name, CxTaskFlowTaskFn fn, void* arg, void* udata, CxTaskFlowTask** ptask);
 
 // Sets the dependency of a task
-CxError cx_task_flow_task_dep(CxTaskFlow* tf, size_t tid, size_t other);
+CxError cx_task_flow_set_task_dep(CxTaskFlowTask* task, CxTaskFlowTask* dep);
+
+// Returns the current number of added tasks
+size_t cx_task_flow_task_count(CxTaskFlow* tf);
+
+// Returns task at the specified index
+CxTaskFlowTask* cx_task_flow_get_task(CxTaskFlow* tf, size_t idx);
+
+// Returns task name
+const char* cx_task_flow_get_name(CxTaskFlowTask* task);
+
+// Returns user data associated with task
+void* cx_task_flow_get_udata(CxTaskFlowTask* task);
 
 
 #endif
