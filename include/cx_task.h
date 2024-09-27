@@ -27,26 +27,43 @@ bool cx_tflow_running(CxTFlow* tf);
 size_t cx_tflow_cycles(CxTFlow* tf);
 
 // Adds task in the Task Flow
-// The task runner must be stopped.
+// The task flow must be stopped.
 typedef void (*CxTFlowTaskFn)(void*);
 typedef struct CxTFlowTask CxTFlowTask;
-CxError cx_tflow_add_task(CxTFlow* tf, const char* name, CxTFlowTaskFn fn, void* arg, void* udata, CxTFlowTask** ptask);
+CxError cx_tflow_add_task(CxTFlow* tf, const char* name, CxTFlowTaskFn fn, void* arg, CxTFlowTask** ptask);
 
-// Sets the dependency of a task
-CxError cx_tflow_add_output(CxTFlowTask* task, CxTFlowTask* dep);
+// Sets the dependency (input) of a task
+// The task flow must be stopped.
+CxError cx_tflow_set_task_dep(CxTFlowTask* task, CxTFlowTask* dep);
+
+// Sets task associated user data
+void cx_tflow_set_task_udata(CxTFlowTask* task, void* udata);
 
 // Returns the current number of added tasks
 size_t cx_tflow_task_count(CxTFlow* tf);
 
 // Returns task at the specified index
-CxTFlowTask* cx_tflow_get_task(CxTFlow* tf, size_t idx);
+CxTFlowTask* cx_tflow_task(CxTFlow* tf, size_t idx);
 
 // Returns task name
-const char* cx_tflow_get_name(CxTFlowTask* task);
+const char* cx_tflow_task_name(CxTFlowTask* task);
 
 // Returns user data associated with task
-void* cx_tflow_get_udata(CxTFlowTask* task);
+void* cx_tflow_task_udata(CxTFlowTask* task);
 
+// Returns number of task inputs (dependencies)
+size_t cx_tflow_task_inps(CxTFlowTask* task);
+
+// Returns input task for the specified index.
+// Returns NULL if the index is invalid
+CxTFlowTask* cx_tflow_task_inp_at(CxTFlowTask* task, size_t idx);
+
+// Returns number of task outputs (dependants)
+size_t cx_tflow_task_outs(CxTFlowTask* task);
+
+// Returns ouput task for the specified index.
+// Returns NULL if the index is invalid
+CxTFlowTask* cx_tflow_task_out_at(CxTFlowTask* task, size_t idx);
 
 #endif
 

@@ -139,7 +139,7 @@ size_t cx_tflow_cycles(CxTFlow* ts) {
     return 0;
 }
 
-CxError cx_tflow_add_task(CxTFlow* tf, const char* name, CxTFlowTaskFn fn, void* arg, void* udata, CxTFlowTask** ptask) {
+CxError cx_tflow_add_task(CxTFlow* tf, const char* name, CxTFlowTaskFn fn, void* arg, CxTFlowTask** ptask) {
 
     // The task runner must be stopped
 
@@ -156,7 +156,6 @@ CxError cx_tflow_add_task(CxTFlow* tf, const char* name, CxTFlowTaskFn fn, void*
         .name = cxstr_initc(name),
         .task_fn = fn,
         .task_arg = arg,
-        .udata = udata,
     };
     arr_task_push(&tf->tasks, task);
     const size_t idx = arr_task_len(&tf->tasks) - 1;
@@ -165,7 +164,7 @@ CxError cx_tflow_add_task(CxTFlow* tf, const char* name, CxTFlowTaskFn fn, void*
     return CXOK();
 }
 
-CxError cx_tflow_add_output(CxTFlowTask* task, CxTFlowTask* dep) {
+CxError cx_tflow_set_task_dep(CxTFlowTask* task, CxTFlowTask* dep) {
 
     // Checks if both task pointers are valid
     CxTFlow* tf = task->tf;
@@ -201,8 +200,14 @@ CxError cx_tflow_add_output(CxTFlowTask* task, CxTFlowTask* dep) {
     }
 
     arr_ptask_push(&task->inps, dep);
+    arr_ptask_push(&dep->outs, task);
     return CXOK();
 }
 
+
+void cx_tflow_set_task_udata(CxTFlowTask* task, void* udata) {
+
+    task->udata = udata;
+}
 
 
