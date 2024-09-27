@@ -29,10 +29,10 @@ size_t cx_task_runner_cycles(CxTaskRunner* ts);
 // The task runner must be stopped.
 typedef void (*CxTaskRunnerTask)(void*);
 typedef struct CxTask CxTask;
-CxError cx_task_new(CxTaskRunner* ts, CxTaskRunnerTask t, void* arg, CxTask* task);
+CxError cx_task_new(CxTaskRunner* tr, const char* name, CxTaskRunnerTask fn, void* arg, size_t* tid);
 
 // Sets the dependencies of a task
-CxError cx_task_depends(CxTask* t, CxTask* other);
+CxError cx_task_depends(CxTaskRunner* tr, size_t tid, size_t other);
 
 
 #endif

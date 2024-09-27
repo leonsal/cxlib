@@ -1,4 +1,5 @@
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR})
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_executable(cxtests
     main.c
