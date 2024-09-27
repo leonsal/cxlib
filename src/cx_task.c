@@ -25,7 +25,7 @@ typedef struct CxTFlowTask {
     CxTFlowTaskFn   task_fn;        // Task function pointer
     void*           task_arg;       // Task argument pointer
     arr_ptask       inps;           // Array of pointers to tasks which are inputs of this one (dependencies)
-    arr_ptask       outs;           // Array of pointers to task which depends on this one (dependants)
+    arr_ptask       outs;           // Array of pointers to taskd which are outputs of this one (dependants)
     size_t          cycles;         // Task last cycle executed
     void*           udata;          // Optional associated user data 
 } CxTaskFlowTask;
@@ -167,7 +167,7 @@ CxError cx_tflow_add_task(CxTFlow* tf, const char* name, CxTFlowTaskFn fn, void*
     return CXOK();
 }
 
-CxError cx_tflow_set_task_dep(CxTFlowTask* task, CxTFlowTask* dep) {
+CxError cx_tflow_add_output(CxTFlowTask* task, CxTFlowTask* dep) {
 
     // Checks if both task pointers are valid
     CxTFlow* tf = task->tf;

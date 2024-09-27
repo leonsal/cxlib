@@ -1,5 +1,5 @@
-#ifndef CX_TASK_FLOW_H
-#define CX_TASK_FLOW_H
+#ifndef CX_TFLOW_H
+#define CX_TFLOW_H
 
 #include <stdlib.h>
 #include <stdbool.h>
@@ -33,7 +33,7 @@ typedef struct CxTFlowTask CxTFlowTask;
 CxError cx_tflow_add_task(CxTFlow* tf, const char* name, CxTFlowTaskFn fn, void* arg, void* udata, CxTFlowTask** ptask);
 
 // Sets the dependency of a task
-CxError cx_tflow_set_task_dep(CxTFlowTask* task, CxTFlowTask* dep);
+CxError cx_tflow_add_output(CxTFlowTask* task, CxTFlowTask* dep);
 
 // Returns the current number of added tasks
 size_t cx_tflow_task_count(CxTFlow* tf);
