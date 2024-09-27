@@ -11,9 +11,9 @@ static void task1(void* arg) {
 void test_task1(const CxAllocator* alloc, size_t nthreads) {
 
     LOGI("%s: alloc:%p nthreads=%zu", __func__, alloc, nthreads);
-    CxTaskFlow* tr = cx_task_flow_new(alloc, nthreads);
+    CxTFlow* tr = cx_tflow_new(alloc, nthreads);
 
-    cx_task_flow_del(tr);
+    cx_tflow_del(tr);
 }
 
 void test_task(void) {

@@ -11,34 +11,34 @@
 #define cx_str_implement
 #include "cx_str.h"
 
-// Define internal array of pointers to CxTaskFlowTask
+// Define internal array of pointers to CxTFlowTask
 #define cx_array_name arr_ptask
-#define cx_array_type CxTaskFlowTask*
+#define cx_array_type CxTFlowTask*
 #define cx_array_static
 #define cx_array_implement
 #include "cx_array.h"
 
 // Task information
-typedef struct CxTaskFlowTask {
-    CxTaskFlow*         tf;             // Associated Task Flow
-    cxstr               name;           // Task unique name
-    CxTaskFlowTaskFn    task_fn;        // Task function pointer
-    void*               task_arg;       // Task argument pointer
-    arr_ptask           inps;           // Array of pointers to tasks which are inputs of this one (dependencies)
-    arr_ptask           outs;           // Array of pointers to task which depends on this one (dependants)
-    size_t              cycles;         // Task last cycle executed
-    void*               udata;          // Optional associated user data 
+typedef struct CxTFlowTask {
+    CxTFlow*        tf;             // Associated Task Flow
+    cxstr           name;           // Task unique name
+    CxTFlowTaskFn   task_fn;        // Task function pointer
+    void*           task_arg;       // Task argument pointer
+    arr_ptask       inps;           // Array of pointers to tasks which are inputs of this one (dependencies)
+    arr_ptask       outs;           // Array of pointers to task which depends on this one (dependants)
+    size_t          cycles;         // Task last cycle executed
+    void*           udata;          // Optional associated user data 
 } CxTaskFlowTask;
 
 // Define internal array of CxTaskFlowTask
 #define cx_array_name arr_task
-#define cx_array_type CxTaskFlowTask
+#define cx_array_type CxTFlowTask
 #define cx_array_static
 #define cx_array_implement
 #include "cx_array.h"
 
 
-typedef struct CxTaskFlow {
+typedef struct CxTFlow {
     pthread_mutex_t     lock;           // For exclusive access
     const CxAllocator*  alloc;          // Custom allocator
     size_t              nthreads;
@@ -47,12 +47,12 @@ typedef struct CxTaskFlow {
     size_t              cycles;         // Number of cycles to run (0=unlimited)
     size_t              run_cycles;     // Number of cycles run
     arr_task            tasks;          // Array with all tasks
-} CxTaskFlow;
+} CxTFlow;
 
-CxTaskFlow* cx_task_flow_new(const CxAllocator* alloc, size_t nthreads) {
+CxTFlow* cx_tflow_new(const CxAllocator* alloc, size_t nthreads) {
 
     CXCHK(nthreads > 0);
-    CxTaskFlow* tr = cx_alloc_mallocz(alloc, sizeof(CxTaskFlow));
+    CxTFlow* tr = cx_alloc_mallocz(alloc, sizeof(CxTFlow));
     tr->alloc = alloc;
     tr->nthreads = nthreads;
     tr->tpool = cx_tpool_new(alloc, nthreads, 32);
@@ -60,18 +60,18 @@ CxTaskFlow* cx_task_flow_new(const CxAllocator* alloc, size_t nthreads) {
     return tr;
 }
 
-CxError cx_task_flow_del(CxTaskFlow* tr) {
+CxError cx_tflow_del(CxTFlow* tr) {
 
     CXCHKZ(pthread_mutex_destroy(&tr->lock));
     cx_tpool_del(tr->tpool);
-    cx_alloc_free(tr->alloc, tr, sizeof(CxTaskFlow));
+    cx_alloc_free(tr->alloc, tr, sizeof(CxTFlow));
     return CXOK();
 }
 
 static void cx_task_wrapper(void* arg) {
 
     CxTaskFlowTask* tinfo = arg;
-    CxTaskFlow* tf = tinfo->tf;
+    CxTFlow* tf = tinfo->tf;
     // Executes user task
     tinfo->task_fn(tinfo->task_arg);
     tinfo->cycles++;
@@ -107,7 +107,7 @@ static void cx_task_wrapper(void* arg) {
     CXCHKZ(pthread_mutex_unlock(&tf->lock));
 }
 
-CxError cx_task_flow_start(CxTaskFlow* ts, size_t cycles) {
+CxError cx_tflow_start(CxTFlow* ts, size_t cycles) {
 
     if (ts->started) {
         return CXERR("CxTaskFlow already started");
@@ -131,17 +131,17 @@ CxError cx_task_flow_start(CxTaskFlow* ts, size_t cycles) {
     return CXOK();
 }
 
-CxError cx_task_flow_stop(CxTaskFlow* ts) {
+CxError cx_tflow_stop(CxTFlow* ts) {
 
     return CXOK();
 }
 
-size_t cx_task_flow_cycles(CxTaskFlow* ts) {
+size_t cx_tflow_cycles(CxTFlow* ts) {
 
     return 0;
 }
 
-CxError cx_task_flow_add_task(CxTaskFlow* tf, const char* name, CxTaskFlowTaskFn fn, void* arg, void* udata, CxTaskFlowTask** ptask) {
+CxError cx_tflow_add_task(CxTFlow* tf, const char* name, CxTFlowTaskFn fn, void* arg, void* udata, CxTFlowTask** ptask) {
 
     // The task runner must be stopped
 
@@ -167,10 +167,10 @@ CxError cx_task_flow_add_task(CxTaskFlow* tf, const char* name, CxTaskFlowTaskFn
     return CXOK();
 }
 
-CxError cx_task_flow_set_task_dep(CxTaskFlowTask* task, CxTaskFlowTask* dep) {
+CxError cx_tflow_set_task_dep(CxTFlowTask* task, CxTFlowTask* dep) {
 
     // Checks if both task pointers are valid
-    CxTaskFlow* tf = task->tf;
+    CxTFlow* tf = task->tf;
     bool task_found = false;
     bool dep_found = false;
     for (size_t i = 0; i < arr_task_len(&tf->tasks); i++) {
