@@ -41,7 +41,6 @@ typedef struct CxTFlowTask {
 typedef struct CxTFlow {
     pthread_mutex_t     lock;           // For exclusive access
     const CxAllocator*  alloc;          // Custom allocator
-    size_t              nthreads;
     CxThreadPool*       tpool;          // Thread pool
     bool                started;
     size_t              cycles;         // Number of cycles to run (0=unlimited)
@@ -54,7 +53,6 @@ CxTFlow* cx_tflow_new(const CxAllocator* alloc, size_t nthreads) {
     CXCHK(nthreads > 0);
     CxTFlow* tr = cx_alloc_mallocz(alloc, sizeof(CxTFlow));
     tr->alloc = alloc;
-    tr->nthreads = nthreads;
     tr->tpool = cx_tpool_new(alloc, nthreads, 32);
     CXCHKZ(pthread_mutex_init(&tr->lock, NULL));
     return tr;
