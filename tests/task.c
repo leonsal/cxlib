@@ -3,12 +3,17 @@
 #include "registry.h"
 
 
+static void task1(void* arg) {
+
+
+}
+
 void test_task1(const CxAllocator* alloc, size_t nthreads) {
 
     LOGI("%s: alloc:%p nthreads=%zu", __func__, alloc, nthreads);
-    CxTaskRunner* tr = cx_task_runner_new(alloc, nthreads);
+    CxTaskFlow* tr = cx_task_flow_new(alloc, nthreads);
 
-    cx_task_runner_del(tr);
+    cx_task_flow_del(tr);
 }
 
 void test_task(void) {

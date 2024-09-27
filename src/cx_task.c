@@ -20,9 +20,9 @@
 
 // Task information
 typedef struct TaskInfo {
-    CxTaskRunner*       tr;             // Associated Task Runner
+    CxTaskFlow*         tf;             // Associated Task Flow
     cxstr               name;           // Task unique name
-    CxTaskRunnerTask    task_fn;        // Task function pointer
+    CxTaskFlowTask    task_fn;        // Task function pointer
     void*               task_arg;       // Task argument pointer
     arr_tid             inps;           // Array of task ids which are inputs of this one (dependencies)
     arr_tid             outs;           // Array of task ids which depends on this one (dependants)
@@ -36,7 +36,7 @@ typedef struct TaskInfo {
 #define cx_array_implement
 #include "cx_array.h"
 
-typedef struct CxTaskRunner {
+typedef struct CxTaskFlow {
     pthread_mutex_t     lock;           // For exclusive access
     const CxAllocator*  alloc;          // Custom allocator
     size_t              nthreads;
@@ -45,12 +45,12 @@ typedef struct CxTaskRunner {
     size_t              cycles;
     size_t              run_cycles;
     arr_task            tasks;          // Array with all tasks
-} CxTaskRunner;
+} CxTaskFlow;
 
-CxTaskRunner* cx_task_runner_new(const CxAllocator* alloc, size_t nthreads) {
+CxTaskFlow* cx_task_flow_new(const CxAllocator* alloc, size_t nthreads) {
 
     CXCHK(nthreads > 0);
-    CxTaskRunner* tr = cx_alloc_mallocz(alloc, sizeof(CxTaskRunner));
+    CxTaskFlow* tr = cx_alloc_mallocz(alloc, sizeof(CxTaskFlow));
     tr->alloc = alloc;
     tr->nthreads = nthreads;
     tr->tpool = cx_tpool_new(alloc, nthreads, 32);
@@ -58,41 +58,41 @@ CxTaskRunner* cx_task_runner_new(const CxAllocator* alloc, size_t nthreads) {
     return tr;
 }
 
-CxError cx_task_runner_del(CxTaskRunner* tr) {
+CxError cx_task_flow_del(CxTaskFlow* tr) {
 
     CXCHKZ(pthread_mutex_destroy(&tr->lock));
     cx_tpool_del(tr->tpool);
-    cx_alloc_free(tr->alloc, tr, sizeof(CxTaskRunner));
+    cx_alloc_free(tr->alloc, tr, sizeof(CxTaskFlow));
     return CXOK();
 }
 
 static void cx_task_wrapper(void* arg) {
 
     TaskInfo* tinfo = arg;
-    CxTaskRunner* tr = tinfo->tr;
+    CxTaskFlow* tf = tinfo->tf;
     // Executes user task
     tinfo->task_fn(tinfo->task_arg);
     tinfo->cycles++;
 
-    CXCHKZ(pthread_mutex_lock(&tr->lock));
+    CXCHKZ(pthread_mutex_lock(&tf->lock));
 
     // If this task has no outputs it is sink task
     if (arr_tid_len(&tinfo->outs) == 0) {
 
 
-        CXCHKZ(pthread_mutex_unlock(&tr->lock));
+        CXCHKZ(pthread_mutex_unlock(&tf->lock));
         return;
     }
 
     // For each current task output, checks if its inputs are satisfied.
     for (size_t to = 0; to < arr_tid_len(&tinfo->outs); to++) {
         const size_t tid = tinfo->outs.data[to];
-        TaskInfo* tout = &tr->tasks.data[tid];
+        TaskInfo* tout = &tf->tasks.data[tid];
 
         // Checks if all the current output task inputs are satisfied
         bool inputs_ok = true;
         for (size_t ti = 0; to < arr_tid_len(&tout->inps); to++) {
-            TaskInfo* tinp = &tr->tasks.data[ti];
+            TaskInfo* tinp = &tf->tasks.data[ti];
             if (tinp->cycles != tinfo->cycles) {
                 inputs_ok = false;
             }
@@ -100,16 +100,16 @@ static void cx_task_wrapper(void* arg) {
 
         // Runs current output task
         if (inputs_ok) {
-            CXCHKZ(cx_tpool_run(tr->tpool, cx_task_wrapper, tout));
+            CXCHKZ(cx_tpool_run(tf->tpool, cx_task_wrapper, tout));
         }
     }
-    CXCHKZ(pthread_mutex_unlock(&tr->lock));
+    CXCHKZ(pthread_mutex_unlock(&tf->lock));
 }
 
-CxError cx_task_runner_start(CxTaskRunner* ts, size_t cycles) {
+CxError cx_task_flow_start(CxTaskFlow* ts, size_t cycles) {
 
     if (ts->started) {
-        return CXERR("CxTaskRunner already started");
+        return CXERR("CxTaskFlow already started");
     }
 
     if (arr_task_len(&ts->tasks) == 0) {
@@ -130,41 +130,41 @@ CxError cx_task_runner_start(CxTaskRunner* ts, size_t cycles) {
     return CXOK();
 }
 
-CxError cx_task_runner_stop(CxTaskRunner* ts) {
+CxError cx_task_flow_stop(CxTaskFlow* ts) {
 
     return CXOK();
 }
 
-size_t cx_task_runner_cycles(CxTaskRunner* ts) {
+size_t cx_task_flow_cycles(CxTaskFlow* ts) {
 
     return 0;
 }
 
-CxError cx_task_new(CxTaskRunner* tr, const char* name, CxTaskRunnerTask fn, void* arg, size_t* tid) {
+CxError cx_task_flow_add_task(CxTaskFlow* tf, const char* name, CxTaskFlowTask fn, void* arg, size_t* tid) {
 
     // The task runner must be stopped
 
     // Checks if new task name is not being used
-    for (size_t i = 0; i < arr_task_len(&tr->tasks); i++) {
-        TaskInfo* pinfo = &tr->tasks.data[i];
+    for (size_t i = 0; i < arr_task_len(&tf->tasks); i++) {
+        TaskInfo* pinfo = &tf->tasks.data[i];
         if (cxstr_cmp(&pinfo->name, name) == 0) {
             return CXERR("Task name already present");
         }
     }
 
     TaskInfo tinfo = {
-        .tr = tr,
+        .tf = tf,
         .name = cxstr_initc(name),
         .task_fn = fn,
         .task_arg = arg,
     };
-    arr_task_push(&tr->tasks, tinfo);
-    *tid = arr_task_len(&tr->tasks) - 1;
+    arr_task_push(&tf->tasks, tinfo);
+    *tid = arr_task_len(&tf->tasks) - 1;
 
     return CXOK();
 }
 
-CxError cx_task_depends(CxTaskRunner* tr, size_t tid, size_t other) {
+CxError cx_task_flow_task_dep(CxTaskFlow* tr, size_t tid, size_t other) {
 
     const size_t ntasks = arr_task_len(&tr->tasks);
     if (tid >= ntasks) {
