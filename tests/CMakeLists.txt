@@ -16,7 +16,7 @@ add_executable(cxtests
     bqueue.c
     tracer.c
     timer.c
-    task.c
+    tflow.c
 )
 target_link_libraries(cxtests cxlib m)
 
