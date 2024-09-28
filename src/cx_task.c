@@ -55,9 +55,9 @@ CxTFlow* cx_tflow_new(const CxAllocator* alloc, size_t nthreads) {
 
     CXCHK(nthreads > 0);
     CxTFlow* tf = cx_alloc_mallocz(alloc, sizeof(CxTFlow));
+    CXCHKZ(pthread_mutex_init(&tf->lock, NULL));
     tf->alloc = alloc;
     tf->tpool = cx_tpool_new(alloc, nthreads, 32);
-    CXCHKZ(pthread_mutex_init(&tf->lock, NULL));
     return tf;
 }
 
