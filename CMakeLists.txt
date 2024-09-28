@@ -14,6 +14,7 @@ set(SOURCES
     include/cx_hmap2.h
     include/cx_json_build.h
     include/cx_json_parse.h
+    include/cx_tflow.h
     include/cx_logger.h
     include/cx_pool_allocator.h
     include/cx_queue.h
@@ -34,7 +35,7 @@ set(SOURCES
     src/cx_json_build.c
     src/cx_json_parse.c
     src/cx_tracer.c
-    src/cx_task.c
+    src/cx_tflow.c
     src/json.c
     src/json.h
     src/cx_tpool.c

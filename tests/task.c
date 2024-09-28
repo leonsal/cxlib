@@ -1,5 +1,5 @@
 #include <unistd.h>
-#include "cx_task.h"
+#include "cx_tflow.h"
 #include "logger.h"
 #include "registry.h"
 
@@ -20,7 +20,7 @@ typedef struct TaskDesc {
 static void task_func(void* arg) {
 
     TaskArgs* args = arg;
-    printf("%s: %s\n", __func__, args->name);
+    //printf("%s: %s\n", __func__, args->name);
     usleep(args->us);
 }
 
@@ -50,61 +50,54 @@ static CxTFlow* build_tflow(const CxAllocator* alloc, size_t nthreads, TaskDesc*
     return tf;
 }
 
-void test_task1(const CxAllocator* alloc, size_t nthreads) {
+static void run_tflow(CxTFlow* tf, size_t ncycles) {
 
-    TaskDesc flow[] = {
-        {
-            .name = "t1",
-            .args = {.us = 1000},
-        },
-        {}, // terminator
-    };
-    CxTFlow* tf = build_tflow(alloc, nthreads, flow);
-
-    const size_t ncycles = 10;
     CXERR_CHK(cx_tflow_start(tf, ncycles));
-    struct timespec timeout = {.tv_sec = 10};
+    struct timespec timeout = {.tv_sec = 2};
 
     CXERR_CHK(cx_tflow_wait(tf, timeout));
     CxTFlowStatus status = cx_tflow_status(tf);
 
-    cx_tflow_del(tf);
+    CXCHK(status.running == false);
+    CXCHK(status.cycles == ncycles);
+    CXCHK(status.run_cycles == ncycles);
 }
 
-void test_task2(const CxAllocator* alloc, size_t nthreads) {
+// Single source/sink task
+void test_tflow1(const CxAllocator* alloc, size_t nthreads) {
 
     TaskDesc flow[] = {
-        {
-            .name = "t1",
-            .args = {.us = 1000},
-        },
-        {
-            .name = "t2",
-            .args = {.us = 1000},
-        },
+        { .name = "t1", .args = {.us = 1000}},
         {}, // terminator
     };
     CxTFlow* tf = build_tflow(alloc, nthreads, flow);
-
-    const size_t ncycles = 5;
-    CXERR_CHK(cx_tflow_start(tf, ncycles));
-
-    struct timespec timeout = {.tv_sec = 10};
-    CXERR_CHK(cx_tflow_wait(tf, timeout));
-    CxTFlowStatus status = cx_tflow_status(tf);
-
+    run_tflow(tf, 5);
     cx_tflow_del(tf);
 }
 
-void test_task(void) {
+// Some source/sink tasks
+void test_tflow2(const CxAllocator* alloc, size_t nthreads) {
 
-    //test_task1(NULL, 2);
-    test_task2(NULL, 2);
+    TaskDesc flow[] = {
+        { .name = "t1", .args = {.us = 1000}, },
+        { .name = "t2", .args = {.us = 500}, },
+        { .name = "t3", .args = {.us = 200}, },
+        {}, // terminator
+    };
+    CxTFlow* tf = build_tflow(alloc, nthreads, flow);
+    run_tflow(tf, 5);
+    cx_tflow_del(tf);
+}
+
+void test_tflow(void) {
+
+    test_tflow1(NULL, 2);
+    test_tflow2(NULL, 2);
 
 }
 
 __attribute__((constructor)) static void reg_task(void) {
 
-    reg_add_test("task", test_task);
+    reg_add_test("tflow", test_tflow);
 }
 
