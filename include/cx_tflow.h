@@ -7,8 +7,8 @@
 #include "cx_error.h"
 #include "cx_alloc.h"
 
-// Creates task flow using specified custom allocator and maximum number of threads
 typedef struct CxTFlow CxTFlow;
+// Creates task flow using specified custom allocator and maximum number of threads
 CxTFlow* cx_tflow_new(const CxAllocator* alloc, size_t nthreads);
 
 // Finishes all tasks in the current cycle and then destroys the task flow
