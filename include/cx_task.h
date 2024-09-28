@@ -20,11 +20,13 @@ CxError cx_tflow_start(CxTFlow* tf, size_t cycles);
 // Waits for the current cycle to run and then stops the task runner.
 CxError cx_tflow_stop(CxTFlow* tf);
 
-// Returns if the Task Flow is running
-bool cx_tflow_running(CxTFlow* tf);
-
-// Returns the number of cycles run
-size_t cx_tflow_cycles(CxTFlow* tf);
+// Returns Task Flow status
+typedef struct CxTFlowStatus {
+    bool    running;        // Running flag
+    size_t  cycles;         // Number of cycles to run (0=unlimited)
+    size_t  run_cycles;     // Number of cycles run
+} CxTFlowStatus;
+CxTFlowStatus cx_tflow_status(CxTFlow* tf);
 
 // Adds task in the Task Flow
 // The task flow must be stopped.

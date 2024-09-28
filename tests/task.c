@@ -6,6 +6,7 @@
 
 static void task1(void* arg) {
 
+    printf("%s\n", __func__);
     usleep(1000);
 }
 
@@ -16,6 +17,16 @@ void test_task1(const CxAllocator* alloc, size_t nthreads) {
 
     CxTFlowTask* ptask1;
     cx_tflow_add_task(tf, "t1", task1, NULL, &ptask1);
+
+    cx_tflow_start(tf, 2);
+
+    while (1) {
+        CxTFlowStatus status = cx_tflow_status(tf);
+        if (status.running) {
+            break;
+        }
+        usleep(1000);
+    }
 
     cx_tflow_del(tf);
 }

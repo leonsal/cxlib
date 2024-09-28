@@ -28,150 +28,140 @@ typedef struct CxTFlowTask {
     arr_ptask       outs;           // Array of pointers to taskd which are outputs of this one (dependants)
     size_t          cycles;         // Task last cycle executed
     void*           udata;          // Optional associated user data 
-} CxTaskFlowTask;
+} CxTFlowTask;
 
-// Define internal array of CxTaskFlowTask
-#define cx_array_name arr_task
-#define cx_array_type CxTFlowTask
-#define cx_array_static
-#define cx_array_implement
-#include "cx_array.h"
-
-
+// Task Flow state
 typedef struct CxTFlow {
     pthread_mutex_t     lock;           // For exclusive access
     const CxAllocator*  alloc;          // Custom allocator
     CxThreadPool*       tpool;          // Thread pool
-    bool                started;
     size_t              cycles;         // Number of cycles to run (0=unlimited)
     size_t              run_cycles;     // Number of cycles run
-    arr_task            tasks;          // Array with all tasks
+    size_t              run_sinks;      // Number of sinks run in the cycle
+    arr_ptask           tasks;          // Array of pointers to all tasks
+    arr_ptask           sources;        // Array of pointers to source tasks
+    arr_ptask           sinks;          // Array of pointers to sink tasks
+    bool                stop;           // Stop request flag
+    bool                running;        // Running flag
 } CxTFlow;
+
+// Forward declarations of local functions
+static inline bool cx_tflow_is_running(CxTFlow* tf);
+static void cx_tflow_wrapper(void* arg);
+static CxError cx_tflow_restart(CxTFlow* tf);
+
 
 CxTFlow* cx_tflow_new(const CxAllocator* alloc, size_t nthreads) {
 
     CXCHK(nthreads > 0);
-    CxTFlow* tr = cx_alloc_mallocz(alloc, sizeof(CxTFlow));
-    tr->alloc = alloc;
-    tr->tpool = cx_tpool_new(alloc, nthreads, 32);
-    CXCHKZ(pthread_mutex_init(&tr->lock, NULL));
-    return tr;
+    CxTFlow* tf = cx_alloc_mallocz(alloc, sizeof(CxTFlow));
+    tf->alloc = alloc;
+    tf->tpool = cx_tpool_new(alloc, nthreads, 32);
+    CXCHKZ(pthread_mutex_init(&tf->lock, NULL));
+    return tf;
 }
 
-CxError cx_tflow_del(CxTFlow* tr) {
+CxError cx_tflow_del(CxTFlow* tf) {
 
-    CXCHKZ(pthread_mutex_destroy(&tr->lock));
-    cx_tpool_del(tr->tpool);
-    cx_alloc_free(tr->alloc, tr, sizeof(CxTFlow));
+    CXCHKZ(pthread_mutex_destroy(&tf->lock));
+    cx_tpool_del(tf->tpool);
+    cx_alloc_free(tf->alloc, tf, sizeof(CxTFlow));
     return CXOK();
 }
 
-static void cx_task_wrapper(void* arg) {
 
-    CxTaskFlowTask* tinfo = arg;
-    CxTFlow* tf = tinfo->tf;
-    // Executes user task
-    tinfo->task_fn(tinfo->task_arg);
-    tinfo->cycles++;
+CxError cx_tflow_start(CxTFlow* tf, size_t cycles) {
 
-    CXCHKZ(pthread_mutex_lock(&tf->lock));
-
-    // If this task has no outputs it is sink task
-    if (arr_ptask_len(&tinfo->outs) == 0) {
-
-
-        CXCHKZ(pthread_mutex_unlock(&tf->lock));
-        return;
-    }
-
-    // For each current task output, checks if its inputs are satisfied.
-    for (size_t to = 0; to < arr_ptask_len(&tinfo->outs); to++) {
-        CxTaskFlowTask* tout = &tf->tasks.data[to];
-
-        // Checks if all the current output task inputs are satisfied
-        bool inputs_ok = true;
-        for (size_t ti = 0; to < arr_ptask_len(&tout->inps); to++) {
-            CxTaskFlowTask* tinp = &tf->tasks.data[ti];
-            if (tinp->cycles != tinfo->cycles) {
-                inputs_ok = false;
-            }
-        }
-
-        // Runs current output task
-        if (inputs_ok) {
-            CXCHKZ(cx_tpool_run(tf->tpool, cx_task_wrapper, tout));
-        }
-    }
-    CXCHKZ(pthread_mutex_unlock(&tf->lock));
-}
-
-CxError cx_tflow_start(CxTFlow* ts, size_t cycles) {
-
-    if (ts->started) {
+    if (cx_tflow_is_running(tf)) {
         return CXERR("CxTaskFlow already started");
     }
 
-    if (arr_task_len(&ts->tasks) == 0) {
+    if (arr_ptask_len(&tf->tasks) == 0) {
         return CXERR("No tasks have been created");
     }
 
-    // Start tasks with no inputs (no dependencies)
-    for (size_t i = 0; i < arr_task_len(&ts->tasks); i++) {
-        CxTaskFlowTask* tinfo = &ts->tasks.data[i];
+    // Find source and sink tasks
+    arr_ptask_clear(&tf->sources);
+    arr_ptask_clear(&tf->sinks);
+    for (size_t i = 0; i < arr_ptask_len(&tf->tasks); i++) {
+        CxTFlowTask* tinfo = tf->tasks.data[i];
+        // If no inputs is a source task
         if (arr_ptask_len(&tinfo->inps) == 0) {
-            const int res = cx_tpool_run(ts->tpool, cx_task_wrapper, tinfo);
-            if (res) {
-                return CXERR2(res, "Error starting thread");
-            }
+            arr_ptask_push(&tf->sources, tinfo);
         }
+        // If no inputs is a sink task
+        if (arr_ptask_len(&tinfo->outs) == 0) {
+            arr_ptask_push(&tf->sinks, tinfo);
+        }
+    }
+
+    tf->cycles = cycles;
+    tf->run_cycles = 0;
+    tf->running = true;
+    tf->stop = false;
+
+    // Start source tasks (tasks with no dependencies)
+    return cx_tflow_restart(tf);
+}
+
+CxError cx_tflow_stop(CxTFlow* tf) {
+
+    if (!cx_tflow_is_running(tf)) {
+        return CXERR("Task Flow is not running");
     }
 
     return CXOK();
 }
 
-CxError cx_tflow_stop(CxTFlow* ts) {
+CxTFlowStatus cx_tflow_status(CxTFlow* tf) {
 
-    return CXOK();
-}
-
-size_t cx_tflow_cycles(CxTFlow* ts) {
-
-    return 0;
+    CxTFlowStatus status;
+    CXCHKZ(pthread_mutex_lock(&tf->lock));
+    status.running = tf->running;
+    status.cycles = tf->cycles;
+    status.run_cycles = tf->run_cycles;
+    CXCHKZ(pthread_mutex_unlock(&tf->lock));
+    return status;
 }
 
 CxError cx_tflow_add_task(CxTFlow* tf, const char* name, CxTFlowTaskFn fn, void* arg, CxTFlowTask** ptask) {
 
-    // The task runner must be stopped
+    if (cx_tflow_is_running(tf)) {
+        return CXERR("Task flow is running");
+    }
 
     // Checks if new task name is not being used
-    for (size_t i = 0; i < arr_task_len(&tf->tasks); i++) {
-        CxTaskFlowTask* task = &tf->tasks.data[i];
+    for (size_t i = 0; i < arr_ptask_len(&tf->tasks); i++) {
+        CxTFlowTask* task = tf->tasks.data[i];
         if (cxstr_cmp(&task->name, name) == 0) {
             return CXERR("Task name already present");
         }
     }
 
-    CxTaskFlowTask task = {
+    CxTFlowTask* task = cx_alloc_mallocz(tf->alloc, sizeof(CxTFlowTask));
+    *task = (CxTFlowTask){
         .tf = tf,
         .name = cxstr_initc(name),
         .task_fn = fn,
         .task_arg = arg,
     };
-    arr_task_push(&tf->tasks, task);
-    const size_t idx = arr_task_len(&tf->tasks) - 1;
-    *ptask = &tf->tasks.data[idx];
-
+    arr_ptask_push(&tf->tasks, task);
+    *ptask = task;
     return CXOK();
 }
 
 CxError cx_tflow_set_task_dep(CxTFlowTask* task, CxTFlowTask* dep) {
 
+    if (cx_tflow_is_running(task->tf)) {
+        return CXERR("Task flow is running");
+    }
+
     // Checks if both task pointers are valid
     CxTFlow* tf = task->tf;
     bool task_found = false;
     bool dep_found = false;
-    for (size_t i = 0; i < arr_task_len(&tf->tasks); i++) {
-        CxTaskFlowTask* curr = &tf->tasks.data[i];
+    for (size_t i = 0; i < arr_ptask_len(&tf->tasks); i++) {
+        CxTFlowTask* curr = tf->tasks.data[i];
         if (curr == task) {
             task_found = true;
             continue;
@@ -210,4 +200,100 @@ void cx_tflow_set_task_udata(CxTFlowTask* task, void* udata) {
     task->udata = udata;
 }
 
+static inline bool cx_tflow_is_running(CxTFlow* tf) {
+
+    bool running;
+    CXCHKZ(pthread_mutex_lock(&tf->lock));
+    running = tf->running;
+    CXCHKZ(pthread_mutex_unlock(&tf->lock));
+    return running;
+}
+
+static void cx_tflow_wrapper(void* arg) {
+
+    CxTFlowTask* tinfo = arg;
+    CxTFlow* tf = tinfo->tf;
+
+    // Executes user task
+    tinfo->task_fn(tinfo->task_arg);
+    tinfo->cycles++;
+
+    // If this task has no outputs it is a sink task
+    if (arr_ptask_len(&tinfo->outs) == 0) {
+        int res = pthread_mutex_lock(&tf->lock);
+        //CXCHKZ(pthread_mutex_lock(&tf->lock));
+        tf->run_sinks++;
+        // If all sinks have run, a cycle has completed
+        if (tf->run_sinks == arr_ptask_len(&tf->sinks)) {
+            tf->run_cycles++;
+            // Checks for stop request or number of cycles run
+            if (tf->stop || (tf->cycles && tf->run_cycles >= tf->cycles)) {
+                tf->running = false;
+                CXCHKZ(pthread_mutex_unlock(&tf->lock));
+                return;
+            }
+        }
+        // Restart source tasks beginning a new cycle
+        CXCHKZ(pthread_mutex_unlock(&tf->lock));
+        cx_tflow_restart(tf);
+        return;
+
+        // If all sink nodes have been run, the cycle is completed
+        //LOGD("%s: run_sinks:%zu sinks:%zu", __func__, flow->run_sinks, arr_node_len(&flow->sinks));
+        // if (tf->run_sinks >= arr_node_len(&flow->sinks)) {
+        //     flow->run_cycles++;
+        //     // Checks for stop request or number of cycles run
+        //     if (flow->stop || (flow->cycles && flow->run_cycles >= flow->cycles)) {
+        //         //LOGD("%s: stopping flow", __func__);
+        //         flow->running = false;
+        //         CXCHKZ(pthread_cond_signal(&flow->stopped));
+        //         if (!flow->stop) {
+        //             vf_nodeflow_stop_node_threads(flow);
+        //         }
+        //         CXCHKZ(pthread_mutex_unlock(&flow->lock));
+        //         //LOGD("%s: flow stopped", __func__);
+        //         return;
+        //     }
+        //     // Restart node flow sources
+        //     CXCHKZ(pthread_mutex_unlock(&flow->lock));
+        //     vf_nodeflow_restart(flow);
+        }
+
+    // For each current task output, checks if its inputs are satisfied.
+    for (size_t to = 0; to < arr_ptask_len(&tinfo->outs); to++) {
+        CxTFlowTask* tout = tf->tasks.data[to];
+
+        // Checks if all the current output task inputs are satisfied
+        bool inputs_ok = true;
+        for (size_t ti = 0; to < arr_ptask_len(&tout->inps); to++) {
+            CxTFlowTask* tinp = tf->tasks.data[ti];
+            CXCHKZ(pthread_mutex_lock(&tf->lock));
+            if (tinp->cycles != tinfo->cycles) {
+                inputs_ok = false;
+            }
+            CXCHKZ(pthread_mutex_unlock(&tf->lock));
+        }
+
+        // Runs current output task
+        if (inputs_ok) {
+            CXCHKZ(cx_tpool_run(tf->tpool, cx_tflow_wrapper, tout));
+        }
+    }
+}
+
+static CxError cx_tflow_restart(CxTFlow* tf) {
+
+    if (!tf->running) {
+        return CXOK();
+    }
+    tf->run_sinks = 0;
+    for (size_t i = 0; i < arr_ptask_len(&tf->sources); i++) {
+        CxTFlowTask* tinfo = tf->sources.data[i];
+        int res = cx_tpool_run(tf->tpool, cx_tflow_wrapper, tinfo);
+        if (res) {
+            return CXERR2(res, "returned by cx_tpool_run{}");
+        }
+    }
+    return CXOK();
+}
 
