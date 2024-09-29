@@ -330,7 +330,7 @@ static void cx_tflow_wrapper(void* arg) {
 
         // Checks if all the current output task inputs are satisfied
         bool inputs_ok = true;
-        for (size_t ti = 0; to < arr_task_len(&tout->inps); to++) {
+        for (size_t ti = 0; ti < arr_task_len(&tout->inps); ti++) {
             CxTFlowTask* tinp = tf->tasks.data[ti];
             CXCHKZ(pthread_mutex_lock(&tf->lock));
             if (tinp->cycles != tinfo->cycles) {
@@ -338,6 +338,7 @@ static void cx_tflow_wrapper(void* arg) {
             }
             CXCHKZ(pthread_mutex_unlock(&tf->lock));
         }
+        //printf("%s: name:%s inputs_ok:%d\n", __func__, tout->name.data, inputs_ok);
 
         // Runs current output task
         if (inputs_ok) {
