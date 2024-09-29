@@ -54,7 +54,7 @@ static CxTFlow* build_tflow(const CxAllocator* alloc, size_t nthreads, TaskDesc*
 static void run_tflow(CxTFlow* tf, size_t ncycles, const char* test_name) {
 
     CXERR_CHK(cx_tflow_start(tf, ncycles));
-    struct timespec timeout = {.tv_sec = 2};
+    struct timespec timeout = {.tv_sec = 100};
 
     CXERR_CHK(cx_tflow_wait(tf, timeout));
     CxTFlowStatus status = cx_tflow_status(tf);
@@ -89,7 +89,7 @@ void test_tflow1(const CxAllocator* alloc, size_t nthreads) {
 }
 
 // Some source/sink tasks
-void test_tflow2(const CxAllocator* alloc, size_t nthreads) {
+void test_tflow2(const CxAllocator* alloc, size_t nthreads, size_t ncycles) {
 
     TaskDesc flow[] = {
         { .name = "t1", .args = {.us = 1000}, },
@@ -98,14 +98,28 @@ void test_tflow2(const CxAllocator* alloc, size_t nthreads) {
         {}, // terminator
     };
     CxTFlow* tf = build_tflow(alloc, nthreads, flow);
-    run_tflow(tf, 5, __func__);
+    run_tflow(tf, ncycles, __func__);
+    cx_tflow_del(tf);
+}
+
+void test_tflow3(const CxAllocator* alloc, size_t nthreads, size_t ncycles) {
+
+    TaskDesc flow[] = {
+        { .name = "t1", .args = {.us = 1000}, },
+        { .name = "t2", .args = {.us = 500}, .deps= {"t1", NULL}},
+        { .name = "t3", .args = {.us = 800}, .deps= {"t1", NULL}},
+        {}, // terminator
+    };
+    CxTFlow* tf = build_tflow(alloc, nthreads, flow);
+    run_tflow(tf, ncycles, __func__);
     cx_tflow_del(tf);
 }
 
 void test_tflow(void) {
 
-    test_tflow1(NULL, 2);
-    test_tflow2(NULL, 2);
+    //test_tflow1(NULL, 2, 3);
+    //test_tflow2(NULL, 2, 3);
+    test_tflow3(NULL, 4, 2);
 
 }
 

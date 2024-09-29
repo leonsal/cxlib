@@ -326,7 +326,7 @@ static void cx_tflow_wrapper(void* arg) {
 
     // For each current task output, checks if its inputs are satisfied.
     for (size_t to = 0; to < arr_task_len(&tinfo->outs); to++) {
-        CxTFlowTask* tout = tf->tasks.data[to];
+        CxTFlowTask* tout = tinfo->outs.data[to];
 
         // Checks if all the current output task inputs are satisfied
         bool inputs_ok = true;
