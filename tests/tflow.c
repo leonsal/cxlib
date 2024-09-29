@@ -108,7 +108,9 @@ void test_tflow3(const CxAllocator* alloc, size_t nthreads, size_t ncycles) {
         { .name = "t1",   .args = {.us = 1000}, },
         { .name = "t1.1", .args = {.us = 500}, .deps= {"t1", NULL}},
         { .name = "t1.2", .args = {.us = 800}, .deps= {"t1", NULL}},
-        { .name = "t2",   .args = {.us = 1000},.deps= {"t1.1", "t1.2", NULL }},
+        { .name = "t1.3", .args = {.us = 600}, .deps= {"t1", NULL}},
+        { .name = "t2",   .args = {.us = 1000},.deps= {"t1.1", NULL }},
+        { .name = "t3",   .args = {.us = 1000},.deps= {"t1.1", "t1.2", NULL }},
         {}, // terminator
     };
     CxTFlow* tf = build_tflow(alloc, nthreads, flow);
