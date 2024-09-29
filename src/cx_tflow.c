@@ -289,7 +289,7 @@ static void cx_tflow_wrapper(void* arg) {
     CxTFlow* tf = tinfo->tf;
 
     // Executes user task with optional tracing
-    printf("%s: name:%s cycles:%zu run_cycles:%zu total:%zu\n", __func__, tinfo->name.data, tinfo->cycles, tf->run_cycles, tf->cycles);
+    //printf("%s: name:%s cycles:%zu run_cycles:%zu total:%zu\n", __func__, tinfo->name.data, tinfo->cycles, tf->run_cycles, tf->cycles);
     if (tf->tracer) {
         cx_tracer_begin(tf->tracer, tinfo->name.data, "task");
     }
@@ -331,7 +331,7 @@ static void cx_tflow_wrapper(void* arg) {
         // Checks if all the current output task inputs are satisfied
         bool inputs_ok = true;
         for (size_t ti = 0; ti < arr_task_len(&tout->inps); ti++) {
-            CxTFlowTask* tinp = tf->tasks.data[ti];
+            CxTFlowTask* tinp = tout->inps.data[ti];
             CXCHKZ(pthread_mutex_lock(&tf->lock));
             if (tinp->cycles != tinfo->cycles) {
                 inputs_ok = false;
@@ -340,7 +340,7 @@ static void cx_tflow_wrapper(void* arg) {
         }
         //printf("%s: name:%s inputs_ok:%d\n", __func__, tout->name.data, inputs_ok);
 
-        // Runs current output task
+        // Starts current output task
         if (inputs_ok) {
             CXCHKZ(cx_tpool_run(tf->tpool, cx_tflow_wrapper, tout));
         }

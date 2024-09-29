@@ -105,9 +105,10 @@ void test_tflow2(const CxAllocator* alloc, size_t nthreads, size_t ncycles) {
 void test_tflow3(const CxAllocator* alloc, size_t nthreads, size_t ncycles) {
 
     TaskDesc flow[] = {
-        { .name = "t1", .args = {.us = 1000}, },
-        { .name = "t2", .args = {.us = 500}, .deps= {"t1", NULL}},
-        { .name = "t3", .args = {.us = 800}, .deps= {"t1", NULL}},
+        { .name = "t1",   .args = {.us = 1000}, },
+        { .name = "t1.1", .args = {.us = 500}, .deps= {"t1", NULL}},
+        { .name = "t1.2", .args = {.us = 800}, .deps= {"t1", NULL}},
+        { .name = "t2",   .args = {.us = 1000},.deps= {"t1.1", "t1.2", NULL }},
         {}, // terminator
     };
     CxTFlow* tf = build_tflow(alloc, nthreads, flow);
@@ -119,7 +120,7 @@ void test_tflow(void) {
 
     //test_tflow1(NULL, 2, 3);
     //test_tflow2(NULL, 2, 3);
-    test_tflow3(NULL, 4, 2);
+    test_tflow3(NULL, 4, 20);
 
 }
 
