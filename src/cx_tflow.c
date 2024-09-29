@@ -38,6 +38,7 @@ typedef struct CxTFlow {
     pthread_cond_t      stop_cv;        // Conditional variable signaled when stopped
     const CxAllocator*  alloc;          // Custom allocator
     CxThreadPool*       tpool;          // Thread pool
+    CxTracer*           tracer;         // Optional event tracer
     size_t              cycles;         // Number of cycles to run (0=unlimited)
     size_t              run_cycles;     // Number of cycles run
     size_t              run_sinks;      // Number of sinks run in the cycle
@@ -54,13 +55,14 @@ static void cx_tflow_wrapper(void* arg);
 static CxError cx_tflow_restart(CxTFlow* tf);
 
 
-CxTFlow* cx_tflow_new(const CxAllocator* alloc, size_t nthreads) {
+CxTFlow* cx_tflow_new(const CxAllocator* alloc, size_t nthreads, CxTracer* tracer) {
 
     CXCHK(nthreads > 0);
     CxTFlow* tf = cx_alloc_mallocz(alloc, sizeof(CxTFlow));
     CXCHKZ(pthread_mutex_init(&tf->lock, NULL));
     CXCHKZ(pthread_cond_init(&tf->stop_cv, NULL));
     tf->alloc = alloc;
+    tf->tracer = tracer;
     tf->tpool = cx_tpool_new(alloc, nthreads, 32);
     return tf;
 }
@@ -147,6 +149,11 @@ CxTFlowStatus cx_tflow_status(CxTFlow* tf) {
     status.run_cycles = tf->run_cycles;
     CXCHKZ(pthread_mutex_unlock(&tf->lock));
     return status;
+}
+
+CxTracer* cx_tflow_tracer(CxTFlow* tf) {
+
+    return tf->tracer;
 }
 
 #define NANOSECS_PER_SEC    (1000000000)
@@ -281,9 +288,15 @@ static void cx_tflow_wrapper(void* arg) {
     CxTFlowTask* tinfo = arg;
     CxTFlow* tf = tinfo->tf;
 
-    // Executes user task
+    // Executes user task with optional tracing
     printf("%s: name:%s cycles:%zu run_cycles:%zu total:%zu\n", __func__, tinfo->name.data, tinfo->cycles, tf->run_cycles, tf->cycles);
+    if (tf->tracer) {
+        cx_tracer_begin(tf->tracer, tinfo->name.data, "task");
+    }
     tinfo->task_fn(tinfo->task_arg);
+    if (tf->tracer) {
+        cx_tracer_end(tf->tracer, tinfo->name.data, "task");
+    }
     tinfo->cycles++;
 
     // If this task has no outputs it is a sink task

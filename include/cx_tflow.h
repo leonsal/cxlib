@@ -6,10 +6,12 @@
 #include <time.h>
 #include "cx_error.h"
 #include "cx_alloc.h"
+#include "cx_tracer.h"
 
 typedef struct CxTFlow CxTFlow;
 // Creates task flow using specified custom allocator and maximum number of threads
-CxTFlow* cx_tflow_new(const CxAllocator* alloc, size_t nthreads);
+// The tracer is optional
+CxTFlow* cx_tflow_new(const CxAllocator* alloc, size_t nthreads, CxTracer* tracer);
 
 // Finishes all tasks in the current cycle and then destroys the task flow
 CxError cx_tflow_del(CxTFlow* tf);
@@ -28,6 +30,9 @@ typedef struct CxTFlowStatus {
     size_t  run_cycles;     // Number of cycles run
 } CxTFlowStatus;
 CxTFlowStatus cx_tflow_status(CxTFlow* tf);
+
+// Returns the tracer specified when creating the TaskFlow
+CxTracer* cx_tflow_tracer(CxTFlow* tf);
 
 // Waits for Task Flow to finish
 CxError cx_tflow_wait(CxTFlow* tf, struct timespec reltime);
@@ -75,6 +80,7 @@ size_t cx_tflow_task_outs(CxTFlowTask* task);
 // Returns ouput task for the specified index.
 // Returns NULL if the index is invalid
 CxTFlowTask* cx_tflow_task_out_at(CxTFlowTask* task, size_t idx);
+
 
 #endif
 

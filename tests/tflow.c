@@ -28,7 +28,8 @@ static void task_func(void* arg) {
 static CxTFlow* build_tflow(const CxAllocator* alloc, size_t nthreads, TaskDesc* desc) {
 
     // Creates Task Flow
-    CxTFlow* tf = cx_tflow_new(alloc, nthreads);
+    CxTracer* tr = cx_tracer_new(alloc, 16*1024);
+    CxTFlow* tf = cx_tflow_new(alloc, nthreads, tr);
 
     // Adds all tasks from descriptor array
     for (size_t i = 0; desc[i].name != NULL; i++) {
@@ -50,7 +51,7 @@ static CxTFlow* build_tflow(const CxAllocator* alloc, size_t nthreads, TaskDesc*
     return tf;
 }
 
-static void run_tflow(CxTFlow* tf, size_t ncycles) {
+static void run_tflow(CxTFlow* tf, size_t ncycles, const char* test_name) {
 
     CXERR_CHK(cx_tflow_start(tf, ncycles));
     struct timespec timeout = {.tv_sec = 2};
@@ -61,6 +62,18 @@ static void run_tflow(CxTFlow* tf, size_t ncycles) {
     CXCHK(status.running == false);
     CXCHK(status.cycles == ncycles);
     CXCHK(status.run_cycles == ncycles);
+
+    // Generates optional tracer file
+    CxTracer* tracer = cx_tflow_tracer(tf);
+    if (tracer && test_name) {
+        char test_path[256];
+        strcpy(test_path, test_name);
+        strcat(test_path, ".json");
+        CxError error = cx_tracer_json_write_file(tracer, test_path);
+        if (error.msg) {
+            LOGE("Error generating tracer file:%s -> %s", test_path, error.msg);
+        }
+    }
 }
 
 // Single source/sink task
@@ -71,7 +84,7 @@ void test_tflow1(const CxAllocator* alloc, size_t nthreads) {
         {}, // terminator
     };
     CxTFlow* tf = build_tflow(alloc, nthreads, flow);
-    run_tflow(tf, 5);
+    run_tflow(tf, 5, __func__);
     cx_tflow_del(tf);
 }
 
@@ -85,7 +98,7 @@ void test_tflow2(const CxAllocator* alloc, size_t nthreads) {
         {}, // terminator
     };
     CxTFlow* tf = build_tflow(alloc, nthreads, flow);
-    run_tflow(tf, 5);
+    run_tflow(tf, 5, __func__);
     cx_tflow_del(tf);
 }
 
