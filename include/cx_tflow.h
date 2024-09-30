@@ -50,6 +50,9 @@ CxError cx_tflow_set_task_dep(CxTFlowTask* task, CxTFlowTask* dep);
 // Sets task associated user data
 void cx_tflow_set_task_udata(CxTFlowTask* task, void* udata);
 
+// Returns user data associated with task
+void* cx_tflow_task_udata(CxTFlowTask* task);
+
 // Returns the current number of added tasks
 size_t cx_tflow_task_count(CxTFlow* tf);
 
@@ -63,9 +66,6 @@ CxTFlowTask* cx_tflow_find_task(CxTFlow* tf, const char* name);
 
 // Returns task name
 const char* cx_tflow_task_name(CxTFlowTask* task);
-
-// Returns user data associated with task
-void* cx_tflow_task_udata(CxTFlowTask* task);
 
 // Returns number of task inputs (dependencies)
 size_t cx_tflow_task_inps(CxTFlowTask* task);

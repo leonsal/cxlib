@@ -17,9 +17,10 @@ typedef struct TaskDesc {
 static void task_func(void* arg) {
 
     TaskDesc* desc = arg;
-    // For each input task, get its output value and sums to the output of this task.
     size_t inps = cx_tflow_task_inps(desc->task);
     size_t outs = cx_tflow_task_outs(desc->task);
+
+    // For each input task, get its output value and sums to the output of this task.
     // For intermediate tasks only sum the inputs, do not accumulate.
     // This is done to be easier to calculate the final value for sink tasks.
     if (inps && outs) {
@@ -130,11 +131,33 @@ void test_tflow3(const CxAllocator* alloc, size_t nthreads, size_t ncycles) {
     cx_tflow_del(tf);
 }
 
+void test_tflow4(const CxAllocator* alloc, size_t nthreads, size_t ncycles) {
+
+    TaskDesc flow[] = {
+        { .name = "t0", .us = 1000, .out = 1},
+        { .name = "t1", .us = 1000, .out = 1},
+        { .name = "t2", .us = 1000, .out = 1},
+        { .name = "t3", .us = 100, .deps= {"t0", "t1", "t2", NULL }},
+        { .name = "t4", .us = 100, .deps= {"t3", NULL }},
+        { .name = "t5", .us = 100, .deps= {"t3", NULL }},
+        { .name = "t6", .us = 100, .deps= {"t3", NULL }},
+        { .name = "t7", .us = 100, .deps= {"t5", "t6", NULL }},
+        { .name = "t8", .us = 100, .deps= {"t7", NULL }},
+        {}, // terminator
+    };
+    CxTFlow* tf = build_tflow(alloc, nthreads, flow);
+    run_tflow(tf, ncycles, __func__);
+    // CXCHK(flow[4].out == 3 * ncycles);
+    // CXCHK(flow[8].out == 3 * ncycles);
+    cx_tflow_del(tf);
+}
+
 void test_tflow(void) {
 
     //test_tflow1(NULL, 2, 3);
     //test_tflow2(NULL, 2, 3);
-    test_tflow3(NULL, 4, 5);
+    //test_tflow3(NULL, 4, 5);
+    test_tflow4(NULL, 1, 5);
 
 }
 
