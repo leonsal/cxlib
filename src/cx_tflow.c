@@ -124,6 +124,7 @@ CxError cx_tflow_start(CxTFlow* tf, size_t cycles) {
     return cx_tflow_restart(tf);
 }
 
+
 CxError cx_tflow_stop(CxTFlow* tf, struct timespec timeout) {
 
     CXCHKZ(pthread_mutex_lock(&tf->lock));
@@ -157,14 +158,21 @@ CxTracer* cx_tflow_tracer(CxTFlow* tf) {
 }
 
 #define NANOSECS_PER_SEC    (1000000000)
+static inline void cx_tflow_default_timeout(struct timespec* timeout) {
 
-CxError cx_tflow_wait(CxTFlow* tf, struct timespec reltime) {
+    if (timeout->tv_sec == 0 && timeout->tv_nsec == 0) {
+        timeout->tv_sec = 50*365*24*60*60;   // 50 years
+    }
+}
 
-    // Calculates absolute time from now from the specified relative time
+CxError cx_tflow_wait(CxTFlow* tf, struct timespec timeout) {
+
+    // Calculates absolute time from now from the specified timeout
+    cx_tflow_default_timeout(&timeout);
     struct timespec abstime;
     clock_gettime(CLOCK_REALTIME, &abstime);
-    abstime.tv_sec += reltime.tv_sec;
-    abstime.tv_nsec += reltime.tv_nsec;
+    abstime.tv_sec += timeout.tv_sec;
+    abstime.tv_nsec += timeout.tv_nsec;
     if (abstime.tv_nsec >= NANOSECS_PER_SEC) {
         abstime.tv_nsec -= NANOSECS_PER_SEC;
         abstime.tv_sec += 1;
@@ -303,7 +311,7 @@ static void cx_tflow_wrapper(void* arg) {
     if (arr_task_len(&tinfo->outs) == 0) {
         CXCHKZ(pthread_mutex_lock(&tf->lock));
         tf->run_sinks++;
-        printf("\t%s: name:%s run_sinks:%zu total_sinks:%zu\n", __func__, tinfo->name.data, tf->run_sinks, arr_task_len(&tf->sinks));
+        //printf("\t%s: name:%s run_sinks:%zu total_sinks:%zu\n", __func__, tinfo->name.data, tf->run_sinks, arr_task_len(&tf->sinks));
         // If all sinks have run, a cycle has completed
         if (tf->run_sinks == arr_task_len(&tf->sinks)) {
             tf->run_cycles++;
