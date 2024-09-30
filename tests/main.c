@@ -24,7 +24,7 @@ int main(int argc, char* argv[]) {
     }
 
     // Run test(s)
-    LOGW("START");
+    LOGI("START");
     if (test_name) {
         fn();
     } else {
@@ -35,7 +35,7 @@ int main(int argc, char* argv[]) {
             fn();
         }
     }
-    LOGW("END");
+    LOGI("END");
     cx_logger_del(g_logger);
 }
 
