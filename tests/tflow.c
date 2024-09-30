@@ -3,25 +3,35 @@
 #include "logger.h"
 #include "registry.h"
 
-// Task arguments
-typedef struct TaskArgs {
-    const char* name;              // Task name
-    size_t      us;                // Microseconds to sleep
-} TaskArgs;
 
 // Task descriptor used to build the Task Flows
+// and passed as parameter to task function
 typedef struct TaskDesc {
     const char*     name;          // Task name
-    TaskArgs        args;          // Task arguments
     const char*     deps[32];      // Array of names of dependant tasks (NULL terminated)
+    size_t          us;            // Microseconds to sleep
+    size_t          out;           // Output value
     CxTFlowTask*    task;          // Pointer to created task
 } TaskDesc;
 
 static void task_func(void* arg) {
 
-    TaskArgs* args = arg;
-    //printf("%s: %s\n", __func__, args->name);
-    usleep(args->us);
+    TaskDesc* desc = arg;
+    // For each input task, get its output value and sums to the output of this task.
+    size_t inps = cx_tflow_task_inps(desc->task);
+    size_t outs = cx_tflow_task_outs(desc->task);
+    // For intermediate tasks only sum the inputs, do not accumulate.
+    // This is done to be easier to calculate the final value for sink tasks.
+    if (inps && outs) {
+        desc->out = 0;
+    }
+    for (size_t i = 0; i < inps; i ++) {
+        CxTFlowTask* task = cx_tflow_task_inp_at(desc->task, i);
+        TaskDesc* inp_desc = cx_tflow_task_udata(task);
+        desc->out += inp_desc->out;
+    }
+    printf("%s: name:%s out:%zu\n", __func__, desc->name, desc->out);
+    usleep(desc->us);
 }
 
 // Builds TaskFlow from array of task descriptors
@@ -34,8 +44,8 @@ static CxTFlow* build_tflow(const CxAllocator* alloc, size_t nthreads, TaskDesc*
     // Adds all tasks from descriptor array
     for (size_t i = 0; desc[i].name != NULL; i++) {
         CxTFlowTask* ptask;
-        desc[i].args.name = desc[i].name;
-        CXERR_CHK(cx_tflow_add_task(tf, desc[i].name, task_func, &desc[i].args, &desc[i].task));
+        CXERR_CHK(cx_tflow_add_task(tf, desc[i].name, task_func, &desc[i], &desc[i].task));
+        cx_tflow_set_task_udata(desc[i].task, &desc[i]);
     }
 
     // Sets tasks dependencies
@@ -54,7 +64,7 @@ static CxTFlow* build_tflow(const CxAllocator* alloc, size_t nthreads, TaskDesc*
 static void run_tflow(CxTFlow* tf, size_t ncycles, const char* test_name) {
 
     CXERR_CHK(cx_tflow_start(tf, ncycles));
-    struct timespec timeout = {.tv_sec = 100};
+    struct timespec timeout = {};
 
     CXERR_CHK(cx_tflow_wait(tf, timeout));
     CxTFlowStatus status = cx_tflow_status(tf);
@@ -80,7 +90,7 @@ static void run_tflow(CxTFlow* tf, size_t ncycles, const char* test_name) {
 void test_tflow1(const CxAllocator* alloc, size_t nthreads) {
 
     TaskDesc flow[] = {
-        { .name = "t1", .args = {.us = 1000}},
+        { .name = "t1", .us = 1000},
         {}, // terminator
     };
     CxTFlow* tf = build_tflow(alloc, nthreads, flow);
@@ -92,9 +102,9 @@ void test_tflow1(const CxAllocator* alloc, size_t nthreads) {
 void test_tflow2(const CxAllocator* alloc, size_t nthreads, size_t ncycles) {
 
     TaskDesc flow[] = {
-        { .name = "t1", .args = {.us = 1000}, },
-        { .name = "t2", .args = {.us = 500}, },
-        { .name = "t3", .args = {.us = 200}, },
+        { .name = "t1", .us = 1000 },
+        { .name = "t2", .us = 500 },
+        { .name = "t3", .us = 200 },
         {}, // terminator
     };
     CxTFlow* tf = build_tflow(alloc, nthreads, flow);
@@ -105,16 +115,18 @@ void test_tflow2(const CxAllocator* alloc, size_t nthreads, size_t ncycles) {
 void test_tflow3(const CxAllocator* alloc, size_t nthreads, size_t ncycles) {
 
     TaskDesc flow[] = {
-        { .name = "t1",   .args = {.us = 1000}, },
-        { .name = "t1.1", .args = {.us = 500}, .deps= {"t1", NULL}},
-        { .name = "t1.2", .args = {.us = 800}, .deps= {"t1", NULL}},
-        { .name = "t1.3", .args = {.us = 600}, .deps= {"t1", NULL}},
-        { .name = "t2",   .args = {.us = 1000},.deps= {"t1.1", NULL }},
-        { .name = "t3",   .args = {.us = 1000},.deps= {"t1.1", "t1.2", NULL }},
+        { .name = "t0", .us = 1000, .out = 1},
+        { .name = "t1", .us = 500, .deps= {"t0", NULL}},               // out=1
+        { .name = "t2", .us = 800, .deps= {"t0", NULL}},               // out=1
+        { .name = "t3", .us = 600, .deps= {"t0", NULL}},               // out=1
+        { .name = "t4", .us = 100, .deps= {"t1", "t2", "t3", NULL }},  // out=3
+        { .name = "t5", .us = 100, .deps= {"t1", "t2", NULL }},        // out=2
         {}, // terminator
     };
     CxTFlow* tf = build_tflow(alloc, nthreads, flow);
     run_tflow(tf, ncycles, __func__);
+    CXCHK(flow[4].out == 3 * ncycles);
+    CXCHK(flow[5].out == 2 * ncycles);
     cx_tflow_del(tf);
 }
 
@@ -122,7 +134,7 @@ void test_tflow(void) {
 
     //test_tflow1(NULL, 2, 3);
     //test_tflow2(NULL, 2, 3);
-    test_tflow3(NULL, 4, 20);
+    test_tflow3(NULL, 4, 5);
 
 }
 

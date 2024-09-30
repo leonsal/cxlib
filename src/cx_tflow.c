@@ -276,10 +276,45 @@ CxTFlowTask* cx_tflow_find_task(CxTFlow* tf, const char* name) {
     return NULL;
 }
 
+const char* cx_tflow_task_name(CxTFlowTask* task) {
+
+    return task->name.data;
+}
 
 void cx_tflow_set_task_udata(CxTFlowTask* task, void* udata) {
 
     task->udata = udata;
+}
+
+void* cx_tflow_task_udata(CxTFlowTask* task) {
+
+    return task->udata;
+}
+
+size_t cx_tflow_task_inps(CxTFlowTask* task) {
+
+    return arr_task_len(&task->inps);
+}
+
+CxTFlowTask* cx_tflow_task_inp_at(CxTFlowTask* task, size_t idx) {
+
+    if (idx >= arr_task_len(&task->inps)) {
+        return NULL;
+    }
+    return task->inps.data[idx];
+}
+
+size_t cx_tflow_task_outs(CxTFlowTask* task) {
+
+    return arr_task_len(&task->outs);
+}
+
+CxTFlowTask* cx_tflow_task_out_at(CxTFlowTask* task, size_t idx) {
+
+    if (idx >= arr_task_len(&task->outs)) {
+        return NULL;
+    }
+    return task->outs.data[idx];
 }
 
 static inline bool cx_tflow_is_running(CxTFlow* tf) {
