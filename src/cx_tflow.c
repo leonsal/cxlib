@@ -54,6 +54,20 @@ static inline bool cx_tflow_is_running(CxTFlow* tf);
 static void cx_tflow_wrapper(void* arg);
 static CxError cx_tflow_restart(CxTFlow* tf);
 
+// Debug print macro which is disable if program is run by debugger
+#define DEBUGF_ENABLE 1
+#if DEBUGF_ENABLE==1
+#include <sys/ptrace.h>
+#define DEBUGF(fmt, ...)\
+{\
+    if (ptrace(PTRACE_TRACEME, 0, NULL, 0) == 0) {\
+        printf(fmt, __VA_ARGS__);\
+    }\
+}
+#else
+#define DEBUGF(fmt, ...)
+#endif
+
 
 CxTFlow* cx_tflow_new(const CxAllocator* alloc, size_t nthreads, CxTracer* tracer) {
 
@@ -358,6 +372,7 @@ static void cx_tflow_wrapper(void* arg) {
     CXCHKZ(pthread_mutex_lock(&tf->lock));
     task->cycles++;
     //printf("%s: name:%s cycles:%zu run_cycles:%zu total_cycles:%zu\n", __func__, task->name.data, task->cycles, tf->run_cycles, tf->cycles);
+    DEBUGF("%s: name:%s cycles:%zu run_cycles:%zu total_cycles:%zu\n", __func__, task->name.data, task->cycles, tf->run_cycles, tf->cycles);
 
     // If this task has no outputs it is a sink task
     if (arr_task_len(&task->outs) == 0) {
