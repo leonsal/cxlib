@@ -54,18 +54,12 @@ static inline bool cx_tflow_is_running(CxTFlow* tf);
 static void cx_tflow_wrapper(void* arg);
 static CxError cx_tflow_restart(CxTFlow* tf);
 
-// Debug print macro which is disable if program is run by debugger
-#define DEBUGF_ENABLE 1
+// Debug print macro
+#define DEBUGF_ENABLE 0
 #if DEBUGF_ENABLE==1
-#include <sys/ptrace.h>
-#define DEBUGF(fmt, ...)\
-{\
-    if (ptrace(PTRACE_TRACEME, 0, NULL, 0) == 0) {\
-        printf(fmt, __VA_ARGS__);\
-    }\
-}
+#define DEBUGF(...) printf(__VA_ARGS__)
 #else
-#define DEBUGF(fmt, ...)
+#define DEBUGF(...)
 #endif
 
 
@@ -371,26 +365,25 @@ static void cx_tflow_wrapper(void* arg) {
 
     CXCHKZ(pthread_mutex_lock(&tf->lock));
     task->cycles++;
-    //printf("%s: name:%s cycles:%zu run_cycles:%zu total_cycles:%zu\n", __func__, task->name.data, task->cycles, tf->run_cycles, tf->cycles);
     DEBUGF("%s: name:%s cycles:%zu run_cycles:%zu total_cycles:%zu\n", __func__, task->name.data, task->cycles, tf->run_cycles, tf->cycles);
 
     // If this task has no outputs it is a sink task
     if (arr_task_len(&task->outs) == 0) {
         tf->run_sinks++;
-        //printf("\t%s: name:%s run_sinks:%zu total_sinks:%zu\n", __func__, task->name.data, tf->run_sinks, arr_task_len(&tf->sinks));
+        DEBUGF("\t%s: name:%s run_sinks:%zu total_sinks:%zu\n", __func__, task->name.data, tf->run_sinks, arr_task_len(&tf->sinks));
         // If all sinks have run, a cycle has completed
         if (tf->run_sinks == arr_task_len(&tf->sinks)) {
             tf->run_cycles++;
             // Checks for stop request or number of cycles run
             if (tf->stop || (tf->cycles && tf->run_cycles >= tf->cycles)) {
                 tf->running = false;
-                //printf("\t%s: name:%s STOP----------------------------------\n", __func__, task->name.data);
+                DEBUGF("\t%s: name:%s STOP----------------------------------\n", __func__, task->name.data);
                 CXCHKZ(pthread_cond_signal(&tf->stop_cv));
                 CXCHKZ(pthread_mutex_unlock(&tf->lock));
                 return;
             }
             // Restart source tasks beginning a new cycle
-            //printf("\n");
+            DEBUGF("\n");
             CXCHKZ(pthread_mutex_unlock(&tf->lock));
             cx_tflow_restart(tf);
             return;
@@ -415,13 +408,11 @@ static void cx_tflow_wrapper(void* arg) {
             if (task_inp->cycles != inp_cycles) {
                 inputs_ok = false;
             }
-            //printf("\t%s: name:%s INPUT: task_inp:%s task_inp_cycles:%zu\n", __func__, task->name.data, task_inp->name.data, task_inp->cycles);
         }
-        //printf("\t%s: name:%s inputs_ok:%d\n", __func__, task_out->name.data, inputs_ok);
+        DEBUGF("\t%s: name:%s inputs_ok:%d\n", __func__, task_out->name.data, inputs_ok);
 
         // Starts current output task
         if (inputs_ok) {
-            //printf("\t%s: name:%s START:%s\n", __func__, task->name.data, task_out->name.data);
             CXCHKZ(cx_tpool_run(tf->tpool, cx_tflow_wrapper, task_out));
         }
     }
