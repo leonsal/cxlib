@@ -29,7 +29,7 @@ endif
 
 # Sets address sanitizer option
 ifdef asan 
-	ASAN=-DCMAKE_C_FLAGS="-fsanitize=address,leak"
+	ASAN=-DCMAKE_C_FLAGS="-fsanitize=address,leak,undefined"
 endif
 
 # Sets memory sanitizer options

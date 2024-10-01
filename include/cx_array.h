@@ -308,8 +308,10 @@ static void cx_array_name_(_grow_)(cx_array_name* a, size_t add_len, size_t min_
     }
 
     // Copy current data to new area and free previous
-    memcpy(new, a->data, a->len_ * elemSize);
-    cx_array_free_(a, a->data, a->len_ * elemSize);
+    if (a->data) {
+        memcpy(new, a->data, a->len_ * elemSize);
+        cx_array_free_(a, a->data, a->len_ * elemSize);
+    }
     a->data = new;
     a->cap_ = min_cap;
 }
