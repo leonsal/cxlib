@@ -10,6 +10,7 @@
 // Define internal dynamic string
 #define cx_str_name cxstr
 #define cx_str_static
+#define cx_str_instance_allocator
 #define cx_str_implement
 #include "cx_str.h"
 
@@ -17,6 +18,7 @@
 #define cx_array_name arr_task
 #define cx_array_type CxTFlowTask*
 #define cx_array_static
+#define cx_array_instance_allocator
 #define cx_array_implement
 #include "cx_array.h"
 
@@ -72,6 +74,9 @@ CxTFlow* cx_tflow_new(const CxAllocator* alloc, size_t nthreads, CxTracer* trace
     tf->alloc = alloc;
     tf->tracer = tracer;
     tf->tpool = cx_tpool_new(alloc, nthreads, 32);
+    tf->tasks = arr_task_init(alloc);
+    tf->sources = arr_task_init(alloc);
+    tf->sinks = arr_task_init(alloc);
     return tf;
 }
 
@@ -220,9 +225,11 @@ CxError cx_tflow_add_task(CxTFlow* tf, const char* name, CxTFlowTaskFn fn, void*
     CxTFlowTask* task = cx_alloc_mallocz(tf->alloc, sizeof(CxTFlowTask));
     *task = (CxTFlowTask){
         .tf = tf,
-        .name = cxstr_initc(name),
+        .name = cxstr_initc(tf->alloc, name),
         .task_fn = fn,
         .task_arg = arg,
+        .inps = arr_task_init(tf->alloc),
+        .outs = arr_task_init(tf->alloc),
     };
     arr_task_push(&tf->tasks, task);
     *ptask = task;
