@@ -5,23 +5,26 @@
 #include <sys/syscall.h>
 #include <pthread.h>
 
-#include "cx_tracer.h"
-
-// Define dynamic string with custom allocator used internally
+// Define dynamic string 
 #define cx_str_name cxstr
 #define cx_str_static
 #define cx_str_instance_allocator
 #define cx_str_implement
 #include "cx_str.h"
 
+#include "cx_tracer.h"
+
+#define EVNAME_MAX_SIZE (32)
+#define EVCAT_MAX_SIZE  (32)
+
 typedef struct CxTracerEvent {
-    cxstr               name;       // Event name
-    cxstr               cat;        // Event category
-    pid_t               pid;        // Associated process id
-    int                 tid;        // Associated thread id
-    char                ph;         // Event type
-    CxTracerScope       scope;      // Event scope
-    struct timespec     ts;         // Event timestamp
+    char                name[EVNAME_MAX_SIZE];  // Event name
+    char                cat[EVCAT_MAX_SIZE];    // Event category
+    pid_t               pid;                    // Associated process id
+    int                 tid;                    // Associated thread id
+    char                ph;                     // Event type
+    CxTracerScope       scope;                  // Event scope
+    struct timespec     ts;                     // Event timestamp
 } CxTracerEvent;
 
 typedef struct CxTracer {
@@ -51,16 +54,6 @@ CxTracer* cx_tracer_new(const CxAllocator* alloc, size_t cap) {
     // Creates array of CxTracer events
     tr->events = cx_alloc_mallocz(alloc, sizeof(CxTracerEvent) * cap);
     tr->cap = cap;
-
-    // Reserve events string size to avoid allocations when appending events.
-    for (size_t i = 0; i < tr->cap; i++) {
-        CxTracerEvent* ev = &tr->events[i];
-        ev->name = cxstr_init(alloc);
-        cxstr_reserve(&ev->name, CXSTR_MIN_CAP);
-        ev->cat = cxstr_init(alloc);
-        cxstr_reserve(&ev->cat, CXSTR_MIN_CAP);
-    }
-
     tr->count = 0;
     tr->next_tid = 1;
     return tr;
@@ -68,13 +61,7 @@ CxTracer* cx_tracer_new(const CxAllocator* alloc, size_t cap) {
 
 void cx_tracer_del(CxTracer* tr) {
 
-    // Free individual events and the events array
-    for (size_t i = 0; i < tr->cap; i++) {
-        cxstr_free(&tr->events[i].name);
-        cxstr_free(&tr->events[i].cat);
-    }
     cx_alloc_free(tr->alloc, tr->events, sizeof(CxTracerEvent) * tr->cap);
-
     CXCHKZ(pthread_mutex_destroy(&tr->lock));
     cx_alloc_free(tr->alloc, tr, sizeof(CxTracer));
 }
@@ -134,7 +121,7 @@ CxError cx_tracer_json_write(CxTracer* tr, CxWriter* out) {
         cxstr_clear(&evstr);
         cxstr_printf(&evstr,
             "{\"name\":\"%s\",\"cat\":\"%s\",\"ph\":\"%c\",\"ts\":%lu,\"pid\":%d,\"tid\":%d",
-            ev->name.data, ev->cat.data, ev->ph, ts, ev->pid, ev->tid
+            ev->name, ev->cat, ev->ph, ts, ev->pid, ev->tid
         );
         if (ev->scope == CxTracerScopeDefault) {
             cxstr_printf(&evstr, "}", 1);
@@ -167,6 +154,15 @@ CxError cx_tracer_json_write_file(CxTracer* tr, const char* path) {
     return err;
 }
 
+static inline void str_copy(char* dst, const char* src, size_t max) {
+
+    if (strlen(src) < max) {
+        strcpy(dst, src);
+        return;
+    }
+    strcpy(dst, "?");
+}
+
 static inline CxTracerEvent* cx_tracer_append_event(CxTracer* tr, const char* name, const char* cat) {
 
     // Generates a unique id for the thread once
@@ -190,8 +186,8 @@ static inline CxTracerEvent* cx_tracer_append_event(CxTracer* tr, const char* na
     ev->pid = getpid();
     ev->tid = thread_local_id;
     ev->scope = CxTracerScopeDefault;
-    cxstr_cpy(&ev->name, name);
-    cxstr_cpy(&ev->cat, cat);
+    str_copy(ev->name, name, EVNAME_MAX_SIZE);
+    str_copy(ev->cat, cat, EVCAT_MAX_SIZE);
     return ev;
 }
 
