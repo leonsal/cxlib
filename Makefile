@@ -15,15 +15,16 @@ ifdef msvc
 endif
 
 # Sets the build type option
-BUILD_TYPE=-DCMAKE_BUILD_TYPE=Debug
+# This is the default custom build type used for debugging.
+BUILD_TYPE=-DCMAKE_BUILD_TYPE=None -DCMAKE_C_FLAGS="-Og -ggdb3 -fno-omit-frame-pointer"
 ifdef debug
 	BUILD_TYPE=-DCMAKE_BUILD_TYPE=Debug
 endif
 ifdef release
 	BUILD_TYPE=-DCMAKE_BUILD_TYPE=Release
-	ifdef debinfo
-		BUILD_TYPE=-DCMAKE_BUILD_TYPE=Relwithdebinfo
-	endif
+endif
+ifdef reldebinfo
+	BUILD_TYPE=-DCMAKE_BUILD_TYPE=Relwithdebinfo
 endif
 
 # Sets address sanitizer option
