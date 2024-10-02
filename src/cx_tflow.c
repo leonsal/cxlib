@@ -384,7 +384,6 @@ static void cx_tflow_wrapper(void* arg) {
             // Checks for stop request or number of cycles run
             if (tf->stop || (tf->cycles && tf->run_cycles >= tf->cycles)) {
                 tf->running = false;
-                DEBUGF("\t%s: name:%s STOP----------------------------------\n", __func__, task->name.data);
                 CXCHKZ(pthread_cond_signal(&tf->stop_cv));
                 CXCHKZ(pthread_mutex_unlock(&tf->lock));
                 return;
