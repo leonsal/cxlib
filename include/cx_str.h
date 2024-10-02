@@ -568,6 +568,17 @@ cx_str_api_ int  cx_str_name_(_cmpn)(const cx_str_name* s, const char* src, size
     if (s->len_ < n) {
         return -1;
     }
+    if (s->data == NULL) {
+        if (src == NULL) {
+            return 0;
+        }
+        if (n == 0) {
+            return 0;
+        }
+    }
+    if (src == NULL) {
+        return 1;
+    }
     return memcmp(s->data, src, n);
 }
 
