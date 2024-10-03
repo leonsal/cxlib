@@ -83,13 +83,8 @@ CxTFlow* cx_tflow_new(const CxAllocator* alloc, size_t nthreads, CxTracer* trace
 
 CxError cx_tflow_del(CxTFlow* tf) {
 
-    DEBUGF("CX_TFLOW_DEL\n");
     CXCHKZ(pthread_cond_destroy(&tf->stop_cv));
-    //CXCHKZ(pthread_mutex_destroy(&tf->lock));
-    int res = pthread_mutex_destroy(&tf->lock);
-    if (res) {
-        printf("DESTROY ERROR:%s\n", strerror(res));
-    }
+    CXCHKZ(pthread_mutex_destroy(&tf->lock));
 
     for (size_t i = 0; i < arr_task_len(&tf->tasks); i++) {
         CxTFlowTask* tinfo = tf->tasks.data[i];
@@ -200,7 +195,6 @@ CxError cx_tflow_wait(CxTFlow* tf, struct timespec timeout) {
     CxError error = {0};
     CXCHKZ(pthread_mutex_lock(&tf->lock));
     while (tf->running) {
-        DEBUGF("START WAIT\n");
         const int res = pthread_cond_timedwait(&tf->stop_cv, &tf->lock, &abstime);
         if (res) {
             if (res == ETIMEDOUT) {
@@ -210,10 +204,8 @@ CxError cx_tflow_wait(CxTFlow* tf, struct timespec timeout) {
             }
             break;
         }
-        DEBUGF("WAIT:%d\n", res);
     }
     CXCHKZ(pthread_mutex_unlock(&tf->lock));
-    DEBUGF("WAIT OK\n");
     return error;
 }
 
@@ -381,14 +373,14 @@ static void cx_tflow_wrapper(void* arg) {
 
     CXCHKZ(pthread_mutex_lock(&tf->lock));
     task->cycles++;
-    DEBUGF("%s: name:%s cycles:%zu run_cycles:%zu total_cycles:%zu, inps_run:%zu\n",
-        __func__, task->name.data, task->cycles, tf->run_cycles, tf->cycles, task->inps_run);
+    DEBUGF("%s: name:%s cycles:%zu run_cycles:%zu total_cycles:%zu\n",
+        __func__, task->name.data, task->cycles, tf->run_cycles, tf->cycles);
 
     // If this task has no outputs it is a sink task
     if (arr_task_len(&task->outs) == 0) {
         tf->run_sinks++;
-        DEBUGF("\t%s: name:%s run_sinks:%zu total_sinks:%zu, inps_run:%zu\n",
-            __func__, task->name.data, tf->run_sinks, arr_task_len(&tf->sinks), task->inps_run);
+        DEBUGF("\t%s: name:%s run_sinks:%zu total_sinks:%zu\n",
+            __func__, task->name.data, tf->run_sinks, arr_task_len(&tf->sinks));
         // If all sinks have run, a cycle has completed
         if (tf->run_sinks == arr_task_len(&tf->sinks)) {
             tf->run_cycles++;
@@ -397,7 +389,6 @@ static void cx_tflow_wrapper(void* arg) {
                 tf->running = false;
                 CXCHKZ(pthread_cond_signal(&tf->stop_cv));
                 CXCHKZ(pthread_mutex_unlock(&tf->lock));
-                DEBUGF("FINISHED\n");
                 return;
             }
             // Restart source tasks beginning a new cycle
@@ -445,7 +436,7 @@ static void cx_tflow_wrapper(void* arg) {
     //         CXCHKZ(cx_tpool_run(tf->tpool, cx_tflow_wrapper, task_out));
     //     }
     // }
-    CXCHKZ(pthread_mutex_unlock(&tf->lock));
+    //CXCHKZ(pthread_mutex_unlock(&tf->lock));
 }
 
 static CxError cx_tflow_restart(CxTFlow* tf) {
