@@ -32,7 +32,7 @@ typedef struct CxTFlowStatus {
 CxTFlowStatus cx_tflow_status(CxTFlow* tf);
 
 // Returns the tracer specified when creating the TaskFlow
-CxTracer* cx_tflow_tracer(CxTFlow* tf);
+CxTracer* cx_tflow_tracer(const CxTFlow* tf);
 
 // Waits for Task Flow to finish
 CxError cx_tflow_wait(CxTFlow* tf, struct timespec reltime);
@@ -51,35 +51,35 @@ CxError cx_tflow_set_task_dep(CxTFlowTask* task, CxTFlowTask* dep);
 void cx_tflow_set_task_udata(CxTFlowTask* task, void* udata);
 
 // Returns user data associated with task
-void* cx_tflow_task_udata(CxTFlowTask* task);
+void* cx_tflow_task_udata(const CxTFlowTask* task);
 
 // Returns the current number of added tasks
-size_t cx_tflow_task_count(CxTFlow* tf);
+size_t cx_tflow_task_count(const CxTFlow* tf);
 
 // Returns task at the specified index (for iteration)
 // Return NULL if index is invalid
-CxTFlowTask* cx_tflow_task_at(CxTFlow* tf, size_t idx);
+CxTFlowTask* cx_tflow_task_at(const CxTFlow* tf, size_t idx);
 
 // Returns task with specified name
 // Return NULL if task name not found
-CxTFlowTask* cx_tflow_find_task(CxTFlow* tf, const char* name);
+CxTFlowTask* cx_tflow_find_task(const CxTFlow* tf, const char* name);
 
 // Returns task name
-const char* cx_tflow_task_name(CxTFlowTask* task);
+const char* cx_tflow_task_name(const CxTFlowTask* task);
 
 // Returns number of task inputs (dependencies)
-size_t cx_tflow_task_inps(CxTFlowTask* task);
+size_t cx_tflow_task_inps(const CxTFlowTask* task);
 
 // Returns input task for the specified index.
 // Returns NULL if the index is invalid
-CxTFlowTask* cx_tflow_task_inp_at(CxTFlowTask* task, size_t idx);
+CxTFlowTask* cx_tflow_task_inp_at(const CxTFlowTask* task, size_t idx);
 
 // Returns number of task outputs (dependants)
-size_t cx_tflow_task_outs(CxTFlowTask* task);
+size_t cx_tflow_task_outs(const CxTFlowTask* task);
 
 // Returns ouput task for the specified index.
 // Returns NULL if the index is invalid
-CxTFlowTask* cx_tflow_task_out_at(CxTFlowTask* task, size_t idx);
+CxTFlowTask* cx_tflow_task_out_at(const CxTFlowTask* task, size_t idx);
 
 
 #endif

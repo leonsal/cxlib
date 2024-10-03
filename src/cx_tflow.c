@@ -165,7 +165,7 @@ CxTFlowStatus cx_tflow_status(CxTFlow* tf) {
     return status;
 }
 
-CxTracer* cx_tflow_tracer(CxTFlow* tf) {
+CxTracer* cx_tflow_tracer(const CxTFlow* tf) {
 
     return tf->tracer;
 }
@@ -287,17 +287,17 @@ void cx_tflow_set_task_udata(CxTFlowTask* task, void* udata) {
     task->udata = udata;
 }
 
-void* cx_tflow_task_udata(CxTFlowTask* task) {
+void* cx_tflow_task_udata(const CxTFlowTask* task) {
 
     return task->udata;
 }
 
-size_t cx_tflow_task_count(CxTFlow* tf) {
+size_t cx_tflow_task_count(const CxTFlow* tf) {
 
     return arr_task_len(&tf->tasks);
 }
 
-CxTFlowTask* cx_tflow_task_at(CxTFlow* tf, size_t idx) {
+CxTFlowTask* cx_tflow_task_at(const CxTFlow* tf, size_t idx) {
 
     if (idx >= arr_task_len(&tf->tasks)) {
         return NULL;
@@ -305,7 +305,7 @@ CxTFlowTask* cx_tflow_task_at(CxTFlow* tf, size_t idx) {
     return tf->tasks.data[idx];
 }
 
-CxTFlowTask* cx_tflow_find_task(CxTFlow* tf, const char* name) {
+CxTFlowTask* cx_tflow_find_task(const CxTFlow* tf, const char* name) {
 
     for (size_t i = 0; i < arr_task_len(&tf->tasks); i++) {
         CxTFlowTask* task = tf->tasks.data[i];
@@ -316,17 +316,17 @@ CxTFlowTask* cx_tflow_find_task(CxTFlow* tf, const char* name) {
     return NULL;
 }
 
-const char* cx_tflow_task_name(CxTFlowTask* task) {
+const char* cx_tflow_task_name(const CxTFlowTask* task) {
 
     return task->name.data;
 }
 
-size_t cx_tflow_task_inps(CxTFlowTask* task) {
+size_t cx_tflow_task_inps(const CxTFlowTask* task) {
 
     return arr_task_len(&task->inps);
 }
 
-CxTFlowTask* cx_tflow_task_inp_at(CxTFlowTask* task, size_t idx) {
+CxTFlowTask* cx_tflow_task_inp_at(const CxTFlowTask* task, size_t idx) {
 
     if (idx >= arr_task_len(&task->inps)) {
         return NULL;
@@ -334,12 +334,12 @@ CxTFlowTask* cx_tflow_task_inp_at(CxTFlowTask* task, size_t idx) {
     return task->inps.data[idx];
 }
 
-size_t cx_tflow_task_outs(CxTFlowTask* task) {
+size_t cx_tflow_task_outs(const CxTFlowTask* task) {
 
     return arr_task_len(&task->outs);
 }
 
-CxTFlowTask* cx_tflow_task_out_at(CxTFlowTask* task, size_t idx) {
+CxTFlowTask* cx_tflow_task_out_at(const CxTFlowTask* task, size_t idx) {
 
     if (idx >= arr_task_len(&task->outs)) {
         return NULL;

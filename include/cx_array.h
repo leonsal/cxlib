@@ -252,9 +252,9 @@ typedef struct cx_array_name {
 cx_array_api_ void cx_array_name_(_free)(cx_array_name* a);
 cx_array_api_ void cx_array_name_(_clear)(cx_array_name* a);
 cx_array_api_ cx_array_name cx_array_name_(_clone)(cx_array_name* a);
-cx_array_api_ size_t cx_array_name_(_cap)(cx_array_name* a);
-cx_array_api_ size_t cx_array_name_(_len)(cx_array_name* a);
-cx_array_api_ bool cx_array_name_(_empty)(cx_array_name* a);
+cx_array_api_ size_t cx_array_name_(_cap)(const cx_array_name* a);
+cx_array_api_ size_t cx_array_name_(_len)(const cx_array_name* a);
+cx_array_api_ bool cx_array_name_(_empty)(const cx_array_name* a);
 cx_array_api_ void cx_array_name_(_setcap)(cx_array_name* a, size_t cap);
 cx_array_api_ void cx_array_name_(_setlen)(cx_array_name* a, size_t len);
 cx_array_api_ void cx_array_name_(_pushn)(cx_array_name* a, cx_array_type* v, size_t n);
@@ -272,7 +272,7 @@ cx_array_api_ void cx_array_name_(_deln)(cx_array_name* a, size_t idx, size_t n)
 cx_array_api_ void cx_array_name_(_del)(cx_array_name* a, size_t idx);
 cx_array_api_ void cx_array_name_(_delswap)(cx_array_name* a, size_t i);
 cx_array_api_ void cx_array_name_(_sort)(cx_array_name* a, int (*f)(cx_array_type*, cx_array_type*));
-cx_array_api_ ssize_t cx_array_name_(_find)(cx_array_name* a, cx_array_type v);
+cx_array_api_ ssize_t cx_array_name_(_find)(const cx_array_name* a, cx_array_type v);
 
 //
 // Implementations
@@ -363,15 +363,15 @@ cx_array_api_ cx_array_name cx_array_name_(_clone)(cx_array_name* a) {
     return cloned;
 }
 
-cx_array_api_ size_t cx_array_name_(_cap)(cx_array_name* a) {
+cx_array_api_ size_t cx_array_name_(_cap)(const cx_array_name* a) {
     return a->cap_;
 }
 
-cx_array_api_ size_t cx_array_name_(_len)(cx_array_name* a) {
+cx_array_api_ size_t cx_array_name_(_len)(const cx_array_name* a) {
     return a->len_;
 }
 
-cx_array_api_ bool cx_array_name_(_empty)(cx_array_name* a) {
+cx_array_api_ bool cx_array_name_(_empty)(const cx_array_name* a) {
     return a->len_ == 0;
 } 
 
@@ -522,7 +522,7 @@ cx_array_api_ void cx_array_name_(_sort)(cx_array_name* a, int (*f)(cx_array_typ
     qsort(a->data,a->len_,sizeof(*(a->data)),(int (*)(const void*,const void*))f);
 }
 
-cx_array_api_ ssize_t cx_array_name_(_find)(cx_array_name* a, cx_array_type v) {
+cx_array_api_ ssize_t cx_array_name_(_find)(const cx_array_name* a, cx_array_type v) {
 
     for (ssize_t i = 0; i < (ssize_t)a->len_; i++) {
         if (cx_array_cmp_el(&a->data[i], &v, sizeof(v)) == 0) {
