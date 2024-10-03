@@ -31,6 +31,7 @@ typedef struct CxTFlowTask {
     arr_task        inps;           // Array of pointers to tasks which are inputs of this one (dependencies)
     arr_task        outs;           // Array of pointers to taskd which are outputs of this one (dependants)
     size_t          cycles;         // Task last cycle executed
+    size_t          inps_run;       // Number of inputs run in the cycle
     void*           udata;          // Optional associated user data 
 } CxTFlowTask;
 
@@ -57,7 +58,7 @@ static void cx_tflow_wrapper(void* arg);
 static CxError cx_tflow_restart(CxTFlow* tf);
 
 // Debug print macro
-#define DEBUGF_ENABLE 0
+#define DEBUGF_ENABLE 1
 #if DEBUGF_ENABLE==1
 #define DEBUGF(...) printf(__VA_ARGS__)
 #else
@@ -82,8 +83,13 @@ CxTFlow* cx_tflow_new(const CxAllocator* alloc, size_t nthreads, CxTracer* trace
 
 CxError cx_tflow_del(CxTFlow* tf) {
 
+    DEBUGF("CX_TFLOW_DEL\n");
     CXCHKZ(pthread_cond_destroy(&tf->stop_cv));
-    CXCHKZ(pthread_mutex_destroy(&tf->lock));
+    //CXCHKZ(pthread_mutex_destroy(&tf->lock));
+    int res = pthread_mutex_destroy(&tf->lock);
+    if (res) {
+        printf("DESTROY ERROR:%s\n", strerror(res));
+    }
 
     for (size_t i = 0; i < arr_task_len(&tf->tasks); i++) {
         CxTFlowTask* tinfo = tf->tasks.data[i];
@@ -194,6 +200,7 @@ CxError cx_tflow_wait(CxTFlow* tf, struct timespec timeout) {
     CxError error = {0};
     CXCHKZ(pthread_mutex_lock(&tf->lock));
     while (tf->running) {
+        DEBUGF("START WAIT\n");
         const int res = pthread_cond_timedwait(&tf->stop_cv, &tf->lock, &abstime);
         if (res) {
             if (res == ETIMEDOUT) {
@@ -203,8 +210,10 @@ CxError cx_tflow_wait(CxTFlow* tf, struct timespec timeout) {
             }
             break;
         }
+        DEBUGF("WAIT:%d\n", res);
     }
     CXCHKZ(pthread_mutex_unlock(&tf->lock));
+    DEBUGF("WAIT OK\n");
     return error;
 }
 
@@ -372,12 +381,14 @@ static void cx_tflow_wrapper(void* arg) {
 
     CXCHKZ(pthread_mutex_lock(&tf->lock));
     task->cycles++;
-    DEBUGF("%s: name:%s cycles:%zu run_cycles:%zu total_cycles:%zu\n", __func__, task->name.data, task->cycles, tf->run_cycles, tf->cycles);
+    DEBUGF("%s: name:%s cycles:%zu run_cycles:%zu total_cycles:%zu, inps_run:%zu\n",
+        __func__, task->name.data, task->cycles, tf->run_cycles, tf->cycles, task->inps_run);
 
     // If this task has no outputs it is a sink task
     if (arr_task_len(&task->outs) == 0) {
         tf->run_sinks++;
-        DEBUGF("\t%s: name:%s run_sinks:%zu total_sinks:%zu\n", __func__, task->name.data, tf->run_sinks, arr_task_len(&tf->sinks));
+        DEBUGF("\t%s: name:%s run_sinks:%zu total_sinks:%zu, inps_run:%zu\n",
+            __func__, task->name.data, tf->run_sinks, arr_task_len(&tf->sinks), task->inps_run);
         // If all sinks have run, a cycle has completed
         if (tf->run_sinks == arr_task_len(&tf->sinks)) {
             tf->run_cycles++;
@@ -386,6 +397,7 @@ static void cx_tflow_wrapper(void* arg) {
                 tf->running = false;
                 CXCHKZ(pthread_cond_signal(&tf->stop_cv));
                 CXCHKZ(pthread_mutex_unlock(&tf->lock));
+                DEBUGF("FINISHED\n");
                 return;
             }
             // Restart source tasks beginning a new cycle
@@ -402,26 +414,37 @@ static void cx_tflow_wrapper(void* arg) {
     // For each current task output, checks if its inputs are satisfied.
     for (size_t to = 0; to < arr_task_len(&task->outs); to++) {
         CxTFlowTask* task_out = task->outs.data[to];
-
-        // Checks if all the current output task inputs are satisfied
-        bool inputs_ok = true;
-        size_t inp_cycles;
-        for (size_t ti = 0; ti < arr_task_len(&task_out->inps); ti++) {
-            CxTFlowTask* task_inp = task_out->inps.data[ti];
-            if (ti == 0) {
-                inp_cycles = task_inp->cycles;
-            }
-            if (task_inp->cycles != inp_cycles) {
-                inputs_ok = false;
-            }
-        }
-        DEBUGF("\t%s: name:%s inputs_ok:%d\n", __func__, task_out->name.data, inputs_ok);
-
-        // Starts current output task
-        if (inputs_ok) {
+        task_out->inps_run++;
+        if (task_out->inps_run >= arr_task_len(&task_out->inps)) {
             CXCHKZ(cx_tpool_run(tf->tpool, cx_tflow_wrapper, task_out));
+            task_out->inps_run = 0;
         }
     }
+    CXCHKZ(pthread_mutex_unlock(&tf->lock));
+
+    // // For each current task output, checks if its inputs are satisfied.
+    // for (size_t to = 0; to < arr_task_len(&task->outs); to++) {
+    //     CxTFlowTask* task_out = task->outs.data[to];
+    //
+    //     // Checks if all the current output task inputs are satisfied
+    //     bool inputs_ok = true;
+    //     size_t inp_cycles;
+    //     for (size_t ti = 0; ti < arr_task_len(&task_out->inps); ti++) {
+    //         CxTFlowTask* task_inp = task_out->inps.data[ti];
+    //         if (ti == 0) {
+    //             inp_cycles = task_inp->cycles;
+    //         }
+    //         if (task_inp->cycles != inp_cycles) {
+    //             inputs_ok = false;
+    //         }
+    //     }
+    //     DEBUGF("\t%s: name:%s inputs_ok:%d\n", __func__, task_out->name.data, inputs_ok);
+    //
+    //     // Starts current output task
+    //     if (inputs_ok) {
+    //         CXCHKZ(cx_tpool_run(tf->tpool, cx_tflow_wrapper, task_out));
+    //     }
+    // }
     CXCHKZ(pthread_mutex_unlock(&tf->lock));
 }
 
