@@ -13,6 +13,9 @@ endif
 ifdef msvc
 	CC=-DCMAKE_C_COMPILER=cl 
 endif
+ifdef icc
+	CC=-DCMAKE_C_COMPILER=icx-cc
+endif
 
 # Sets the build type option
 # This is the default custom build type used for debugging.
