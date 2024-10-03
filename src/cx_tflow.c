@@ -58,7 +58,7 @@ static void cx_tflow_wrapper(void* arg);
 static CxError cx_tflow_restart(CxTFlow* tf);
 
 // Debug print macro
-#define DEBUGF_ENABLE 1
+#define DEBUGF_ENABLE 0
 #if DEBUGF_ENABLE==1
 #define DEBUGF(...) printf(__VA_ARGS__)
 #else
@@ -412,31 +412,6 @@ static void cx_tflow_wrapper(void* arg) {
         }
     }
     CXCHKZ(pthread_mutex_unlock(&tf->lock));
-
-    // // For each current task output, checks if its inputs are satisfied.
-    // for (size_t to = 0; to < arr_task_len(&task->outs); to++) {
-    //     CxTFlowTask* task_out = task->outs.data[to];
-    //
-    //     // Checks if all the current output task inputs are satisfied
-    //     bool inputs_ok = true;
-    //     size_t inp_cycles;
-    //     for (size_t ti = 0; ti < arr_task_len(&task_out->inps); ti++) {
-    //         CxTFlowTask* task_inp = task_out->inps.data[ti];
-    //         if (ti == 0) {
-    //             inp_cycles = task_inp->cycles;
-    //         }
-    //         if (task_inp->cycles != inp_cycles) {
-    //             inputs_ok = false;
-    //         }
-    //     }
-    //     DEBUGF("\t%s: name:%s inputs_ok:%d\n", __func__, task_out->name.data, inputs_ok);
-    //
-    //     // Starts current output task
-    //     if (inputs_ok) {
-    //         CXCHKZ(cx_tpool_run(tf->tpool, cx_tflow_wrapper, task_out));
-    //     }
-    // }
-    //CXCHKZ(pthread_mutex_unlock(&tf->lock));
 }
 
 static CxError cx_tflow_restart(CxTFlow* tf) {

@@ -104,6 +104,9 @@ static void test_tflow1(const CxAllocator* alloc, size_t nthreads, size_t ncycle
 }
 
 // 3 sources, 1 sink
+// t0 ----> t3
+// t1 -----/
+// t2 -----/
 static void test_tflow2(const CxAllocator* alloc, size_t nthreads, size_t ncycles) {
 
     TaskDesc flow[] = {
@@ -118,6 +121,9 @@ static void test_tflow2(const CxAllocator* alloc, size_t nthreads, size_t ncycle
 }
 
 // 1 source, 3 sinks
+// t0 -----> t1
+//  \------> t2
+//  \------> t3
 static void test_tflow3(const CxAllocator* alloc, size_t nthreads, size_t ncycles) {
 
     TaskDesc flow[] = {
@@ -131,6 +137,8 @@ static void test_tflow3(const CxAllocator* alloc, size_t nthreads, size_t ncycle
     run_tflow(tf, ncycles, __func__);
 }
 
+// t0 ----> t1, t2, t3 ---> t4
+//          t1, t2 ----> t5
 static void test_tflow4(const CxAllocator* alloc, size_t nthreads, size_t ncycles) {
 
     TaskDesc flow[] = {
@@ -148,6 +156,12 @@ static void test_tflow4(const CxAllocator* alloc, size_t nthreads, size_t ncycle
     CXCHK(flow[5].out == 2 * ncycles);
 }
 
+// t0, t1, t2 ---> t3
+// t3 ---> t4
+// t5 ---> t3
+// t6 ---> t3
+// t5, t6 ---> t7
+// t7 ---> t8
 static void test_tflow5(const CxAllocator* alloc, size_t nthreads, size_t ncycles) {
 
     TaskDesc flow[] = {
@@ -195,12 +209,12 @@ static void test_tflow6(const CxAllocator* alloc, size_t nthreads, size_t ncycle
 void test_tflow(void) {
 
     LOGI("%s: ", __func__);
-    // test_tflow1(NULL, 8, 20);
+    test_tflow1(NULL, 8, 20);
     test_tflow2(NULL, 8, 10);
-    // test_tflow3(NULL, 8, 20);
-    // test_tflow4(NULL, 8, 20);
-    // test_tflow5(NULL, 8, 20);
-    // test_tflow6(NULL, 8, 20);
+    test_tflow3(NULL, 8, 20);
+    test_tflow4(NULL, 8, 20);
+    test_tflow5(NULL, 8, 20);
+    test_tflow6(NULL, 8, 20);
 
 }
 
