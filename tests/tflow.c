@@ -14,7 +14,7 @@ typedef struct TaskDesc {
     CxTFlowTask*    task;          // Pointer to created task
 } TaskDesc;
 
-static void task_func(void* arg) {
+static CxError task_func(void* arg) {
 
     TaskDesc* desc = arg;
     size_t inps = cx_tflow_task_inps(desc->task);
@@ -33,6 +33,7 @@ static void task_func(void* arg) {
     }
     //printf("%s: name:%s out:%zu\n", __func__, desc->name, desc->out);
     usleep(desc->us);
+    return CXOK();
 }
 
 // Builds TaskFlow from array of task descriptors

@@ -366,12 +366,17 @@ static void cx_tflow_wrapper(void* arg) {
     if (tf->tracer) {
         cx_tracer_begin(tf->tracer, task->name.data, "task");
     }
-    task->task_fn(task->task_arg);
+    CxError error = task->task_fn(task->task_arg);
     if (tf->tracer) {
         cx_tracer_end(tf->tracer, task->name.data, "task");
     }
 
     CXCHKZ(pthread_mutex_lock(&tf->lock));
+    // If user task returned error, sets stop request.
+    // The flow with stop at the end of the current cycle.
+    if (error.msg) {
+        tf->stop = true;
+    }
     task->cycles++;
     DEBUGF("%s: name:%s cycles:%zu run_cycles:%zu total_cycles:%zu\n",
         __func__, task->name.data, task->cycles, tf->run_cycles, tf->cycles);

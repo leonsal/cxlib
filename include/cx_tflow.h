@@ -37,10 +37,10 @@ CxTracer* cx_tflow_tracer(const CxTFlow* tf);
 // Waits for Task Flow to finish
 CxError cx_tflow_wait(CxTFlow* tf, struct timespec reltime);
 
+typedef CxError (*CxTFlowTaskFn)(void*);
+typedef struct CxTFlowTask CxTFlowTask;
 // Adds task in the Task Flow
 // The task flow must be stopped.
-typedef void (*CxTFlowTaskFn)(void*);
-typedef struct CxTFlowTask CxTFlowTask;
 CxError cx_tflow_add_task(CxTFlow* tf, const char* name, CxTFlowTaskFn fn, void* arg, CxTFlowTask** ptask);
 
 // Sets the dependency (input) of a task
