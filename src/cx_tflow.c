@@ -38,7 +38,7 @@ typedef struct CxTFlowTask {
 // Task Flow state
 typedef struct CxTFlow {
     pthread_mutex_t     lock;           // For exclusive access
-    pthread_cond_t      stop_cv;        // Conditional variable signaled when stopped
+    pthread_cond_t      stop_cond;      // Conditional variable signaled when stopped
     const CxAllocator*  alloc;          // Custom allocator
     CxThreadPool*       tpool;          // Thread pool
     CxTracer*           tracer;         // Optional event tracer
@@ -50,6 +50,8 @@ typedef struct CxTFlow {
     arr_task            sinks;          // Array of pointers to sink tasks
     bool                stop;           // Stop request flag
     bool                running;        // Running flag
+    CxTFlowStopCb       stopcb;         // Optional stop callback
+    void*               stopcb_udata;   // Stop callback userdata
 } CxTFlow;
 
 // Forward declarations of local functions
@@ -71,7 +73,7 @@ CxTFlow* cx_tflow_new(const CxAllocator* alloc, size_t nthreads, CxTracer* trace
     CXCHK(nthreads > 0);
     CxTFlow* tf = cx_alloc_mallocz(alloc, sizeof(CxTFlow));
     CXCHKZ(pthread_mutex_init(&tf->lock, NULL));
-    CXCHKZ(pthread_cond_init(&tf->stop_cv, NULL));
+    CXCHKZ(pthread_cond_init(&tf->stop_cond, NULL));
     tf->alloc = alloc;
     tf->tracer = tracer;
     tf->tpool = cx_tpool_new(alloc, nthreads, 32);
@@ -83,7 +85,7 @@ CxTFlow* cx_tflow_new(const CxAllocator* alloc, size_t nthreads, CxTracer* trace
 
 CxError cx_tflow_del(CxTFlow* tf) {
 
-    CXCHKZ(pthread_cond_destroy(&tf->stop_cv));
+    CXCHKZ(pthread_cond_destroy(&tf->stop_cond));
     CXCHKZ(pthread_mutex_destroy(&tf->lock));
 
     for (size_t i = 0; i < arr_task_len(&tf->tasks); i++) {
@@ -103,6 +105,11 @@ CxError cx_tflow_del(CxTFlow* tf) {
     return CXOK();
 }
 
+void cx_tflow_set_stop_cb(CxTFlow* tf, CxTFlowStopCb cb, void* udata) {
+
+    tf->stopcb = cb;
+    tf->stopcb_udata = udata;
+}
 
 CxError cx_tflow_start(CxTFlow* tf, size_t cycles) {
 
@@ -195,7 +202,7 @@ CxError cx_tflow_wait(CxTFlow* tf, struct timespec timeout) {
     CxError error = {0};
     CXCHKZ(pthread_mutex_lock(&tf->lock));
     while (tf->running) {
-        const int res = pthread_cond_timedwait(&tf->stop_cv, &tf->lock, &abstime);
+        const int res = pthread_cond_timedwait(&tf->stop_cond, &tf->lock, &abstime);
         if (res) {
             if (res == ETIMEDOUT) {
                 error = CXERR("Timeout waiting for Task Flow to stop");
@@ -392,8 +399,12 @@ static void cx_tflow_wrapper(void* arg) {
             // Checks for stop request or number of cycles run
             if (tf->stop || (tf->cycles && tf->run_cycles >= tf->cycles)) {
                 tf->running = false;
-                CXCHKZ(pthread_cond_signal(&tf->stop_cv));
+                CXCHKZ(pthread_cond_signal(&tf->stop_cond));
                 CXCHKZ(pthread_mutex_unlock(&tf->lock));
+                // If stop callback was set and cycles has been run, calls stop callback
+                if (tf->stopcb && !tf->stop) {
+                    tf->stopcb(tf, tf->stopcb_udata);
+                }
                 return;
             }
             // Restart source tasks beginning a new cycle

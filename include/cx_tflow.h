@@ -16,6 +16,12 @@ CxTFlow* cx_tflow_new(const CxAllocator* alloc, size_t nthreads, CxTracer* trace
 // Finishes all tasks in the current cycle and then destroys the task flow
 CxError cx_tflow_del(CxTFlow* tf);
 
+typedef void (*CxTFlowStopCb)(CxTFlow*, void*);
+// Sets optional callback which will be called when the flow stops
+// after running for specified number of cycles.
+// This callback is not called when the flow is stopped using: cx_tflow_stop()
+void cx_tflow_set_stop_cb(CxTFlow* tf, CxTFlowStopCb cb, void* udata);
+
 // Run tasks for the specified number of cycles.
 // If cycles is 0, runs till cx_task_runner_stop() is called
 CxError cx_tflow_start(CxTFlow* tf, size_t cycles);
