@@ -359,7 +359,6 @@ static inline bool cx_tflow_is_running(CxTFlow* tf) {
 
 static void cx_tflow_wrapper(void* arg) {
 
-    printf("%s\n", __func__);
     CxTFlowTask* task = arg;    // current task
     CxTFlow* tf = task->tf;
 
