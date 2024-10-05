@@ -58,8 +58,8 @@ static void cx_tflow_wrapper(void* arg);
 static CxError cx_tflow_restart(CxTFlow* tf);
 
 // Debug print macro
-#define DEBUGF_ENABLE 0
-#if DEBUGF_ENABLE==1
+//#define DEBUGF_ENABLE
+#ifdef DEBUGF_ENABLE
 #define DEBUGF(...) printf(__VA_ARGS__)
 #else
 #define DEBUGF(...)
