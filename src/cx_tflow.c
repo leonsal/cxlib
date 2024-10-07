@@ -373,7 +373,9 @@ static void cx_tflow_wrapper(void* arg) {
     if (tf->tracer) {
         cx_tracer_begin(tf->tracer, task->name.data, "task");
     }
+    printf("TASK START:%s\n", task->name.data);
     CxError error = task->task_fn(task->task_arg);
+    printf("TASK END:%s\n", task->name.data);
     if (tf->tracer) {
         cx_tracer_end(tf->tracer, task->name.data, "task");
     }
